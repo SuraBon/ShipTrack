@@ -33,9 +33,6 @@ const STATS = [
   { key: 'delivered', filter: 'ส่งสำเร็จ',   label: 'ส่งสำเร็จ', icon: 'task_alt',       iconBg: 'bg-emerald-50',  iconText: 'text-emerald-600' },
 ] as const;
 
-const MESSENGER_OPEN_FILTER = 'งานที่ต้องจัดส่ง';
-const MESSENGER_DONE_FILTER = 'งานที่จัดส่งสำเร็จ';
-
 const StatsCard = ({
   label,
   icon,
@@ -76,68 +73,21 @@ const StatsCard = ({
 );
 
 const TableSkeleton = () => (
-  <div className="space-y-0 w-full">
+  <div className="w-full space-y-3 p-3">
     {[...Array(6)].map((_, i) => (
-      <div key={i} className="flex flex-col sm:flex-row items-start sm:items-center gap-4 px-4 sm:px-6 py-4 border-b border-outline-variant/10 w-full">
-        <Skeleton className="h-8 w-28 rounded-lg" />
-        <div className="flex-1 space-y-2 w-full">
-          <Skeleton className="h-4 w-3/4 sm:w-1/2" />
-          <Skeleton className="h-3 w-1/2 sm:w-1/3" />
+      <div key={i} className="rounded-2xl border border-outline-variant/15 bg-white p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1 space-y-2">
+            <Skeleton className="h-5 w-32 rounded-lg" />
+            <Skeleton className="h-4 w-3/4 rounded-lg" />
+          </div>
+          <Skeleton className="h-7 w-24 rounded-full" />
         </div>
-        <Skeleton className="h-4 w-20 hidden sm:block" />
-        <Skeleton className="h-6 w-24 rounded-full" />
+        <Skeleton className="mt-4 h-24 w-full rounded-xl" />
       </div>
     ))}
   </div>
 );
-
-const PARCEL_MILESTONES = [
-  { status: 'รอจัดส่ง', label: 'รอจัดส่ง', icon: 'inventory_2' },
-  { status: 'กำลังจัดส่ง', label: 'กำลังจัดส่ง', icon: 'local_shipping' },
-  { status: 'ส่งสำเร็จ', label: 'ส่งสำเร็จ', icon: 'task_alt' },
-] as const;
-
-const getMilestoneIndex = (status: Parcel['สถานะ']) => {
-  if (status === 'ส่งสำเร็จ') return 2;
-  if (status === 'กำลังจัดส่ง') return 1;
-  return 0;
-};
-
-const ParcelMilestone = ({ status }: { status: Parcel['สถานะ'] }) => {
-  const currentIndex = getMilestoneIndex(status);
-
-  return (
-    <div className="mt-2.5 rounded-xl border border-outline-variant/20 bg-surface-container-lowest/65 px-3 py-2">
-      <div className="flex items-center">
-        {PARCEL_MILESTONES.map((step, index) => {
-          const done = index <= currentIndex;
-          const active = index === currentIndex;
-          return (
-            <div key={step.status} className="flex flex-1 items-center last:flex-none">
-              <div className="flex min-w-0 flex-col items-center gap-1">
-                <span
-                  className={`grid h-6 w-6 place-items-center text-[13px] transition-colors ${
-                    done ? 'text-primary' : 'text-on-surface-variant/30'
-                  }`}
-                >
-                  <span className="material-symbols-outlined text-[14px]" style={{ fontVariationSettings: done ? "'FILL' 1" : "'FILL' 0" }}>
-                    {step.icon}
-                  </span>
-                </span>
-                <span className={`max-w-[82px] truncate text-[9px] font-black leading-none sm:text-[10px] ${active ? 'text-primary' : done ? 'text-on-surface-variant/65' : 'text-on-surface-variant/35'}`}>
-                  {step.label}
-                </span>
-              </div>
-              {index < PARCEL_MILESTONES.length - 1 && (
-                <div className={`mx-2 h-0.5 flex-1 rounded-full ${index < currentIndex ? 'bg-primary' : 'bg-outline-variant/25'}`} />
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-};
 
 const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; compact?: boolean }) => (
   <div className={`rounded-xl border border-primary/10 bg-primary/[0.03] ${compact ? 'p-2.5' : 'p-3'}`}>
@@ -171,70 +121,223 @@ const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; co
   </div>
 );
 
-const MobileParcelCard = ({
+const getCleanNote = (parcel: Parcel) => {
+  const createdEventNote = parcel.events?.find(evt => evt.eventType === 'CREATED')?.note?.trim();
+  if (createdEventNote && createdEventNote !== 'รับเข้าระบบ') return createdEventNote;
+  return (parcel['หมายเหตุ'] || '').replace(/\[[\s\S]*?\]/g, '').trim();
+};
+
+const getLatestTimelineSummary = (parcel: Parcel) => {
+  const events = parseParcelTimeline(parcel);
+  const latest = [...events].reverse().find(event => event.title || event.description);
+  if (!latest) return 'ยังไม่มีประวัติการเคลื่อนไหว';
+  return `${latest.title}${latest.description ? `: ${latest.description}` : ''}`;
+};
+
+const getDeliveryProofSummary = (parcel: Parcel) => {
+  const deliveryEvent = [...(parcel.events || [])].reverse().find(evt => evt.eventType === 'DELIVERED' || evt.eventType === 'PROXY');
+  if (!deliveryEvent) return '';
+  const receiver = deliveryEvent.person ? `ผู้รับจริง: ${deliveryEvent.person}` : '';
+  const match =
+    deliveryEvent.deliveryMatchStatus === 'DELIVERED_ELSEWHERE'
+      ? `ส่งคนละจุด${deliveryEvent.deliveryMismatchReason ? ` (${deliveryEvent.deliveryMismatchReason})` : ''}`
+      : deliveryEvent.deliveryMatchStatus === 'MATCHED_DECLARED_DESTINATION'
+        ? 'ยืนยันส่งตรงปลายทาง'
+        : '';
+  return [receiver, match].filter(Boolean).join(' · ');
+};
+
+const ParcelInfoStrip = ({ parcel }: { parcel: Parcel }) => {
+  const note = getCleanNote(parcel);
+  return (
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">เอกสาร</p>
+        <p className="mt-0.5 truncate text-xs font-black text-primary">{parcel['ประเภทเอกสาร'] || '-'}</p>
+      </div>
+      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">รายละเอียด</p>
+        <p className="mt-0.5 truncate text-xs font-bold text-primary">{parcel['รายละเอียด'] || '-'}</p>
+      </div>
+      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">หมายเหตุ</p>
+        <p className="mt-0.5 truncate text-xs font-bold text-primary">{note || '-'}</p>
+      </div>
+    </div>
+  );
+};
+
+const CardActions = ({
   parcel,
   onOpen,
-  canConfirm,
   onConfirm,
-  isMessenger = false,
+  onDelete,
+  canConfirm,
+  canDelete = false,
 }: {
   parcel: Parcel;
   onOpen: () => void;
-  canConfirm: boolean;
   onConfirm: () => void;
-  isMessenger?: boolean;
+  onDelete?: () => void;
+  canConfirm: boolean;
+  canDelete?: boolean;
 }) => (
-  <div className={`w-full rounded-xl border bg-white p-3 text-left shadow-sm transition-all ${isMessenger ? 'border-primary/15' : 'border-outline-variant/20'}`}>
-    <div className="w-full text-left">
-      <div className="flex items-start justify-between gap-2.5">
-        <div className="min-w-0 flex-1">
-          <code className="inline-block max-w-full break-all rounded-md bg-primary/6 px-2 py-0.5 font-mono text-[11px] font-black leading-tight text-primary">
-            {parcel.TrackingID}
-          </code>
-          {!isMessenger && (
-            <div className="mt-2 flex min-w-0 items-center gap-1.5">
-              <span className="truncate text-xs font-black text-primary">{parcel['ผู้ส่ง']}</span>
-              <span className="material-symbols-outlined shrink-0 text-sm text-outline-variant">arrow_forward</span>
-              <span className="truncate text-xs font-black text-primary">{parcel['ผู้รับ']}</span>
-            </div>
-          )}
-          {!isMessenger && (
-            <div className="mt-1 flex min-w-0 items-center gap-1 text-[11px] font-semibold text-on-surface-variant">
-              <span className="truncate">{parcel['สาขาผู้ส่ง']}</span>
-              <span className="shrink-0">→</span>
-              <span className="truncate">{parcel['สาขาผู้รับ']}</span>
-            </div>
-          )}
-          <div className="mt-1 text-[11px] font-semibold text-on-surface-variant">
-            <span>{formatThaiDateTime(parcel['วันที่สร้าง'])}</span>
-          </div>
-        </div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <StatusBadge status={parcel['สถานะ']} className="h-6 w-[92px] text-[10px]" />
-          <button
-            type="button"
-            onClick={onOpen}
-            className="inline-flex items-center gap-0.5 rounded-full bg-primary/8 px-2 py-1 text-[10px] font-black text-primary transition-colors hover:bg-primary hover:text-white active:scale-95"
-          >
-            ดูรายละเอียด
-            <span className="material-symbols-outlined text-[13px]">chevron_right</span>
-          </button>
-        </div>
-      </div>
-      {isMessenger && <div className="mt-3"><MessengerRouteSummary parcel={parcel} compact /></div>}
-      <ParcelMilestone status={parcel['สถานะ']} />
-    </div>
-    {canConfirm && (
+  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+    {canConfirm && parcel['สถานะ'] !== 'ส่งสำเร็จ' && (
       <button
         type="button"
         onClick={onConfirm}
-        className="mt-2.5 flex h-9 w-full items-center justify-center gap-2 rounded-xl bg-primary text-xs font-black text-white shadow-sm active:scale-[0.99]"
+        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98] sm:flex-none"
       >
-        <span className="material-symbols-outlined text-base">add_a_photo</span>
+        <span className="material-symbols-outlined text-lg">add_a_photo</span>
         บันทึกผลการส่ง
       </button>
     )}
+    <button
+      type="button"
+      onClick={onOpen}
+      className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant/35 bg-white px-4 text-sm font-black text-primary transition-all hover:border-primary/35 hover:bg-primary/5 active:scale-[0.98] sm:flex-none"
+    >
+      <span className="material-symbols-outlined text-lg">history</span>
+      ประวัติเต็ม
+    </button>
+    {canDelete && onDelete && (
+      <button
+        type="button"
+        onClick={onDelete}
+        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-error/20 bg-error/8 px-4 text-sm font-black text-error transition-all hover:bg-error hover:text-white active:scale-[0.98] sm:flex-none"
+      >
+        <span className="material-symbols-outlined text-lg">delete</span>
+        ลบ
+      </button>
+    )}
   </div>
+);
+
+const MessengerDeliveryCard = ({
+  parcel,
+  onOpen,
+  onConfirm,
+}: {
+  parcel: Parcel;
+  onOpen: () => void;
+  onConfirm: () => void;
+}) => {
+  const proof = getDeliveryProofSummary(parcel);
+  const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
+  return (
+    <article className={`rounded-2xl border bg-white p-3 shadow-sm sm:p-4 ${isDone ? 'border-emerald-100' : 'border-primary/15'}`}>
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+            {isDone && <StatusBadge status={parcel['สถานะ']} className="h-6 w-[92px] text-[10px]" />}
+          </div>
+          <p className="mt-2 text-sm font-black leading-tight text-primary">ส่งให้ {parcel['ผู้รับ'] || '-'}</p>
+        </div>
+        {!isDone && (
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98]"
+          >
+            <span className="material-symbols-outlined text-lg">add_a_photo</span>
+            บันทึกผลการส่ง
+          </button>
+        )}
+      </div>
+      <MessengerRouteSummary parcel={parcel} />
+      <div className="mt-3">
+        <ParcelInfoStrip parcel={parcel} />
+      </div>
+      <div className="mt-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest/70 px-3 py-2">
+        <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/45">
+          {isDone ? 'หลักฐานสรุป' : 'ตอนบันทึกต้องเก็บ'}
+        </p>
+        <p className="mt-1 text-xs font-bold leading-snug text-primary">
+          {isDone ? (proof || 'ส่งสำเร็จแล้ว ดูประวัติเต็มเพื่อดูรูป/GPS') : 'ถ่ายรูปหลักฐาน + บันทึก GPS + ยืนยันว่าตรงปลายทางหรือฝากไว้ที่อื่น'}
+        </p>
+      </div>
+      <div className="mt-3">
+        <CardActions parcel={parcel} onOpen={onOpen} onConfirm={onConfirm} canConfirm={false} />
+      </div>
+    </article>
+  );
+};
+
+const UserParcelOverviewCard = ({
+  parcel,
+  onOpen,
+}: {
+  parcel: Parcel;
+  onOpen: () => void;
+}) => (
+  <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+        <p className="mt-2 text-base font-black leading-tight text-primary">ส่งให้ {parcel['ผู้รับ'] || '-'}</p>
+        <p className="mt-1 text-xs font-semibold text-on-surface-variant/70">ปลายทาง: {parcel['สาขาผู้รับ'] || '-'}</p>
+      </div>
+      <StatusBadge status={parcel['สถานะ']} />
+    </div>
+    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">วันที่สร้าง</p>
+        <p className="mt-0.5 text-xs font-bold text-primary">{formatThaiDateTime(parcel['วันที่สร้าง'])}</p>
+      </div>
+      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">อัปเดตล่าสุด</p>
+        <p className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-primary">{getLatestTimelineSummary(parcel)}</p>
+      </div>
+    </div>
+    <div className="mt-3">
+      <ParcelInfoStrip parcel={parcel} />
+    </div>
+    <div className="mt-3">
+      <CardActions parcel={parcel} onOpen={onOpen} onConfirm={() => undefined} canConfirm={false} />
+    </div>
+  </article>
+);
+
+const AdminParcelManagementCard = ({
+  parcel,
+  onOpen,
+  onConfirm,
+  onDelete,
+}: {
+  parcel: Parcel;
+  onOpen: () => void;
+  onConfirm: () => void;
+  onDelete: () => void;
+}) => (
+  <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+      <div className="min-w-0">
+        <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+        <p className="mt-2 text-base font-black leading-tight text-primary">{parcel['ผู้ส่ง'] || '-'} → {parcel['ผู้รับ'] || '-'}</p>
+        <p className="mt-1 text-xs font-semibold text-on-surface-variant/70">{parcel['สาขาผู้ส่ง'] || '-'} → {parcel['สาขาผู้รับ'] || '-'}</p>
+      </div>
+      <StatusBadge status={parcel['สถานะ']} />
+    </div>
+    <div className="mt-3">
+      <ParcelInfoStrip parcel={parcel} />
+    </div>
+    <div className="mt-3 rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+      <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">ล่าสุด</p>
+      <p className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-primary">{getLatestTimelineSummary(parcel)}</p>
+    </div>
+    <div className="mt-3">
+      <CardActions
+        parcel={parcel}
+        onOpen={onOpen}
+        onConfirm={onConfirm}
+        onDelete={onDelete}
+        canConfirm
+        canDelete
+      />
+    </div>
+  </article>
 );
 
 export default function Dashboard({ isConfigured }: DashboardProps) {
@@ -244,7 +347,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const role = normalizeRole(user?.role);
   const isMessengerDashboard = role === 'MESSENGER';
-  const defaultStatusFilter = isMessengerDashboard ? MESSENGER_OPEN_FILTER : 'ทั้งหมด';
+  const defaultStatusFilter = 'ทั้งหมด';
   const [statusFilter, setStatusFilter] = useState(() => defaultStatusFilter);
   const [selectedParcel, setSelectedParcel] = useState<Parcel | null>(null);
   const [isTimelineOpen, setIsTimelineOpen] = useState(false);
@@ -261,35 +364,12 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const isUserDashboard = role === 'USER';
   const canConfirmParcel = role === 'ADMIN' || role === 'MESSENGER';
   const stats = useMemo(() => {
-    if (isMessengerDashboard) {
-      return [
-        {
-          key: 'messengerOpen',
-          filter: MESSENGER_OPEN_FILTER,
-          label: MESSENGER_OPEN_FILTER,
-          icon: 'inventory_2',
-          iconBg: 'bg-amber-50',
-          iconText: 'text-amber-600',
-          count: (summary?.pending ?? 0) + (summary?.transit ?? 0),
-        },
-        {
-          key: 'messengerDone',
-          filter: MESSENGER_DONE_FILTER,
-          label: MESSENGER_DONE_FILTER,
-          icon: 'task_alt',
-          iconBg: 'bg-emerald-50',
-          iconText: 'text-emerald-600',
-          count: summary?.delivered ?? 0,
-        },
-      ];
-    }
-
     return STATS.map((stat) => ({
       ...stat,
       label: isUserDashboard && stat.key === 'total' ? 'พัสดุของฉันทั้งหมด' : stat.label,
       count: summary?.[stat.key] ?? 0,
     }));
-  }, [isMessengerDashboard, isUserDashboard, summary]);
+  }, [isUserDashboard, summary]);
 
   // Single fetch function — loadParcels already recomputes summary internally
   // ✅ FIX: Use ref to avoid stale closure without adding loadParcels to deps
@@ -315,21 +395,6 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     fetchData();
   }, [isConfigured, fetchData]);
 
-  useEffect(() => {
-    if (isMessengerDashboard) {
-      setStatusFilter(prev => (
-        prev === 'ทั้งหมด' || prev === 'รอจัดส่ง' || prev === 'กำลังจัดส่ง'
-          ? MESSENGER_OPEN_FILTER
-          : prev
-      ));
-      return;
-    }
-
-    if (statusFilter === MESSENGER_OPEN_FILTER || statusFilter === MESSENGER_DONE_FILTER) {
-      setStatusFilter('ทั้งหมด');
-    }
-  }, [isMessengerDashboard, statusFilter]);
-
   // Countdown tick — pauses when tab is hidden to save GAS quota
   useEffect(() => {
     if (!isConfigured) return;
@@ -353,11 +418,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   const filteredParcels = useMemo(() => {
     let f = parcels;
-    if (statusFilter === MESSENGER_OPEN_FILTER) {
-      f = f.filter(p => p['สถานะ'] !== 'ส่งสำเร็จ');
-    } else if (statusFilter === MESSENGER_DONE_FILTER) {
-      f = f.filter(p => p['สถานะ'] === 'ส่งสำเร็จ');
-    } else if (statusFilter !== 'ทั้งหมด') {
+    if (!isMessengerDashboard && statusFilter !== 'ทั้งหมด') {
       f = f.filter(p => p['สถานะ'] === statusFilter);
     }
     if (debouncedSearch) {
@@ -370,7 +431,16 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       );
     }
     return f;
-  }, [parcels, statusFilter, debouncedSearch]);
+  }, [parcels, statusFilter, debouncedSearch, isMessengerDashboard]);
+
+  const messengerOpenParcels = useMemo(
+    () => filteredParcels.filter(parcel => parcel['สถานะ'] !== 'ส่งสำเร็จ'),
+    [filteredParcels],
+  );
+  const messengerDoneParcels = useMemo(
+    () => filteredParcels.filter(parcel => parcel['สถานะ'] === 'ส่งสำเร็จ'),
+    [filteredParcels],
+  );
 
   // Pagination calculations — use totalCount from backend for accurate total pages
   const backendTotalPages = Math.max(1, Math.ceil((totalCount || filteredParcels.length) / pageSize));
@@ -520,40 +590,44 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       )}
 
       {/* ── Stats ── */}
-      <div className="grid grid-cols-2 gap-2 sm:hidden">
-        {stats.map(s => (
-          <button
-            key={s.key}
-            type="button"
-            onClick={() => setStatusFilter(s.filter)}
-            aria-pressed={statusFilter === s.filter}
-            className={`rounded-xl border bg-white/90 p-2.5 text-left shadow-sm transition-all active:scale-[0.99] ${
-              statusFilter === s.filter
-                ? 'border-primary/45 ring-2 ring-primary/10'
-                : 'border-outline-variant/25'
-            }`}
-          >
-            <div className="flex items-center gap-2.5">
-              <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${s.iconBg}`}>
-                <span className={`material-symbols-outlined text-lg ${s.iconText}`}>{s.icon}</span>
-              </div>
-              <div className="min-w-0">
-                <p className="text-xl font-black leading-none text-primary">{s.count}</p>
-                <p className="mt-0.5 truncate text-xs font-medium text-primary">{s.label}</p>
-              </div>
-            </div>
-          </button>
-        ))}
-      </div>
-      <div className={`hidden gap-4 sm:grid sm:grid-cols-2 ${isMessengerDashboard ? 'lg:grid-cols-2' : 'lg:grid-cols-4'}`}>
-        {stats.map(s => (
-          <StatsCard key={s.key} label={s.label} icon={s.icon} iconBg={s.iconBg} iconText={s.iconText}
-            count={s.count}
-            active={statusFilter === s.filter}
-            onClick={() => setStatusFilter(s.filter)}
-          />
-        ))}
-      </div>
+      {!isMessengerDashboard && (
+        <>
+          <div className="grid grid-cols-2 gap-2 sm:hidden">
+            {stats.map(s => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setStatusFilter(s.filter)}
+                aria-pressed={statusFilter === s.filter}
+                className={`rounded-xl border bg-white/90 p-2.5 text-left shadow-sm transition-all active:scale-[0.99] ${
+                  statusFilter === s.filter
+                    ? 'border-primary/45 ring-2 ring-primary/10'
+                    : 'border-outline-variant/25'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${s.iconBg}`}>
+                    <span className={`material-symbols-outlined text-lg ${s.iconText}`}>{s.icon}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-xl font-black leading-none text-primary">{s.count}</p>
+                    <p className="mt-0.5 truncate text-xs font-medium text-primary">{s.label}</p>
+                  </div>
+                </div>
+              </button>
+            ))}
+          </div>
+          <div className="hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+            {stats.map(s => (
+              <StatsCard key={s.key} label={s.label} icon={s.icon} iconBg={s.iconBg} iconText={s.iconText}
+                count={s.count}
+                active={statusFilter === s.filter}
+                onClick={() => setStatusFilter(s.filter)}
+              />
+            ))}
+          </div>
+        </>
+      )}
 
       {/* ── Filters ── */}
       <div className="bg-white/85 backdrop-blur-sm border border-outline-variant/30 rounded-xl p-2.5 sm:rounded-2xl sm:p-4 shadow-sm">
@@ -596,232 +670,153 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         </div>
       </div>
 
-      {/* ── Table ── */}
-      <div className="bg-white/90 backdrop-blur-sm border border-outline-variant/35 rounded-xl sm:rounded-2xl overflow-hidden shadow-sm">
-        {/* Table header bar */}
-        <div className="px-3 py-2.5 sm:px-5 sm:py-3 border-b border-outline-variant/10 flex justify-between items-center">
-          <div className="flex items-center gap-2.5">
-            <span className="material-symbols-outlined text-primary text-base sm:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>table_rows</span>
-            <h2 className="font-display font-bold text-primary text-sm">{isMessengerDashboard ? 'รายการงานส่ง' : 'รายการพัสดุ'}</h2>
-            <span className="px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-bold rounded-full">
+      {/* ── Role Cards ── */}
+      <section className="overflow-hidden rounded-xl border border-outline-variant/35 bg-white/90 shadow-sm backdrop-blur-sm sm:rounded-2xl">
+        <div className="flex items-center justify-between gap-3 border-b border-outline-variant/10 px-3 py-2.5 sm:px-5 sm:py-3">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span className="material-symbols-outlined text-base text-primary sm:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
+              {isMessengerDashboard ? 'route' : isUserDashboard ? 'inventory_2' : 'view_agenda'}
+            </span>
+            <h2 className="truncate font-display text-sm font-bold text-primary">
+              {isMessengerDashboard ? 'งานส่งหน้าเดียวจบ' : isUserDashboard ? 'พัสดุของฉัน' : 'รายการจัดการพัสดุ'}
+            </h2>
+            <span className="rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-bold text-primary">
               {filteredParcels.length}
             </span>
             {loading && <span className="material-symbols-outlined text-sm text-primary animate-spin">progress_activity</span>}
           </div>
           {hasFilters && !isMessengerDashboard && (
             <button onClick={clearFilters}
-              className="flex items-center gap-1 text-[11px] sm:text-xs text-error/80 hover:text-error font-semibold transition-colors">
+              className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-error/80 transition-colors hover:text-error sm:text-xs">
               <span className="material-symbols-outlined text-sm">filter_alt_off</span>
               ล้างตัวกรอง
             </button>
           )}
         </div>
 
-        <div>
-          {loading && !filteredParcels.length ? (
-            <TableSkeleton />
-          ) : !filteredParcels.length ? (
-            <div className="py-16 text-center flex flex-col items-center gap-3">
-              <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center">
-                <span className="material-symbols-outlined text-3xl text-on-surface-variant/30">search_off</span>
+        {loading && !filteredParcels.length ? (
+          <TableSkeleton />
+        ) : !filteredParcels.length ? (
+          <div className="flex flex-col items-center gap-3 py-16 text-center">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-container">
+              <span className="material-symbols-outlined text-3xl text-on-surface-variant/30">search_off</span>
+            </div>
+            <div>
+              <p className="font-bold text-primary">ไม่พบข้อมูลพัสดุ</p>
+              <p className="mt-0.5 text-sm text-on-surface-variant">ลองปรับคำค้นหา</p>
+            </div>
+            {hasFilters && !isMessengerDashboard && (
+              <button onClick={clearFilters} className="text-sm font-bold text-primary hover:underline">ล้างตัวกรอง</button>
+            )}
+          </div>
+        ) : isMessengerDashboard ? (
+          <div className="space-y-5 p-3 sm:p-4">
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="font-display text-sm font-black text-primary">ต้องไปส่ง</h3>
+                <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-black text-amber-700">{messengerOpenParcels.length} งาน</span>
               </div>
-              <div>
-                <p className="font-bold text-primary">ไม่พบข้อมูลพัสดุ</p>
-                <p className="text-sm text-on-surface-variant mt-0.5">ลองปรับตัวกรองหรือคำค้นหา</p>
-              </div>
-              {hasFilters && !isMessengerDashboard && (
-                <button onClick={clearFilters} className="text-sm text-primary font-bold hover:underline">ล้างตัวกรอง</button>
+              {messengerOpenParcels.length ? (
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {messengerOpenParcels.map(parcel => (
+                    <MessengerDeliveryCard
+                      key={parcel.TrackingID}
+                      parcel={parcel}
+                      onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                      onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-5 text-center text-sm font-bold text-emerald-800">
+                  ไม่มีงานค้างส่งในตอนนี้
+                </div>
               )}
             </div>
-          ) : (
-            <>
-            <div className="space-y-2 p-2 sm:hidden">
-              {paginatedParcels.map((parcel) => (
-                <MobileParcelCard
+
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h3 className="font-display text-sm font-black text-primary">ส่งแล้ว</h3>
+                <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">{messengerDoneParcels.length} งาน</span>
+              </div>
+              {messengerDoneParcels.length ? (
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {messengerDoneParcels.map(parcel => (
+                    <MessengerDeliveryCard
+                      key={parcel.TrackingID}
+                      parcel={parcel}
+                      onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                      onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest px-4 py-5 text-center text-sm font-bold text-on-surface-variant/60">
+                  ยังไม่มีงานที่ส่งสำเร็จในรายการนี้
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3 p-3 sm:p-4">
+            {paginatedParcels.map(parcel => (
+              isUserDashboard ? (
+                <UserParcelOverviewCard
                   key={parcel.TrackingID}
                   parcel={parcel}
                   onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                  canConfirm={canConfirmParcel && parcel['สถานะ'] !== 'ส่งสำเร็จ'}
-                  onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                  isMessenger={role === 'MESSENGER'}
                 />
-              ))}
-            </div>
-            <div className="hidden overflow-x-auto sm:block">
-            <table className="w-full text-left border-collapse min-w-[580px]">
-              <thead>
-                <tr className="text-[10px] uppercase tracking-widest font-black text-on-surface-variant/50 border-b border-outline-variant/10">
-                  <th className="px-5 py-2.5 bg-surface-container-lowest/60 text-center">หมายเลขติดตาม</th>
-                  <th className="px-4 py-2.5 bg-surface-container-lowest/60 text-center">{isMessengerDashboard ? 'เส้นทางและผู้รับ' : 'จาก → ส่งให้/ไปที่'}</th>
-                  <th className="px-4 py-2.5 bg-surface-container-lowest/60 text-center">วันที่</th>
-                  <th className="px-4 py-2.5 bg-surface-container-lowest/60 text-center">สถานะ</th>
-                  <th className="px-4 py-2.5 bg-surface-container-lowest/60 text-center">การดำเนินการ</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-outline-variant/8">
-                {paginatedParcels.map((parcel) => (
-                  <tr
-                    key={parcel.TrackingID}
-                    onClick={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                    className="hover:bg-primary/[0.025] transition-colors group cursor-pointer"
-                  >
-                    <td className="px-5 py-3 text-center">
-                      <div className="flex items-center justify-center gap-2">
-                        <code className="font-mono text-primary bg-primary/6 px-2 py-1 rounded-lg text-xs font-bold tracking-wide">
-                          {parcel.TrackingID}
-                        </code>
-                        <button
-                          onClick={e => { e.stopPropagation(); navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอก ${parcel.TrackingID}`); }}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-on-surface-variant/40 hover:text-primary p-0.5 rounded shrink-0"
-                        >
-                          <span className="material-symbols-outlined text-sm">content_copy</span>
-                        </button>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {isMessengerDashboard ? (
-                        <div className="mx-auto max-w-md text-left">
-                          <MessengerRouteSummary parcel={parcel} />
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center gap-1">
-                          <div className="flex items-center gap-1.5 text-sm">
-                            <span className="font-semibold text-primary truncate max-w-[100px]">{parcel['ผู้ส่ง']}</span>
-                            <span className="material-symbols-outlined text-outline-variant text-sm shrink-0">arrow_forward</span>
-                            <span className="text-on-surface-variant font-medium truncate max-w-[100px]">{parcel['ผู้รับ']}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <span className="text-[10px] text-on-surface-variant/40">{parcel['สาขาผู้ส่ง']}</span>
-                            <span className="text-[10px] text-on-surface-variant/30">→</span>
-                            <span className="text-[10px] text-on-surface-variant/40">{parcel['สาขาผู้รับ']}</span>
-                          </div>
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-on-surface-variant text-center">
-                      <span className="text-sm font-medium">{formatThaiDateTime(parcel['วันที่สร้าง'])}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <StatusBadge status={parcel['สถานะ']} />
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      {canConfirmParcel && parcel['สถานะ'] !== 'ส่งสำเร็จ' ? (
-                        <button
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            openConfirmFlow(parcel.TrackingID);
-                          }}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-black text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
-                        >
-                          <span className="material-symbols-outlined text-sm">add_a_photo</span>
-                          บันทึกผลการส่ง
-                        </button>
-                      ) : (
-                        <button className="inline-flex items-center gap-1 text-xs font-bold text-primary/60 group-hover:text-primary transition-colors">
-                          ดูรายละเอียด
-                          <span className="material-symbols-outlined text-sm group-hover:translate-x-0.5 transition-transform">chevron_right</span>
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            </div>
-            </>
-          )}
-        </div>
+              ) : (
+                <AdminParcelManagementCard
+                  key={parcel.TrackingID}
+                  parcel={parcel}
+                  onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                  onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                  onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                />
+              )
+            ))}
+          </div>
+        )}
 
-        {/* Footer + Pagination */}
-        {filteredParcels.length > 0 && (
-          <div className="px-5 py-3 border-t border-outline-variant/10 bg-surface-container-lowest/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-            {/* Info */}
-            <div className="flex items-center gap-3">
-              <span className="text-xs text-on-surface-variant/60">
-                แสดง <span className="font-bold text-primary">{startIndex}–{endIndex}</span> จาก <span className="font-bold text-primary">{totalCount || filteredParcels.length}</span> รายการ
-                {filteredParcels.length !== parcels.length && <span className="text-on-surface-variant/40"> (กรองจาก {parcels.length})</span>}
-              </span>
-            </div>
+        {!isMessengerDashboard && filteredParcels.length > 0 && (
+          <div className="flex flex-col items-center justify-between gap-3 border-t border-outline-variant/10 bg-surface-container-lowest/40 px-5 py-3 sm:flex-row">
+            <span className="text-xs text-on-surface-variant/60">
+              แสดง <span className="font-bold text-primary">{startIndex}–{endIndex}</span> จาก <span className="font-bold text-primary">{totalCount || filteredParcels.length}</span> รายการ
+              {filteredParcels.length !== parcels.length && <span className="text-on-surface-variant/40"> (กรองจาก {parcels.length})</span>}
+            </span>
 
-            {/* Page controls */}
             {totalPages > 1 && (
               <div className="flex items-center gap-1">
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-primary hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
+                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
                   <span className="material-symbols-outlined text-base">first_page</span>
                 </button>
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-primary hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
                   <span className="material-symbols-outlined text-base">chevron_left</span>
                 </button>
-
-                {/* Page numbers */}
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
-                  .reduce<(number | '...')[]>((acc, p, i, arr) => {
-                    if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('...');
-                    acc.push(p);
-                    return acc;
-                  }, [])
-                  .map((p, i) =>
-                    p === '...' ? (
-                      <span key={`ellipsis-${i}`} className="px-1 text-xs text-on-surface-variant/30">…</span>
-                    ) : (
-                      <button
-                        key={p}
-                        onClick={() => setCurrentPage(p as number)}
-                        className={`min-w-[30px] h-[30px] rounded-lg text-xs font-bold transition-all ${
-                          currentPage === p
-                            ? 'bg-primary text-white shadow-sm'
-                            : 'text-on-surface-variant/60 hover:text-primary hover:bg-surface-container'
-                        }`}
-                      >
-                        {p}
-                      </button>
-                    )
-                  )}
-
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-primary hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
+                <span className="px-2 text-xs font-black text-primary">{currentPage}/{totalPages}</span>
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
                   <span className="material-symbols-outlined text-base">chevron_right</span>
                 </button>
-                <button
-                  onClick={() => setCurrentPage(totalPages)}
-                  disabled={currentPage === totalPages}
-                  className="p-1.5 rounded-lg text-on-surface-variant/50 hover:text-primary hover:bg-surface-container disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
+                <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
                   <span className="material-symbols-outlined text-base">last_page</span>
                 </button>
               </div>
             )}
-            
-            {/* Backend Load More Button */}
+
             {hasMore && (
               <button
                 onClick={loadMoreParcels}
                 disabled={loading}
-                className="text-xs font-bold text-primary bg-primary/10 hover:bg-primary/20 px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 disabled:opacity-50"
+                className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
               >
-                {loading ? (
-                  <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span>
-                ) : (
-                  <span className="material-symbols-outlined text-sm">download</span>
-                )}
+                {loading ? <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span> : <span className="material-symbols-outlined text-sm">download</span>}
                 โหลดข้อมูลเพิ่ม
               </button>
             )}
           </div>
         )}
-      </div>
+      </section>
 
       {/* ── Timeline Dialog ── */}
       <ParcelTimelineModal
