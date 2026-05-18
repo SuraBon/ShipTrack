@@ -12,12 +12,12 @@ import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 import { parseParcelTimeline } from '@/lib/timeline';
 import { Skeleton } from '@/components/ui/skeleton';
-import { formatThaiDateTime } from '@/lib/dateUtils';
+import { formatThaiDateTime, getDateTime } from '@/lib/dateUtils';
 import ParcelTimelineModal from '@/components/ParcelTimelineModal';
 import ConfirmReceipt from '@/pages/ConfirmReceipt';
 import CreateParcel from '@/pages/CreateParcel';
 import Track from '@/pages/Track';
-import { normalizeRole } from '@/lib/roles';
+import { normalizeRole, type AppRole } from '@/lib/roles';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -32,6 +32,9 @@ const STATS = [
   { key: 'transit',   filter: 'กำลังจัดส่ง', label: 'กำลังจัดส่ง', icon: 'local_shipping', iconBg: 'bg-blue-50',     iconText: 'text-blue-600' },
   { key: 'delivered', filter: 'ส่งสำเร็จ',   label: 'ส่งสำเร็จ', icon: 'task_alt',       iconBg: 'bg-emerald-50',  iconText: 'text-emerald-600' },
 ] as const;
+
+const STALE_DAYS = 2;
+const PREVIEW_ROLES: AppRole[] = ['USER', 'MESSENGER', 'ADMIN'];
 
 const StatsCard = ({
   label,
@@ -147,6 +150,56 @@ const getDeliveryProofSummary = (parcel: Parcel) => {
   return [receiver, match].filter(Boolean).join(' · ');
 };
 
+const getParcelAgeDays = (parcel: Parcel) => {
+  const createdAt = getDateTime(parcel['วันที่สร้าง']);
+  if (!createdAt) return 0;
+  return Math.max(0, Math.floor((Date.now() - createdAt) / (24 * 60 * 60 * 1000)));
+};
+
+const isParcelStale = (parcel: Parcel) => parcel['สถานะ'] !== 'ส่งสำเร็จ' && getParcelAgeDays(parcel) > STALE_DAYS;
+
+const sortMessengerWork = (a: Parcel, b: Parcel) => {
+  const priority = (parcel: Parcel) => parcel['สถานะ'] === 'กำลังจัดส่ง' ? 0 : 1;
+  const priorityDiff = priority(a) - priority(b);
+  if (priorityDiff !== 0) return priorityDiff;
+  return getDateTime(a['วันที่สร้าง']) - getDateTime(b['วันที่สร้าง']);
+};
+
+const resolveDashboardRole = (rawRole: unknown): AppRole => {
+  if (import.meta.env.DEV) {
+    const previewRole = new URLSearchParams(window.location.search).get('previewRole');
+    const normalizedPreview = normalizeRole(previewRole);
+    if (PREVIEW_ROLES.includes(normalizedPreview)) return normalizedPreview;
+  }
+  return normalizeRole(rawRole);
+};
+
+const StaleBadge = ({ parcel }: { parcel: Parcel }) => {
+  if (!isParcelStale(parcel)) return null;
+  const ageDays = getParcelAgeDays(parcel);
+  return (
+    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">
+      <span className="material-symbols-outlined text-[13px]">priority_high</span>
+      ค้างนาน {ageDays} วัน
+    </span>
+  );
+};
+
+const EvidenceChecklist = () => (
+  <div className="flex flex-wrap gap-1.5">
+    {[
+      ['photo_camera', 'ถ่ายรูป'],
+      ['my_location', 'GPS'],
+      ['task_alt', 'ยืนยันปลายทาง'],
+    ].map(([icon, label]) => (
+      <span key={label} className="inline-flex items-center gap-1 rounded-full border border-primary/10 bg-white px-2 py-1 text-[10px] font-black text-primary shadow-sm">
+        <span className="material-symbols-outlined text-[13px]">{icon}</span>
+        {label}
+      </span>
+    ))}
+  </div>
+);
+
 const ParcelInfoStrip = ({ parcel }: { parcel: Parcel }) => {
   const note = getCleanNote(parcel);
   return (
@@ -174,6 +227,8 @@ const CardActions = ({
   onDelete,
   canConfirm,
   canDelete = false,
+  detailLabel = 'ประวัติเต็ม',
+  compactDetail = false,
 }: {
   parcel: Parcel;
   onOpen: () => void;
@@ -181,6 +236,8 @@ const CardActions = ({
   onDelete?: () => void;
   canConfirm: boolean;
   canDelete?: boolean;
+  detailLabel?: string;
+  compactDetail?: boolean;
 }) => (
   <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
     {canConfirm && parcel['สถานะ'] !== 'ส่งสำเร็จ' && (
@@ -196,10 +253,12 @@ const CardActions = ({
     <button
       type="button"
       onClick={onOpen}
-      className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant/35 bg-white px-4 text-sm font-black text-primary transition-all hover:border-primary/35 hover:bg-primary/5 active:scale-[0.98] sm:flex-none"
+      className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant/35 bg-white font-black text-primary transition-all hover:border-primary/35 hover:bg-primary/5 active:scale-[0.98] sm:flex-none ${
+        compactDetail ? 'h-8 px-3 text-xs' : 'h-10 px-4 text-sm'
+      }`}
     >
-      <span className="material-symbols-outlined text-lg">history</span>
-      ประวัติเต็ม
+      <span className={`material-symbols-outlined ${compactDetail ? 'text-base' : 'text-lg'}`}>history</span>
+      {detailLabel}
     </button>
     {canDelete && onDelete && (
       <button
@@ -232,6 +291,7 @@ const MessengerDeliveryCard = ({
           <div className="flex flex-wrap items-center gap-2">
             <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
             {isDone && <StatusBadge status={parcel['สถานะ']} className="h-6 w-[92px] text-[10px]" />}
+            <StaleBadge parcel={parcel} />
           </div>
           <p className="mt-2 text-sm font-black leading-tight text-primary">ส่งให้ {parcel['ผู้รับ'] || '-'}</p>
         </div>
@@ -257,9 +317,10 @@ const MessengerDeliveryCard = ({
         <p className="mt-1 text-xs font-bold leading-snug text-primary">
           {isDone ? (proof || 'ส่งสำเร็จแล้ว ดูประวัติเต็มเพื่อดูรูป/GPS') : 'ถ่ายรูปหลักฐาน + บันทึก GPS + ยืนยันว่าตรงปลายทางหรือฝากไว้ที่อื่น'}
         </p>
+        {!isDone && <div className="mt-2"><EvidenceChecklist /></div>}
       </div>
       <div className="mt-3">
-        <CardActions parcel={parcel} onOpen={onOpen} onConfirm={onConfirm} canConfirm={false} />
+        <CardActions parcel={parcel} onOpen={onOpen} onConfirm={onConfirm} canConfirm={false} detailLabel="ดูรูป/ประวัติ" compactDetail />
       </div>
     </article>
   );
@@ -295,7 +356,7 @@ const UserParcelOverviewCard = ({
       <ParcelInfoStrip parcel={parcel} />
     </div>
     <div className="mt-3">
-      <CardActions parcel={parcel} onOpen={onOpen} onConfirm={() => undefined} canConfirm={false} />
+      <CardActions parcel={parcel} onOpen={onOpen} onConfirm={() => undefined} canConfirm={false} detailLabel="ดูรายละเอียด" compactDetail />
     </div>
   </article>
 );
@@ -314,7 +375,10 @@ const AdminParcelManagementCard = ({
   <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
       <div className="min-w-0">
-        <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+        <div className="flex flex-wrap items-center gap-2">
+          <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+          <StaleBadge parcel={parcel} />
+        </div>
         <p className="mt-2 text-base font-black leading-tight text-primary">{parcel['ผู้ส่ง'] || '-'} → {parcel['ผู้รับ'] || '-'}</p>
         <p className="mt-1 text-xs font-semibold text-on-surface-variant/70">{parcel['สาขาผู้ส่ง'] || '-'} → {parcel['สาขาผู้รับ'] || '-'}</p>
       </div>
@@ -345,7 +409,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const { parcels, summary, loading, loadParcels, hasMore, loadMoreParcels, totalCount, removeParcelLocally } = useParcelStore();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
-  const role = normalizeRole(user?.role);
+  const role = resolveDashboardRole(user?.role);
   const isMessengerDashboard = role === 'MESSENGER';
   const defaultStatusFilter = 'ทั้งหมด';
   const [statusFilter, setStatusFilter] = useState(() => defaultStatusFilter);
@@ -434,11 +498,22 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   }, [parcels, statusFilter, debouncedSearch, isMessengerDashboard]);
 
   const messengerOpenParcels = useMemo(
-    () => filteredParcels.filter(parcel => parcel['สถานะ'] !== 'ส่งสำเร็จ'),
+    () => filteredParcels.filter(parcel => parcel['สถานะ'] !== 'ส่งสำเร็จ').sort(sortMessengerWork),
     [filteredParcels],
   );
   const messengerDoneParcels = useMemo(
     () => filteredParcels.filter(parcel => parcel['สถานะ'] === 'ส่งสำเร็จ'),
+    [filteredParcels],
+  );
+  const adminNeedsAttentionParcels = useMemo(
+    () => filteredParcels
+      .filter(parcel => parcel['สถานะ'] !== 'ส่งสำเร็จ' || isParcelStale(parcel))
+      .sort((a, b) => {
+        const staleDiff = Number(isParcelStale(b)) - Number(isParcelStale(a));
+        if (staleDiff !== 0) return staleDiff;
+        return sortMessengerWork(a, b);
+      })
+      .slice(0, 6),
     [filteredParcels],
   );
 
@@ -541,7 +616,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 </span>
                 <div className="min-w-0">
                   <h2 className="font-display text-lg font-black leading-tight text-primary">งานที่ต้องไปส่งวันนี้</h2>
-                  <p className="text-xs font-semibold leading-snug text-on-surface-variant/65">ดูเส้นทาง รับจากไหน → ส่งที่ไหน → ให้ใคร แล้วกดบันทึกผลได้ทันที</p>
+                  <p className="text-xs font-semibold leading-snug text-on-surface-variant/65">เรียงงานกำลังจัดส่งก่อน แล้วตามด้วยงานเก่าสุด เพื่อให้รู้ว่าควรทำอะไรก่อน</p>
                 </div>
               </div>
             </div>
@@ -555,6 +630,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               อัปเดตงาน
             </button>
           </div>
+        </div>
+      )}
+      {import.meta.env.DEV && (
+        <div className="rounded-xl border border-dashed border-primary/20 bg-primary/[0.03] px-3 py-2 text-xs font-bold text-primary">
+          Preview role: {role} ใช้ `?previewRole=MESSENGER`, `USER`, หรือ `ADMIN` เพื่อทดสอบหน้าแต่ละ role
         </div>
       )}
 
@@ -759,6 +839,36 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           </div>
         ) : (
           <div className="space-y-3 p-3 sm:p-4">
+            {!isUserDashboard && adminNeedsAttentionParcels.length > 0 && (
+              <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-3 sm:p-4">
+                <div className="mb-3 flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <h3 className="font-display text-sm font-black text-amber-950">ต้องจัดการ</h3>
+                    <p className="text-xs font-semibold text-amber-800/75">งานที่ยังไม่สำเร็จหรือค้างนาน แสดงก่อนเพื่อไม่ต้องไล่หาเอง</p>
+                  </div>
+                  <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-amber-800 shadow-sm">
+                    {adminNeedsAttentionParcels.length} รายการ
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                  {adminNeedsAttentionParcels.map(parcel => (
+                    <AdminParcelManagementCard
+                      key={`attention-${parcel.TrackingID}`}
+                      parcel={parcel}
+                      onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                      onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                      onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+            {!isUserDashboard && (
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="font-display text-sm font-black text-primary">รายการทั้งหมด</h3>
+                <span className="text-xs font-bold text-on-surface-variant/55">แสดงตามตัวกรองปัจจุบัน</span>
+              </div>
+            )}
             {paginatedParcels.map(parcel => (
               isUserDashboard ? (
                 <UserParcelOverviewCard
