@@ -14,10 +14,13 @@ import { parseParcelTimeline } from '@/lib/timeline';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatThaiDateTime, getDateTime } from '@/lib/dateUtils';
 import ParcelTimelineModal from '@/components/ParcelTimelineModal';
+import ImagePopup from '@/components/ImagePopup';
+import TrackingMap from '@/components/TrackingMap';
 import ConfirmReceipt from '@/pages/ConfirmReceipt';
 import CreateParcel from '@/pages/CreateParcel';
 import Track from '@/pages/Track';
 import { normalizeRole, type AppRole } from '@/lib/roles';
+import type { TimelineEvent } from '@/types/timeline';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -150,6 +153,12 @@ const getDeliveryProofSummary = (parcel: Parcel) => {
   return [receiver, match].filter(Boolean).join(' · ');
 };
 
+const getDeliveryProofEvent = (events: TimelineEvent[]) =>
+  [...events].reverse().find(event =>
+    event.title.includes('ส่งสำเร็จ') &&
+    (event.imageUrl || (typeof event.latitude === 'number' && typeof event.longitude === 'number'))
+  );
+
 const getParcelAgeDays = (parcel: Parcel) => {
   const createdAt = getDateTime(parcel['วันที่สร้าง']);
   if (!createdAt) return 0;
@@ -184,21 +193,6 @@ const StaleBadge = ({ parcel }: { parcel: Parcel }) => {
     </span>
   );
 };
-
-const EvidenceChecklist = () => (
-  <div className="flex flex-wrap gap-1.5">
-    {[
-      ['photo_camera', 'ถ่ายรูป'],
-      ['my_location', 'GPS'],
-      ['task_alt', 'ยืนยันปลายทาง'],
-    ].map(([icon, label]) => (
-      <span key={label} className="inline-flex items-center gap-1 rounded-full border border-primary/10 bg-white px-2 py-1 text-[10px] font-black text-primary shadow-sm">
-        <span className="material-symbols-outlined text-[13px]">{icon}</span>
-        {label}
-      </span>
-    ))}
-  </div>
-);
 
 const ParcelInfoStrip = ({ parcel }: { parcel: Parcel }) => {
   const note = getCleanNote(parcel);
@@ -310,15 +304,14 @@ const MessengerDeliveryCard = ({
       <div className="mt-3">
         <ParcelInfoStrip parcel={parcel} />
       </div>
-      <div className="mt-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest/70 px-3 py-2">
-        <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/45">
-          {isDone ? 'หลักฐานสรุป' : 'ตอนบันทึกต้องเก็บ'}
-        </p>
-        <p className="mt-1 text-xs font-bold leading-snug text-primary">
-          {isDone ? (proof || 'ส่งสำเร็จแล้ว ดูประวัติเต็มเพื่อดูรูป/GPS') : 'ถ่ายรูปหลักฐาน + บันทึก GPS + ยืนยันว่าตรงปลายทางหรือฝากไว้ที่อื่น'}
-        </p>
-        {!isDone && <div className="mt-2"><EvidenceChecklist /></div>}
-      </div>
+      {isDone && (
+        <div className="mt-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest/70 px-3 py-2">
+          <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/45">หลักฐานสรุป</p>
+          <p className="mt-1 text-xs font-bold leading-snug text-primary">
+            {proof || 'ส่งสำเร็จแล้ว ดูประวัติเต็มเพื่อดูรูป/GPS'}
+          </p>
+        </div>
+      )}
       <div className="mt-3">
         <CardActions parcel={parcel} onOpen={onOpen} onConfirm={onConfirm} canConfirm={false} detailLabel="ดูรูป/ประวัติ" compactDetail />
       </div>
@@ -328,38 +321,73 @@ const MessengerDeliveryCard = ({
 
 const UserParcelOverviewCard = ({
   parcel,
+  timelineEvents,
   onOpen,
+  onOpenMap,
 }: {
   parcel: Parcel;
+  timelineEvents: TimelineEvent[];
   onOpen: () => void;
-}) => (
-  <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
-        <p className="mt-2 text-base font-black leading-tight text-primary">ส่งให้ {parcel['ผู้รับ'] || '-'}</p>
-        <p className="mt-1 text-xs font-semibold text-on-surface-variant/70">ปลายทาง: {parcel['สาขาผู้รับ'] || '-'}</p>
+  onOpenMap: (events: TimelineEvent[]) => void;
+}) => {
+  const proofEvent = parcel['สถานะ'] === 'ส่งสำเร็จ' ? getDeliveryProofEvent(timelineEvents) : undefined;
+  const hasProofImage = Boolean(proofEvent?.imageUrl);
+  const hasProofMap = Boolean(
+    proofEvent &&
+    typeof proofEvent.latitude === 'number' &&
+    typeof proofEvent.longitude === 'number'
+  );
+
+  return (
+    <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
+          <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+          <p className="mt-2 text-base font-black leading-tight text-primary">ส่งให้ {parcel['ผู้รับ'] || '-'}</p>
+          <p className="mt-1 text-xs font-semibold text-on-surface-variant/70">ปลายทาง: {parcel['สาขาผู้รับ'] || '-'}</p>
+        </div>
+        <StatusBadge status={parcel['สถานะ']} />
       </div>
-      <StatusBadge status={parcel['สถานะ']} />
-    </div>
-    <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
-        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">วันที่สร้าง</p>
-        <p className="mt-0.5 text-xs font-bold text-primary">{formatThaiDateTime(parcel['วันที่สร้าง'])}</p>
+      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+        <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+          <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">วันที่สร้าง</p>
+          <p className="mt-0.5 text-xs font-bold text-primary">{formatThaiDateTime(parcel['วันที่สร้าง'])}</p>
+        </div>
+        <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
+          <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">อัปเดตล่าสุด</p>
+          <p className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-primary">{getLatestTimelineSummary(parcel)}</p>
+        </div>
       </div>
-      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
-        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">อัปเดตล่าสุด</p>
-        <p className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-primary">{getLatestTimelineSummary(parcel)}</p>
+      <div className="mt-3">
+        <ParcelInfoStrip parcel={parcel} />
       </div>
-    </div>
-    <div className="mt-3">
-      <ParcelInfoStrip parcel={parcel} />
-    </div>
-    <div className="mt-3">
-      <CardActions parcel={parcel} onOpen={onOpen} onConfirm={() => undefined} canConfirm={false} detailLabel="ดูรายละเอียด" compactDetail />
-    </div>
-  </article>
-);
+      {(hasProofImage || hasProofMap) && (
+        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+          {hasProofImage && proofEvent?.imageUrl && (
+            <ImagePopup
+              url={proofEvent.imageUrl}
+              title="รูปหลักฐานปลายทาง"
+              className="h-10 flex-1 justify-center rounded-xl px-4 py-2 text-xs normal-case tracking-normal sm:flex-none"
+            />
+          )}
+          {hasProofMap && proofEvent && (
+            <button
+              type="button"
+              onClick={() => onOpenMap([proofEvent])}
+              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98] sm:flex-none"
+            >
+              <span className="material-symbols-outlined text-lg">map</span>
+              แผนที่ปลายทาง
+            </button>
+          )}
+        </div>
+      )}
+      <div className="mt-3">
+        <CardActions parcel={parcel} onOpen={onOpen} onConfirm={() => undefined} canConfirm={false} detailLabel="ดูรายละเอียด" compactDetail />
+      </div>
+    </article>
+  );
+};
 
 const AdminParcelManagementCard = ({
   parcel,
@@ -421,6 +449,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [isConfirmPreparingCamera, setIsConfirmPreparingCamera] = useState(false);
   const [isCreateFlowOpen, setIsCreateFlowOpen] = useState(false);
   const [isTrackFlowOpen, setIsTrackFlowOpen] = useState(false);
+  const [userMapEvents, setUserMapEvents] = useState<TimelineEvent[] | null>(null);
   const [refreshCountdown, setRefreshCountdown] = useState(120);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
@@ -874,7 +903,9 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 <UserParcelOverviewCard
                   key={parcel.TrackingID}
                   parcel={parcel}
+                  timelineEvents={parseParcelTimeline(parcel)}
                   onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                  onOpenMap={setUserMapEvents}
                 />
               ) : (
                 <AdminParcelManagementCard
@@ -938,6 +969,35 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         onConfirmParcel={openConfirmFlow}
         onDeleteParcel={handleDelete}
       />
+
+      <Dialog open={Boolean(userMapEvents)} onOpenChange={(open) => { if (!open) setUserMapEvents(null); }}>
+        <DialogContent
+          showCloseButton={false}
+          className="w-[calc(100vw-1rem)] max-w-3xl overflow-hidden rounded-3xl border-none bg-transparent p-0 shadow-2xl"
+        >
+          <div className="bg-transparent p-2 sm:p-3">
+            <div className="relative">
+              <div className="pointer-events-none absolute bottom-12 left-3 z-[500] inline-flex items-center gap-2 rounded-2xl bg-primary/90 px-3 py-2 text-white shadow-lg backdrop-blur-sm sm:bottom-auto sm:left-4 sm:top-4">
+                <span className="material-symbols-outlined text-lg text-secondary">flag</span>
+                <span className="text-sm font-black">แผนที่ปลายทาง</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setUserMapEvents(null)}
+                className="absolute right-3 top-3 z-[500] grid h-11 w-11 place-items-center rounded-2xl bg-white text-primary shadow-lg shadow-black/20 transition-all hover:bg-secondary active:scale-95"
+                aria-label="ปิดแผนที่ปลายทาง"
+              >
+                <span className="material-symbols-outlined text-2xl font-black">close</span>
+              </button>
+              <TrackingMap
+                events={userMapEvents || []}
+                className="h-[62vh] max-h-[560px] min-h-[340px] rounded-2xl"
+                mapClassName="min-h-0"
+              />
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* ── Confirm / Photo Capture Dialog ── */}
       <Dialog

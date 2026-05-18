@@ -92,44 +92,87 @@ export default function Timeline({ events, className = '', compact = false }: Ti
 
     return (
       <div className={`relative ${className}`}>
-        <div className="space-y-0">
+        <div className="space-y-1">
           {displayEvents.map((event, index) => {
             const { day, time } = formatTimelineDateParts(event.timestamp);
             const isLatest = index === 0;
-            const isDim = !isLatest;
-            const textColor = isLatest ? 'text-primary' : 'text-on-surface-variant/45';
-            const dotColor = isLatest ? 'bg-teal-600 ring-teal-100' : 'bg-outline-variant ring-surface-container-low';
+            const hasNext = index < displayEvents.length - 1;
             return (
-              <div key={event.id} className="grid grid-cols-[54px_26px_1fr] gap-2">
-                <div className={`pt-0.5 text-right leading-tight ${isLatest ? 'text-primary' : 'text-on-surface-variant/45'}`}>
-                  <p className="text-[11px] font-bold">{day}</p>
-                  <p className="mt-1 text-[11px] font-medium">{time}</p>
+              <div key={event.id} className="grid grid-cols-[58px_30px_1fr] gap-2 sm:grid-cols-[70px_34px_1fr] sm:gap-3">
+                <div className={`pt-2 text-right leading-tight ${isLatest ? 'text-primary' : 'text-on-surface-variant/45'}`}>
+                  <p className="text-[11px] font-black sm:text-xs">{day}</p>
+                  <p className="mt-1 text-[10px] font-bold sm:text-[11px]">{time}</p>
                 </div>
                 <div className="relative flex justify-center">
-                  {index < displayEvents.length - 1 && (
-                    <span className="absolute top-3 bottom-0 w-px bg-outline-variant/55" />
+                  {hasNext && (
+                    <span className={`absolute top-7 bottom-[-4px] w-px ${isLatest ? 'bg-primary/30' : 'bg-outline-variant/35'}`} />
                   )}
-                  <span className={`relative z-10 mt-1 h-3.5 w-3.5 rounded-full ring-4 ${dotColor}`} />
+                  <span className={`relative z-10 mt-2 grid h-6 w-6 place-items-center rounded-full ring-4 sm:h-7 sm:w-7 ${
+                    isLatest
+                      ? 'bg-primary text-white ring-primary/10 shadow-lg shadow-primary/20'
+                      : 'border border-outline-variant/25 bg-white text-on-surface-variant/45 ring-surface-container-low'
+                  }`}>
+                    <span className="material-symbols-outlined text-[14px] sm:text-[15px]">{isLatest ? 'radio_button_checked' : 'check'}</span>
+                  </span>
                 </div>
-                <div className={`min-w-0 pb-7 ${isDim ? 'opacity-80' : ''}`}>
-                  <div className="flex min-w-0 items-start gap-2">
-                    <div className="min-w-0 flex-1">
-                      <p className={`text-base font-black leading-snug sm:text-lg ${textColor}`}>
-                        {event.title}
-                      </p>
-                      {event.description && (
-                        <p className={`mt-1 break-words text-sm font-semibold leading-snug ${isLatest ? 'text-blue-700' : 'text-on-surface-variant/45'}`}>
-                          {event.description}
-                        </p>
-                      )}
-                      {event.location && (
-                        <p className="mt-1 text-[11px] font-bold text-on-surface-variant/45">
-                          <span className="truncate">{event.location}</span>
-                        </p>
+                <div className="min-w-0 pb-3">
+                  <div className={`rounded-2xl border p-3 transition-all ${
+                    isLatest
+                      ? 'border-primary/20 bg-primary/[0.035] shadow-sm'
+                      : 'border-outline-variant/15 bg-white'
+                  }`}>
+                    <div className="flex min-w-0 items-start gap-2">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className={`text-sm font-black leading-snug sm:text-base ${isLatest ? 'text-primary' : 'text-on-surface-variant/70'}`}>
+                            {event.title}
+                          </p>
+                          {isLatest && (
+                            <span className="rounded-full bg-primary px-2 py-0.5 text-[9px] font-black text-white">ล่าสุด</span>
+                          )}
+                        </div>
+                        {event.description && (
+                          <p className={`mt-1 break-words text-xs font-semibold leading-snug sm:text-sm ${isLatest ? 'text-primary/75' : 'text-on-surface-variant/55'}`}>
+                            {event.description}
+                          </p>
+                        )}
+                      </div>
+                      {event.imageUrl && (
+                        <ImagePopup url={event.imageUrl} title="รูปหลักฐาน" triggerVariant="icon" />
                       )}
                     </div>
-                    {event.imageUrl && (
-                      <ImagePopup url={event.imageUrl} title="รูปหลักฐาน" triggerVariant="icon" />
+
+                    <div className="mt-2 flex flex-wrap items-center gap-2 border-t border-outline-variant/10 pt-2">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold text-on-surface-variant/55">
+                        <span className="material-symbols-outlined text-[14px]">schedule</span>
+                        {event.timestamp ? formatThaiDateTime(event.timestamp) : '-'}
+                      </span>
+                      {event.location && (
+                        <span className="inline-flex min-w-0 items-center gap-1 text-[11px] font-bold text-on-surface-variant/55">
+                          <span className="material-symbols-outlined text-[14px]">location_on</span>
+                          <span className="truncate">{event.location}</span>
+                        </span>
+                      )}
+                    </div>
+
+                    {event.deliveryMatchStatus && (
+                      <div className="mt-2">
+                        <span className={`inline-flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-[10px] font-black ${
+                          event.deliveryMatchStatus === 'DELIVERED_ELSEWHERE'
+                            ? 'border-amber-100 bg-amber-50 text-amber-800'
+                            : 'border-green-100 bg-green-50 text-green-700'
+                        }`}>
+                          <span className="material-symbols-outlined text-sm">
+                            {event.deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'move_location' : 'task_alt'}
+                          </span>
+                          {event.deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'ส่งคนละจุด' : 'ส่งตรงปลายทาง'}
+                        </span>
+                        {event.deliveryMismatchReason && (
+                          <p className="mt-2 rounded-xl bg-surface-container-lowest px-3 py-2 text-xs font-semibold leading-snug text-on-surface-variant/70">
+                            เหตุผล: {event.deliveryMismatchReason}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 </div>
