@@ -51,6 +51,46 @@ describe('parseParcelTimeline', () => {
     });
   });
 
+  it('shows start delivery event from messenger pickup', () => {
+    const parcel = createParcel({
+      events: [{
+        id: 'EVT1',
+        trackingId: 'TRK1',
+        timestamp: '1 มกราคม 2569 10:30',
+        eventType: 'START_DELIVERY',
+        location: 'ศูนย์ใหญ่บางนา',
+        destLocation: 'มีนบุรี',
+        person: 'Messenger A',
+      }],
+    });
+    const events = parseParcelTimeline(parcel);
+    expect(events[0]).toMatchObject({
+      title: 'รับงานจัดส่ง',
+      description: 'ผู้รับงาน: Messenger A',
+      location: 'ศูนย์ใหญ่บางนา',
+      destLocation: 'มีนบุรี',
+    });
+  });
+
+  it('shows release delivery event', () => {
+    const parcel = createParcel({
+      events: [{
+        id: 'EVT2',
+        trackingId: 'TRK1',
+        timestamp: '1 มกราคม 2569 10:45',
+        eventType: 'RELEASE_DELIVERY',
+        location: 'ศูนย์ใหญ่บางนา',
+        destLocation: 'มีนบุรี',
+        person: 'Messenger A',
+      }],
+    });
+    const events = parseParcelTimeline(parcel);
+    expect(events[0]).toMatchObject({
+      title: 'ปล่อยงานจัดส่ง',
+      description: 'ปล่อยงานโดย: Messenger A',
+    });
+  });
+
   it('parses delivered proxy event', () => {
     const parcel = createParcel({
       'สถานะ': 'ส่งสำเร็จ',

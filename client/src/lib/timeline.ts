@@ -56,6 +56,28 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           latitude: evt.latitude,
           longitude: evt.longitude,
         });
+      } else if (evt.eventType === 'START_DELIVERY') {
+        events.push({
+          id: String(idCounter++),
+          status: 'completed',
+          title: 'รับงานจัดส่ง',
+          description: `ผู้รับงาน: ${evt.person || '-'}`,
+          timestamp: evt.timestamp,
+          location: evt.location,
+          destLocation: evt.destLocation,
+          latitude: evt.latitude,
+          longitude: evt.longitude,
+        });
+      } else if (evt.eventType === 'RELEASE_DELIVERY') {
+        events.push({
+          id: String(idCounter++),
+          status: 'completed',
+          title: 'ปล่อยงานจัดส่ง',
+          description: `ปล่อยงานโดย: ${evt.person || '-'}`,
+          timestamp: evt.timestamp,
+          location: evt.location,
+          destLocation: evt.destLocation,
+        });
       } else if (evt.eventType === 'PROXY') {
         events.push({
           id: String(idCounter++),

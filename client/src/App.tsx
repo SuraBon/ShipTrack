@@ -1,17 +1,18 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
-import Dashboard from "./pages/Dashboard";
-import CreateParcel from "./pages/CreateParcel";
-import Track from "./pages/Track";
 import Login from "./pages/Login";
-import UserManagement from "./pages/UserManagement";
 import { isConfigured, onConfigUpdated } from "./lib/parcelService";
 import { useAuth } from "./contexts/AuthContext";
 import { normalizeRole, type AppRole } from "./lib/roles";
+
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const CreateParcel = lazy(() => import("./pages/CreateParcel"));
+const Track = lazy(() => import("./pages/Track"));
+const UserManagement = lazy(() => import("./pages/UserManagement"));
 
 type PageId = "dashboard" | "create" | "track" | "users";
 
@@ -44,6 +45,15 @@ const pageRoles: Record<PageId, AppRole[]> = {
 };
 
 const canAccessPage = (page: PageId, role: AppRole) => pageRoles[page].includes(role);
+
+const PageFallback = () => (
+  <div className="grid min-h-[60vh] place-items-center bg-surface">
+    <div className="flex flex-col items-center gap-3 text-primary">
+      <span className="material-symbols-outlined animate-spin text-4xl">progress_activity</span>
+      <p className="text-sm font-black">กำลังโหลดหน้า...</p>
+    </div>
+  </div>
+);
 
 function App() {
   const { user, loading } = useAuth();
@@ -133,7 +143,9 @@ function App() {
         <TooltipProvider>
           <Toaster />
           <Layout currentPage={visiblePage} setCurrentPage={navigateToPage}>
-            {renderCurrentPage()}
+            <Suspense fallback={<PageFallback />}>
+              {renderCurrentPage()}
+            </Suspense>
           </Layout>
         </TooltipProvider>
       </ThemeProvider>

@@ -2,23 +2,19 @@
  * Dashboard Page
  */
 
-import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
+import { lazy, Suspense, useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
 import { useParcelStore } from '@/hooks/useParcelStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { deleteParcel } from '@/lib/parcelService';
+import { deleteParcel, releaseDelivery, startDelivery } from '@/lib/parcelService';
 import { useDebounce } from '@/hooks/useDebounce';
 import StatusBadge from '@/components/StatusBadge';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 import { parseParcelTimeline } from '@/lib/timeline';
+import { buildAssignmentNote, getActiveDeliveryAssignment, type DeliveryAssignment } from '@/lib/deliveryAssignment';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatThaiDateTime, getDateTime } from '@/lib/dateUtils';
-import ParcelTimelineModal from '@/components/ParcelTimelineModal';
 import ImagePopup from '@/components/ImagePopup';
-import TrackingMap from '@/components/TrackingMap';
-import ConfirmReceipt from '@/pages/ConfirmReceipt';
-import CreateParcel from '@/pages/CreateParcel';
-import Track from '@/pages/Track';
 import { normalizeRole, type AppRole } from '@/lib/roles';
 import type { TimelineEvent } from '@/types/timeline';
 import {
@@ -28,6 +24,12 @@ import {
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 interface DashboardProps { isConfigured: boolean; }
+
+const ParcelTimelineModal = lazy(() => import('@/components/ParcelTimelineModal'));
+const TrackingMap = lazy(() => import('@/components/TrackingMap'));
+const ConfirmReceipt = lazy(() => import('@/pages/ConfirmReceipt'));
+const CreateParcel = lazy(() => import('@/pages/CreateParcel'));
+const Track = lazy(() => import('@/pages/Track'));
 
 const STATS = [
   { key: 'total',     filter: 'ทั้งหมด',     label: 'ทั้งหมด',  icon: 'inventory_2',     iconBg: 'bg-slate-100',    iconText: 'text-primary' },
@@ -95,6 +97,15 @@ const TableSkeleton = () => (
   </div>
 );
 
+const LazyPanelFallback = ({ label = 'กำลังโหลด...' }: { label?: string }) => (
+  <div className="grid min-h-[220px] place-items-center rounded-2xl bg-white/80 p-6 text-center">
+    <div className="flex flex-col items-center gap-3 text-primary">
+      <span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span>
+      <p className="text-sm font-black">{label}</p>
+    </div>
+  </div>
+);
+
 const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; compact?: boolean }) => (
   <div className={`rounded-xl border border-primary/10 bg-primary/[0.03] ${compact ? 'p-2.5' : 'p-3'}`}>
     <div className={`grid items-stretch gap-2 ${compact ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-[1fr_auto_1fr]'}`}>
@@ -133,8 +144,17 @@ const getCleanNote = (parcel: Parcel) => {
   return (parcel['หมายเหตุ'] || '').replace(/\[[\s\S]*?\]/g, '').trim();
 };
 
-const getLatestTimelineSummary = (parcel: Parcel) => {
+const timelineCache = new WeakMap<Parcel, TimelineEvent[]>();
+const getTimelineEvents = (parcel: Parcel) => {
+  const cached = timelineCache.get(parcel);
+  if (cached) return cached;
   const events = parseParcelTimeline(parcel);
+  timelineCache.set(parcel, events);
+  return events;
+};
+
+const getLatestTimelineSummary = (parcel: Parcel) => {
+  const events = getTimelineEvents(parcel);
   const latest = [...events].reverse().find(event => event.title || event.description);
   if (!latest) return 'ยังไม่มีประวัติการเคลื่อนไหว';
   return `${latest.title}${latest.description ? `: ${latest.description}` : ''}`;
@@ -214,6 +234,184 @@ const ParcelInfoStrip = ({ parcel }: { parcel: Parcel }) => {
   );
 };
 
+type DashboardActionVariant = 'primary' | 'secondary' | 'blue' | 'warning' | 'danger' | 'ghost';
+type SectionTone = 'default' | 'amber' | 'emerald' | 'blue';
+
+const actionVariantClass: Record<DashboardActionVariant, string> = {
+  primary: 'bg-primary text-white shadow-sm hover:bg-primary/95',
+  secondary: 'border border-outline-variant/35 bg-white text-primary hover:border-primary/35 hover:bg-primary/5',
+  blue: 'bg-blue-600 text-white shadow-sm hover:bg-blue-700',
+  warning: 'border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100',
+  danger: 'border border-error/20 bg-error/8 text-error hover:bg-error hover:text-white',
+  ghost: 'bg-surface-container-lowest text-primary ring-1 ring-outline-variant/10 hover:bg-surface-container',
+};
+
+const sectionToneClass: Record<SectionTone, { shell: string; icon: string; count: string }> = {
+  default: {
+    shell: 'border-outline-variant/20 bg-white',
+    icon: 'bg-primary/8 text-primary',
+    count: 'bg-primary/8 text-primary',
+  },
+  amber: {
+    shell: 'border-amber-100 bg-amber-50/60',
+    icon: 'bg-white text-amber-700',
+    count: 'bg-white text-amber-800 shadow-sm',
+  },
+  emerald: {
+    shell: 'border-emerald-100 bg-emerald-50/70',
+    icon: 'bg-white text-emerald-700',
+    count: 'bg-white text-emerald-800 shadow-sm',
+  },
+  blue: {
+    shell: 'border-blue-100 bg-blue-50/70',
+    icon: 'bg-white text-blue-700',
+    count: 'bg-white text-blue-800 shadow-sm',
+  },
+};
+
+const DashboardActionButton = ({
+  icon,
+  children,
+  onClick,
+  disabled,
+  loading,
+  variant = 'secondary',
+  compact = false,
+  className = '',
+}: {
+  icon: string;
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  loading?: boolean;
+  variant?: DashboardActionVariant;
+  compact?: boolean;
+  className?: string;
+}) => (
+  <button
+    type="button"
+    onClick={onClick}
+    disabled={disabled || loading}
+    className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl font-black transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 sm:flex-none ${
+      compact ? 'h-8 px-3 text-xs' : 'h-10 px-4 text-sm'
+    } ${actionVariantClass[variant]} ${className}`}
+  >
+    <span className={`material-symbols-outlined ${compact ? 'text-base' : 'text-lg'} ${loading ? 'animate-spin' : ''}`}>
+      {loading ? 'progress_activity' : icon}
+    </span>
+    {children}
+  </button>
+);
+
+const ActionGroup = ({ children, compact = false }: { children: ReactNode; compact?: boolean }) => (
+  <div className={`flex flex-col gap-2 sm:flex-row sm:items-center ${compact ? 'sm:justify-end' : ''}`}>
+    {children}
+  </div>
+);
+
+const RoleSectionHeader = ({
+  icon,
+  title,
+  subtitle,
+  count,
+  tone = 'default',
+}: {
+  icon: string;
+  title: string;
+  subtitle?: string;
+  count?: number;
+  tone?: SectionTone;
+}) => {
+  const toneClass = sectionToneClass[tone];
+  return (
+    <div className={`mb-3 flex items-center justify-between gap-3 rounded-2xl border px-3 py-2.5 ${toneClass.shell}`}>
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${toneClass.icon}`}>
+          <span className="material-symbols-outlined text-lg">{icon}</span>
+        </span>
+        <div className="min-w-0">
+          <h3 className="truncate font-display text-sm font-black leading-tight text-primary">{title}</h3>
+          {subtitle && <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-on-surface-variant/65">{subtitle}</p>}
+        </div>
+      </div>
+      {typeof count === 'number' && (
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black ${toneClass.count}`}>
+          {count} งาน
+        </span>
+      )}
+    </div>
+  );
+};
+
+const EmptyState = ({
+  icon,
+  title,
+  description,
+  action,
+  tone = 'default',
+}: {
+  icon: string;
+  title: string;
+  description?: string;
+  action?: ReactNode;
+  tone?: SectionTone;
+}) => {
+  const toneClass = sectionToneClass[tone];
+  return (
+    <div className={`flex flex-col items-center gap-3 rounded-2xl border px-4 py-8 text-center ${toneClass.shell}`}>
+      <div className={`grid h-14 w-14 place-items-center rounded-2xl ${toneClass.icon}`}>
+        <span className="material-symbols-outlined text-3xl">{icon}</span>
+      </div>
+      <div>
+        <p className="font-bold text-primary">{title}</p>
+        {description && <p className="mt-0.5 text-sm text-on-surface-variant/65">{description}</p>}
+      </div>
+      {action}
+    </div>
+  );
+};
+
+const AssignmentBadge = ({
+  assignment,
+  isMine = false,
+  canRelease = false,
+  isReleasing = false,
+  onRelease,
+}: {
+  assignment: DeliveryAssignment;
+  isMine?: boolean;
+  canRelease?: boolean;
+  isReleasing?: boolean;
+  onRelease?: () => void;
+}) => (
+  <div className={`flex flex-col gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold sm:flex-row sm:items-center sm:justify-between ${
+    isMine
+      ? 'border-emerald-100 bg-emerald-50 text-emerald-800'
+      : 'border-blue-100 bg-blue-50 text-blue-800'
+  }`}>
+    <span className="inline-flex min-w-0 items-center gap-2">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/80">
+        <span className="material-symbols-outlined text-base">person_pin_circle</span>
+      </span>
+      <span className="min-w-0 truncate">
+        {isMine ? 'คุณรับงานนี้แล้ว' : `คุณ ${assignment.assignedToName} กำลังส่งอยู่`}
+      </span>
+    </span>
+    {canRelease && onRelease && (
+      <DashboardActionButton
+        icon="undo"
+        onClick={onRelease}
+        loading={isReleasing}
+        variant={isMine ? 'warning' : 'secondary'}
+        compact
+        className="bg-white/85"
+      >
+        {isReleasing ? 'กำลังปล่อย' : 'ปล่อยงาน'}
+      </DashboardActionButton>
+    )}
+  </div>
+);
+
 const CardActions = ({
   parcel,
   onOpen,
@@ -233,51 +431,64 @@ const CardActions = ({
   detailLabel?: string;
   compactDetail?: boolean;
 }) => (
-  <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+  <ActionGroup>
     {canConfirm && parcel['สถานะ'] !== 'ส่งสำเร็จ' && (
-      <button
-        type="button"
+      <DashboardActionButton
+        icon="add_a_photo"
         onClick={onConfirm}
-        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98] sm:flex-none"
+        variant="primary"
       >
-        <span className="material-symbols-outlined text-lg">add_a_photo</span>
         บันทึกผลการส่ง
-      </button>
+      </DashboardActionButton>
     )}
-    <button
-      type="button"
+    <DashboardActionButton
+      icon="history"
       onClick={onOpen}
-      className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl border border-outline-variant/35 bg-white font-black text-primary transition-all hover:border-primary/35 hover:bg-primary/5 active:scale-[0.98] sm:flex-none ${
-        compactDetail ? 'h-8 px-3 text-xs' : 'h-10 px-4 text-sm'
-      }`}
+      variant="secondary"
+      compact={compactDetail}
     >
-      <span className={`material-symbols-outlined ${compactDetail ? 'text-base' : 'text-lg'}`}>history</span>
       {detailLabel}
-    </button>
+    </DashboardActionButton>
     {canDelete && onDelete && (
-      <button
-        type="button"
+      <DashboardActionButton
+        icon="delete"
         onClick={onDelete}
-        className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-error/20 bg-error/8 px-4 text-sm font-black text-error transition-all hover:bg-error hover:text-white active:scale-[0.98] sm:flex-none"
+        variant="danger"
       >
-        <span className="material-symbols-outlined text-lg">delete</span>
         ลบ
-      </button>
+      </DashboardActionButton>
     )}
-  </div>
+  </ActionGroup>
 );
 
 const MessengerDeliveryCard = ({
   parcel,
   onOpen,
   onConfirm,
+  onStartDelivery,
+  onReleaseDelivery,
+  isStartingDelivery,
+  isReleasingDelivery,
+  assignment,
+  canStartDelivery,
+  canReleaseDelivery,
+  canConfirmDelivery,
 }: {
   parcel: Parcel;
   onOpen: () => void;
   onConfirm: () => void;
+  onStartDelivery: () => void;
+  onReleaseDelivery: () => void;
+  isStartingDelivery: boolean;
+  isReleasingDelivery: boolean;
+  assignment: DeliveryAssignment | null;
+  canStartDelivery: boolean;
+  canReleaseDelivery: boolean;
+  canConfirmDelivery: boolean;
 }) => {
   const proof = getDeliveryProofSummary(parcel);
   const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
+  const isAssignedElsewhere = Boolean(assignment && !canConfirmDelivery && !isDone);
   return (
     <article className={`rounded-2xl border bg-white p-3 shadow-sm sm:p-4 ${isDone ? 'border-emerald-100' : 'border-primary/15'}`}>
       <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -290,16 +501,44 @@ const MessengerDeliveryCard = ({
           <p className="mt-2 text-sm font-black leading-tight text-primary">ส่งให้ {parcel['ผู้รับ'] || '-'}</p>
         </div>
         {!isDone && (
-          <button
-            type="button"
-            onClick={onConfirm}
-            className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98]"
-          >
-            <span className="material-symbols-outlined text-lg">add_a_photo</span>
-            บันทึกผลการส่ง
-          </button>
+          <ActionGroup compact>
+            {canStartDelivery && (
+              <DashboardActionButton
+                icon="local_shipping"
+                onClick={onStartDelivery}
+                loading={isStartingDelivery}
+                variant="blue"
+              >
+                {isStartingDelivery ? 'กำลังรับงาน' : 'รับงาน'}
+              </DashboardActionButton>
+            )}
+            {canReleaseDelivery && (
+              <DashboardActionButton
+                icon="undo"
+                onClick={onReleaseDelivery}
+                loading={isReleasingDelivery}
+                variant="warning"
+              >
+                {isReleasingDelivery ? 'กำลังปล่อย' : 'ปล่อยงาน'}
+              </DashboardActionButton>
+            )}
+            {canConfirmDelivery && (
+              <DashboardActionButton
+                icon="add_a_photo"
+                onClick={onConfirm}
+                variant="primary"
+              >
+                บันทึกผลการส่ง
+              </DashboardActionButton>
+            )}
+          </ActionGroup>
         )}
       </div>
+      {assignment && !isDone && (
+        <div className="mb-3">
+          <AssignmentBadge assignment={assignment} isMine={!isAssignedElsewhere} />
+        </div>
+      )}
       <MessengerRouteSummary parcel={parcel} />
       <div className="mt-3">
         <ParcelInfoStrip parcel={parcel} />
@@ -362,24 +601,25 @@ const UserParcelOverviewCard = ({
         <ParcelInfoStrip parcel={parcel} />
       </div>
       {(hasProofImage || hasProofMap) && (
-        <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <div className="mt-3">
+          <ActionGroup>
           {hasProofImage && proofEvent?.imageUrl && (
             <ImagePopup
               url={proofEvent.imageUrl}
               title="รูปหลักฐานปลายทาง"
-              className="h-10 flex-1 justify-center rounded-xl px-4 py-2 text-xs normal-case tracking-normal sm:flex-none"
+              className="h-10 flex-1 justify-center rounded-xl border border-outline-variant/35 bg-white px-4 py-2 text-xs font-black normal-case tracking-normal text-primary shadow-none transition-all hover:border-primary/35 hover:bg-primary/5 sm:flex-none"
             />
           )}
           {hasProofMap && proofEvent && (
-            <button
-              type="button"
+            <DashboardActionButton
+              icon="map"
               onClick={() => onOpenMap([proofEvent])}
-              className="inline-flex h-10 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98] sm:flex-none"
+              variant="primary"
             >
-              <span className="material-symbols-outlined text-lg">map</span>
               แผนที่ปลายทาง
-            </button>
+            </DashboardActionButton>
           )}
+          </ActionGroup>
         </div>
       )}
       <div className="mt-3">
@@ -394,11 +634,17 @@ const AdminParcelManagementCard = ({
   onOpen,
   onConfirm,
   onDelete,
+  onReleaseDelivery,
+  isReleasingDelivery,
+  assignment,
 }: {
   parcel: Parcel;
   onOpen: () => void;
   onConfirm: () => void;
   onDelete: () => void;
+  onReleaseDelivery: () => void;
+  isReleasingDelivery: boolean;
+  assignment: DeliveryAssignment | null;
 }) => (
   <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
     <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
@@ -415,6 +661,16 @@ const AdminParcelManagementCard = ({
     <div className="mt-3">
       <ParcelInfoStrip parcel={parcel} />
     </div>
+    {assignment && parcel['สถานะ'] !== 'ส่งสำเร็จ' && (
+      <div className="mt-3">
+        <AssignmentBadge
+          assignment={assignment}
+          canRelease
+          isReleasing={isReleasingDelivery}
+          onRelease={onReleaseDelivery}
+        />
+      </div>
+    )}
     <div className="mt-3 rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
       <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">ล่าสุด</p>
       <p className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-primary">{getLatestTimelineSummary(parcel)}</p>
@@ -434,7 +690,7 @@ const AdminParcelManagementCard = ({
 
 export default function Dashboard({ isConfigured }: DashboardProps) {
   const { user } = useAuth();
-  const { parcels, summary, loading, loadParcels, hasMore, loadMoreParcels, totalCount, removeParcelLocally } = useParcelStore();
+  const { parcels, summary, loading, loadParcels, hasMore, loadMoreParcels, totalCount, removeParcelLocally, updateParcelLocally } = useParcelStore();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const role = resolveDashboardRole(user?.role);
@@ -450,12 +706,15 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [isCreateFlowOpen, setIsCreateFlowOpen] = useState(false);
   const [isTrackFlowOpen, setIsTrackFlowOpen] = useState(false);
   const [userMapEvents, setUserMapEvents] = useState<TimelineEvent[] | null>(null);
+  const [startingDeliveryId, setStartingDeliveryId] = useState<string | null>(null);
+  const [releasingDeliveryId, setReleasingDeliveryId] = useState<string | null>(null);
   const [refreshCountdown, setRefreshCountdown] = useState(120);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const isFetchingRef = useRef(false);
   const isUserDashboard = role === 'USER';
   const canConfirmParcel = role === 'ADMIN' || role === 'MESSENGER';
+  const currentEmployeeId = String(user?.employeeId || '').trim().toUpperCase();
   const stats = useMemo(() => {
     return STATS.map((stat) => ({
       ...stat,
@@ -579,7 +838,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   };
 
   const selectedTimelineEvents = useMemo(() =>
-    selectedParcel ? parseParcelTimeline(selectedParcel) : [], [selectedParcel]);
+    selectedParcel ? getTimelineEvents(selectedParcel) : [], [selectedParcel]);
 
   /** True when the selected parcel has at least one known-coordinate branch. */
   const selectedParcelHasKnownBranches = useMemo(() => {
@@ -601,6 +860,67 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     setIsTimelineOpen(false);
     setConfirmTrackingId(trackingId);
     setIsConfirmFlowOpen(true);
+  };
+
+  const handleStartDelivery = async (parcel: Parcel) => {
+    if (startingDeliveryId) return;
+    setStartingDeliveryId(parcel.TrackingID);
+    const res = await startDelivery(parcel.TrackingID);
+    setStartingDeliveryId(null);
+
+    if (!res.success) {
+      toast.error(res.error || 'ไม่สามารถรับงานได้');
+      return;
+    }
+
+    const startEvent = {
+      id: `LOCAL-${Date.now()}`,
+      trackingId: parcel.TrackingID,
+      timestamp: new Date().toISOString(),
+      eventType: 'START_DELIVERY' as const,
+      location: parcel['สาขาผู้ส่ง'] || '',
+      destLocation: parcel['สาขาผู้รับ'] || '',
+      person: res.assignedToName || user?.name || user?.employeeId || '',
+      note: buildAssignmentNote(res.assignedToId || currentEmployeeId),
+    };
+
+    const hasLocalAssignment = Boolean(getActiveDeliveryAssignment(parcel));
+    updateParcelLocally(parcel.TrackingID, {
+      'สถานะ': 'กำลังจัดส่ง',
+      events: res.alreadyStarted && hasLocalAssignment ? parcel.events : [...(parcel.events || []), startEvent],
+    });
+    toast.success(res.alreadyStarted ? 'งานนี้อยู่ระหว่างจัดส่งแล้ว' : 'รับงานแล้ว เปลี่ยนสถานะเป็นกำลังจัดส่ง');
+    loadParcels(undefined, true).catch(() => {});
+  };
+
+  const handleReleaseDelivery = async (parcel: Parcel) => {
+    if (releasingDeliveryId) return;
+    setReleasingDeliveryId(parcel.TrackingID);
+    const res = await releaseDelivery(parcel.TrackingID);
+    setReleasingDeliveryId(null);
+
+    if (!res.success) {
+      toast.error(res.error || 'ไม่สามารถปล่อยงานได้');
+      return;
+    }
+
+    const releaseEvent = {
+      id: `LOCAL-RELEASE-${Date.now()}`,
+      trackingId: parcel.TrackingID,
+      timestamp: new Date().toISOString(),
+      eventType: 'RELEASE_DELIVERY' as const,
+      location: parcel['สาขาผู้ส่ง'] || '',
+      destLocation: parcel['สาขาผู้รับ'] || '',
+      person: user?.name || user?.employeeId || '',
+      note: buildAssignmentNote(currentEmployeeId),
+    };
+
+    updateParcelLocally(parcel.TrackingID, {
+      'สถานะ': 'รอจัดส่ง',
+      events: [...(parcel.events || []), releaseEvent],
+    });
+    toast.success(res.alreadyReleased ? 'งานนี้พร้อมให้รับแล้ว' : 'ปล่อยงานแล้ว งานกลับไปรอจัดส่ง');
+    loadParcels(undefined, true).catch(() => {});
   };
 
   const executeDelete = async () => {
@@ -806,104 +1126,132 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         {loading && !filteredParcels.length ? (
           <TableSkeleton />
         ) : !filteredParcels.length ? (
-          <div className="flex flex-col items-center gap-3 py-16 text-center">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface-container">
-              <span className="material-symbols-outlined text-3xl text-on-surface-variant/30">search_off</span>
-            </div>
-            <div>
-              <p className="font-bold text-primary">ไม่พบข้อมูลพัสดุ</p>
-              <p className="mt-0.5 text-sm text-on-surface-variant">ลองปรับคำค้นหา</p>
-            </div>
-            {hasFilters && !isMessengerDashboard && (
-              <button onClick={clearFilters} className="text-sm font-bold text-primary hover:underline">ล้างตัวกรอง</button>
-            )}
+          <div className="p-3 sm:p-4">
+            <EmptyState
+              icon="search_off"
+              title="ไม่พบข้อมูลพัสดุ"
+              description="ลองปรับคำค้นหาหรือล้างตัวกรอง"
+              action={hasFilters && !isMessengerDashboard ? (
+                <DashboardActionButton icon="filter_alt_off" onClick={clearFilters} variant="secondary" compact>
+                  ล้างตัวกรอง
+                </DashboardActionButton>
+              ) : undefined}
+            />
           </div>
         ) : isMessengerDashboard ? (
           <div className="space-y-5 p-3 sm:p-4">
             <div>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h3 className="font-display text-sm font-black text-primary">ต้องไปส่ง</h3>
-                <span className="rounded-full bg-amber-50 px-2 py-1 text-[11px] font-black text-amber-700">{messengerOpenParcels.length} งาน</span>
-              </div>
+              <RoleSectionHeader
+                icon="local_shipping"
+                title="ต้องไปส่ง"
+                subtitle="งานกำลังจัดส่งมาก่อน ตามด้วยงานที่รอจัดส่งเก่าสุด"
+                count={messengerOpenParcels.length}
+                tone="amber"
+              />
               {messengerOpenParcels.length ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
-                  {messengerOpenParcels.map(parcel => (
-                    <MessengerDeliveryCard
-                      key={parcel.TrackingID}
-                      parcel={parcel}
-                      onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                      onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                    />
-                  ))}
+                  {messengerOpenParcels.map(parcel => {
+                    const assignment = getActiveDeliveryAssignment(parcel);
+                    const isAssignedToMe = Boolean(assignment?.assignedToId && assignment.assignedToId === currentEmployeeId);
+                    const canStart = !assignment && parcel['สถานะ'] === 'รอจัดส่ง';
+                    const canRelease = Boolean(assignment && isAssignedToMe);
+                    const canConfirm = !assignment || isAssignedToMe;
+                    return (
+                      <MessengerDeliveryCard
+                        key={parcel.TrackingID}
+                        parcel={parcel}
+                        assignment={assignment}
+                        canStartDelivery={canStart}
+                        canReleaseDelivery={canRelease}
+                        canConfirmDelivery={canConfirm}
+                        onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                        onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                        onStartDelivery={() => handleStartDelivery(parcel)}
+                        onReleaseDelivery={() => handleReleaseDelivery(parcel)}
+                        isStartingDelivery={startingDeliveryId === parcel.TrackingID}
+                        isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
+                      />
+                    );
+                  })}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-5 text-center text-sm font-bold text-emerald-800">
-                  ไม่มีงานค้างส่งในตอนนี้
-                </div>
+                <EmptyState icon="task_alt" title="ไม่มีงานค้างส่งในตอนนี้" tone="emerald" />
               )}
             </div>
 
             <div>
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <h3 className="font-display text-sm font-black text-primary">ส่งแล้ว</h3>
-                <span className="rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-black text-emerald-700">{messengerDoneParcels.length} งาน</span>
-              </div>
+              <RoleSectionHeader
+                icon="done_all"
+                title="ส่งแล้ว"
+                subtitle="สรุปหลักฐานและผู้รับจริงของงานที่ปิดแล้ว"
+                count={messengerDoneParcels.length}
+                tone="emerald"
+              />
               {messengerDoneParcels.length ? (
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {messengerDoneParcels.map(parcel => (
                     <MessengerDeliveryCard
                       key={parcel.TrackingID}
                       parcel={parcel}
+                      assignment={null}
+                      canStartDelivery={false}
+                      canReleaseDelivery={false}
+                      canConfirmDelivery={false}
                       onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
                       onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                      onStartDelivery={() => handleStartDelivery(parcel)}
+                      onReleaseDelivery={() => handleReleaseDelivery(parcel)}
+                      isStartingDelivery={startingDeliveryId === parcel.TrackingID}
+                      isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
                     />
                   ))}
                 </div>
               ) : (
-                <div className="rounded-2xl border border-outline-variant/15 bg-surface-container-lowest px-4 py-5 text-center text-sm font-bold text-on-surface-variant/60">
-                  ยังไม่มีงานที่ส่งสำเร็จในรายการนี้
-                </div>
+                <EmptyState icon="inventory_2" title="ยังไม่มีงานที่ส่งสำเร็จในรายการนี้" />
               )}
             </div>
           </div>
         ) : (
           <div className="space-y-3 p-3 sm:p-4">
             {!isUserDashboard && adminNeedsAttentionParcels.length > 0 && (
-              <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50/60 p-3 sm:p-4">
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <h3 className="font-display text-sm font-black text-amber-950">ต้องจัดการ</h3>
-                    <p className="text-xs font-semibold text-amber-800/75">งานที่ยังไม่สำเร็จหรือค้างนาน แสดงก่อนเพื่อไม่ต้องไล่หาเอง</p>
-                  </div>
-                  <span className="rounded-full bg-white px-2 py-1 text-[11px] font-black text-amber-800 shadow-sm">
-                    {adminNeedsAttentionParcels.length} รายการ
-                  </span>
-                </div>
+              <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50/50 p-3 sm:p-4">
+                <RoleSectionHeader
+                  icon="priority_high"
+                  title="ต้องจัดการ"
+                  subtitle="งานที่ยังไม่สำเร็จหรือค้างนาน แสดงก่อนเพื่อไม่ต้องไล่หาเอง"
+                  count={adminNeedsAttentionParcels.length}
+                  tone="amber"
+                />
                 <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
                   {adminNeedsAttentionParcels.map(parcel => (
                     <AdminParcelManagementCard
                       key={`attention-${parcel.TrackingID}`}
                       parcel={parcel}
+                      assignment={getActiveDeliveryAssignment(parcel)}
                       onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
                       onConfirm={() => openConfirmFlow(parcel.TrackingID)}
                       onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                      onReleaseDelivery={() => handleReleaseDelivery(parcel)}
+                      isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
                     />
                   ))}
                 </div>
               </div>
             )}
             {!isUserDashboard && (
-              <div className="flex items-center justify-between gap-2">
-                <h3 className="font-display text-sm font-black text-primary">รายการทั้งหมด</h3>
-                <span className="text-xs font-bold text-on-surface-variant/55">แสดงตามตัวกรองปัจจุบัน</span>
-              </div>
+              <RoleSectionHeader
+                icon="view_agenda"
+                title="รายการทั้งหมด"
+                subtitle="แสดงตามตัวกรองปัจจุบัน"
+                count={paginatedParcels.length}
+              />
             )}
             {paginatedParcels.map(parcel => (
               isUserDashboard ? (
                 <UserParcelOverviewCard
                   key={parcel.TrackingID}
                   parcel={parcel}
-                  timelineEvents={parseParcelTimeline(parcel)}
+                  timelineEvents={getTimelineEvents(parcel)}
                   onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
                   onOpenMap={setUserMapEvents}
                 />
@@ -911,9 +1259,12 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 <AdminParcelManagementCard
                   key={parcel.TrackingID}
                   parcel={parcel}
+                  assignment={getActiveDeliveryAssignment(parcel)}
                   onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
                   onConfirm={() => openConfirmFlow(parcel.TrackingID)}
                   onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                  onReleaseDelivery={() => handleReleaseDelivery(parcel)}
+                  isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
                 />
               )
             ))}
@@ -960,16 +1311,21 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       </section>
 
       {/* ── Timeline Dialog ── */}
-      <ParcelTimelineModal
-        isOpen={isTimelineOpen}
-        setIsOpen={setIsTimelineOpen}
-        selectedParcel={selectedParcel}
-        selectedTimelineEvents={selectedTimelineEvents}
-        hasKnownBranches={selectedParcelHasKnownBranches}
-        onConfirmParcel={openConfirmFlow}
-        onDeleteParcel={handleDelete}
-      />
+      {isTimelineOpen && (
+        <Suspense fallback={null}>
+          <ParcelTimelineModal
+            isOpen={isTimelineOpen}
+            setIsOpen={setIsTimelineOpen}
+            selectedParcel={selectedParcel}
+            selectedTimelineEvents={selectedTimelineEvents}
+            hasKnownBranches={selectedParcelHasKnownBranches}
+            onConfirmParcel={openConfirmFlow}
+            onDeleteParcel={handleDelete}
+          />
+        </Suspense>
+      )}
 
+      {userMapEvents && (
       <Dialog open={Boolean(userMapEvents)} onOpenChange={(open) => { if (!open) setUserMapEvents(null); }}>
         <DialogContent
           showCloseButton={false}
@@ -989,17 +1345,21 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               >
                 <span className="material-symbols-outlined text-2xl font-black">close</span>
               </button>
-              <TrackingMap
-                events={userMapEvents || []}
-                className="h-[62vh] max-h-[560px] min-h-[340px] rounded-2xl"
-                mapClassName="min-h-0"
-              />
+              <Suspense fallback={<LazyPanelFallback label="กำลังโหลดแผนที่..." />}>
+                <TrackingMap
+                  events={userMapEvents || []}
+                  className="h-[62vh] max-h-[560px] min-h-[340px] rounded-2xl"
+                  mapClassName="min-h-0"
+                />
+              </Suspense>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* ── Confirm / Photo Capture Dialog ── */}
+      {isConfirmFlowOpen && (
       <Dialog
         open={isConfirmFlowOpen}
         onOpenChange={(open) => {
@@ -1025,25 +1385,29 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 <span className="material-symbols-outlined text-2xl">close</span>
               </button>
             )}
-            <ConfirmReceipt
-              key={confirmTrackingId ?? 'confirm-flow'}
-              initialTrackingId={confirmTrackingId}
-              onInitialTrackingIdConsumed={() => undefined}
-              autoCheckInitial
-              autoOpenCamera
-              embedded
-              onPreparingCameraChange={setIsConfirmPreparingCamera}
-              onComplete={() => {
-                setIsConfirmFlowOpen(false);
-                setConfirmTrackingId(null);
-                setIsConfirmPreparingCamera(false);
-              }}
-            />
+            <Suspense fallback={<LazyPanelFallback label="กำลังโหลดหน้าบันทึกผล..." />}>
+              <ConfirmReceipt
+                key={confirmTrackingId ?? 'confirm-flow'}
+                initialTrackingId={confirmTrackingId}
+                onInitialTrackingIdConsumed={() => undefined}
+                autoCheckInitial
+                autoOpenCamera
+                embedded
+                onPreparingCameraChange={setIsConfirmPreparingCamera}
+                onComplete={() => {
+                  setIsConfirmFlowOpen(false);
+                  setConfirmTrackingId(null);
+                  setIsConfirmPreparingCamera(false);
+                }}
+              />
+            </Suspense>
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* ── User Quick Create Dialog ── */}
+      {isCreateFlowOpen && (
       <Dialog open={isCreateFlowOpen} onOpenChange={setIsCreateFlowOpen}>
         <DialogContent
           showCloseButton={false}
@@ -1068,12 +1432,16 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             </div>
           </DialogHeader>
           <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
-            <CreateParcel embedded />
+            <Suspense fallback={<LazyPanelFallback label="กำลังโหลดฟอร์มส่งพัสดุ..." />}>
+              <CreateParcel embedded />
+            </Suspense>
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* ── User Quick Track Dialog ── */}
+      {isTrackFlowOpen && (
       <Dialog open={isTrackFlowOpen} onOpenChange={setIsTrackFlowOpen}>
         <DialogContent
           showCloseButton={false}
@@ -1098,10 +1466,13 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             </div>
           </DialogHeader>
           <div className="max-h-[calc(92vh-76px)] overflow-y-auto p-3 sm:p-5">
-            <Track embedded />
+            <Suspense fallback={<LazyPanelFallback label="กำลังโหลดหน้าติดตาม..." />}>
+              <Track embedded />
+            </Suspense>
           </div>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* ── Delete Confirm Dialog ── */}
       <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>

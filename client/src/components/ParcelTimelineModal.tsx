@@ -1,14 +1,24 @@
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from '@/components/ui/dialog';
-import { useState } from 'react';
+import { lazy, Suspense, useState } from 'react';
 import Timeline from '@/components/Timeline';
-import TrackingMap from '@/components/TrackingMap';
 import type { Parcel } from '@/types/parcel';
 import type { TimelineEvent } from '@/types/timeline';
 import { useAuth } from '@/contexts/AuthContext';
 import { normalizeRole } from '@/lib/roles';
 import { applyDerivedStatus } from '@/lib/parcelStatus';
+
+const TrackingMap = lazy(() => import('@/components/TrackingMap'));
+
+const MapFallback = () => (
+  <div className="grid h-[62vh] max-h-[560px] min-h-[340px] place-items-center rounded-2xl bg-white text-primary">
+    <div className="flex flex-col items-center gap-3">
+      <span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span>
+      <p className="text-sm font-black">กำลังโหลดแผนที่...</p>
+    </div>
+  </div>
+);
 
 interface ParcelTimelineModalProps {
   isOpen: boolean;
@@ -109,6 +119,7 @@ export default function ParcelTimelineModal({
         </div>
       </DialogContent>
 
+      {isMapOpen && (
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent
           showCloseButton={false}
@@ -128,15 +139,18 @@ export default function ParcelTimelineModal({
               >
                 <span className="material-symbols-outlined text-2xl font-black">close</span>
               </button>
-              <TrackingMap
-                events={selectedTimelineEvents}
-                className="h-[62vh] max-h-[560px] min-h-[340px] rounded-2xl"
-                mapClassName="min-h-0"
-              />
+              <Suspense fallback={<MapFallback />}>
+                <TrackingMap
+                  events={selectedTimelineEvents}
+                  className="h-[62vh] max-h-[560px] min-h-[340px] rounded-2xl"
+                  mapClassName="min-h-0"
+                />
+              </Suspense>
             </div>
           </div>
         </DialogContent>
       </Dialog>
+      )}
     </Dialog>
   );
 }

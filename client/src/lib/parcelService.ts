@@ -11,6 +11,10 @@ import type {
   ConfirmReceiptPayload,
   ConfirmReceiptResponse,
   DeliveryMatchStatus,
+  StartDeliveryPayload,
+  StartDeliveryResponse,
+  ReleaseDeliveryPayload,
+  ReleaseDeliveryResponse,
   ExportSummaryResponse,
   ParcelSummary,
   Parcel,
@@ -287,6 +291,32 @@ export async function confirmReceipt(
   };
   try {
     return await callAPI<ConfirmReceiptResponse>(payload, {}, NO_RETRY);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด';
+    return { success: false, error: message };
+  }
+}
+
+export async function startDelivery(trackingID: string): Promise<StartDeliveryResponse> {
+  const payload: StartDeliveryPayload = {
+    action: 'startDelivery',
+    trackingID,
+  };
+  try {
+    return await callAPI<StartDeliveryResponse>(payload, {}, NO_RETRY);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด';
+    return { success: false, error: message };
+  }
+}
+
+export async function releaseDelivery(trackingID: string): Promise<ReleaseDeliveryResponse> {
+  const payload: ReleaseDeliveryPayload = {
+    action: 'releaseDelivery',
+    trackingID,
+  };
+  try {
+    return await callAPI<ReleaseDeliveryResponse>(payload, {}, NO_RETRY);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'เกิดข้อผิดพลาด';
     return { success: false, error: message };

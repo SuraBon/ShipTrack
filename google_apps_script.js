@@ -723,7 +723,7 @@ function doPost(e) {
     }
 
     // --- Token Signature Verification ---
-    const protectedActions = ['createParcel', 'confirmReceipt', 'getParcels', 'exportSummary', 'getUsers', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const protectedActions = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery', 'getParcels', 'exportSummary', 'getUsers', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
       if (parts.length === 4) {
@@ -760,7 +760,7 @@ function doPost(e) {
       payload.role = 'GUEST';
     }
 
-    const writeActions = ['createParcel', 'confirmReceipt', 'login', 'setupPin', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const writeActions = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery', 'login', 'setupPin', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
     const isWrite = writeActions.includes(action);
 
     let result;
@@ -797,6 +797,8 @@ function routeAction(action, payload) {
   if (action === 'getParcel') return handleGetParcel(payload);
   if (action === 'exportSummary') return handleExportSummary(payload);
   if (action === 'confirmReceipt') return handleConfirmReceipt(payload);
+  if (action === 'startDelivery') return handleStartDelivery(payload);
+  if (action === 'releaseDelivery') return handleReleaseDelivery(payload);
   if (action === 'searchParcels') return handleSearchParcels(payload);
   if (action === 'login') return handleLogin(payload);
   if (action === 'setupPin') return handleSetupPin(payload);
@@ -929,21 +931,7 @@ function getParcelEventsMap() {
       const row = data[i];
       const trackingId = row[1];
 
-      const evt = {
-        id: String(row[0]),
-        trackingId: String(trackingId),
-        timestamp: formatSheetDateValue(row[2]),
-        eventType: String(row[3]),
-        location: String(row[4]),
-        destLocation: String(row[5]),
-        person: String(row[6]),
-        photoUrl: String(row[7]),
-        latitude: row[8] !== "" ? Number(row[8]) : undefined,
-        longitude: row[9] !== "" ? Number(row[9]) : undefined,
-        note: String(row[10]),
-        deliveryMatchStatus: row[11] ? String(row[11]) : "",
-        deliveryMismatchReason: row[12] ? String(row[12]) : ""
-      };
+      const evt = parseEventRow(row);
 
       if (!eventsByTrackingId[trackingId]) {
         eventsByTrackingId[trackingId] = [];
@@ -953,6 +941,71 @@ function getParcelEventsMap() {
   });
 
   return eventsByTrackingId;
+}
+
+function parseAssignedToId(note) {
+  const prefix = "assignedToId=";
+  const value = String(note || "").trim();
+  if (value.indexOf(prefix) !== 0) return "";
+  return value.substring(prefix.length).trim();
+}
+
+function buildAssignmentNote(employeeId) {
+  return "assignedToId=" + normalizeEmployeeId(employeeId);
+}
+
+function parseEventRow(row) {
+  return {
+    id: String(row[0]),
+    trackingId: String(row[1]),
+    timestamp: formatSheetDateValue(row[2]),
+    eventType: String(row[3]),
+    location: String(row[4]),
+    destLocation: String(row[5]),
+    person: String(row[6]),
+    photoUrl: String(row[7]),
+    latitude: row[8] !== "" ? Number(row[8]) : undefined,
+    longitude: row[9] !== "" ? Number(row[9]) : undefined,
+    note: String(row[10]),
+    deliveryMatchStatus: row[11] ? String(row[11]) : "",
+    deliveryMismatchReason: row[12] ? String(row[12]) : ""
+  };
+}
+
+function getParcelEventsForSpreadsheet(ss, trackingID) {
+  const eventSheet = ss.getSheetByName("ParcelEvents");
+  if (!eventSheet) return [];
+  const data = eventSheet.getDataRange().getValues();
+  const events = [];
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1]).trim() === String(trackingID).trim()) {
+      events.push(parseEventRow(data[i]));
+    }
+  }
+  return events;
+}
+
+function getActiveDeliveryAssignmentFromEvents(events) {
+  let active = null;
+  for (let i = 0; i < events.length; i++) {
+    const evt = events[i];
+    if (evt.eventType === "START_DELIVERY") {
+      const assignedToId = parseAssignedToId(evt.note);
+      if (!assignedToId) continue;
+      active = {
+        assignedToId: assignedToId,
+        assignedToName: evt.person || assignedToId || "Messenger",
+        timestamp: evt.timestamp
+      };
+    } else if (
+      evt.eventType === "RELEASE_DELIVERY" ||
+      evt.eventType === "DELIVERED" ||
+      evt.eventType === "PROXY"
+    ) {
+      active = null;
+    }
+  }
+  return active;
 }
 
 function handleGetParcels(payload) {
@@ -1093,10 +1146,15 @@ function handleExportSummary(payload) {
       if (status === "ส่งถึงแล้ว") {
         const events = eventsMap[trackingID] || [];
         const actionEvents = events.filter(function(e) {
-          return e.eventType === 'FORWARD' || e.eventType === 'DELIVERED' || e.eventType === 'PROXY';
+          return e.eventType === 'FORWARD' || e.eventType === 'START_DELIVERY' || e.eventType === 'RELEASE_DELIVERY' || e.eventType === 'DELIVERED' || e.eventType === 'PROXY';
         });
-        if (actionEvents.length > 0 && actionEvents[actionEvents.length - 1].eventType === 'FORWARD') {
+        if (
+          actionEvents.length > 0 &&
+          (actionEvents[actionEvents.length - 1].eventType === 'FORWARD' || actionEvents[actionEvents.length - 1].eventType === 'START_DELIVERY')
+        ) {
           status = "กำลังจัดส่ง";
+        } else if (actionEvents.length > 0 && actionEvents[actionEvents.length - 1].eventType === 'RELEASE_DELIVERY') {
+          status = "รอจัดส่ง";
         }
       }
 
@@ -1182,6 +1240,20 @@ function handleConfirmReceipt(payload) {
       const rowIndex = i + 1;
       const currentStatus = row[9];
       const noteStr = String(row[8] || "");
+      const activeAssignment = getActiveDeliveryAssignmentFromEvents(getParcelEventsForSpreadsheet(storage.spreadsheet, payload.trackingID));
+      if (
+        activeAssignment &&
+        activeAssignment.assignedToId &&
+        activeAssignment.assignedToId !== normalizeEmployeeId(payload.employeeId) &&
+        normalizeRole(payload.role) !== "ADMIN"
+      ) {
+        return createJsonResponse({
+          success: false,
+          error: "งานนี้มีผู้รับงานแล้ว: " + activeAssignment.assignedToName,
+          assignedToId: activeAssignment.assignedToId,
+          assignedToName: activeAssignment.assignedToName
+        });
+      }
       
       let isActuallyDelivered = currentStatus === "ส่งถึงแล้ว";
 
@@ -1309,6 +1381,188 @@ function handleConfirmReceipt(payload) {
       }
 
       writeAuditLog(payload.employeeId, "CONFIRM_RECEIPT_" + (payload.eventType || "UNKNOWN"), payload.trackingID, "Status: " + currentStatus + " → " + newStatus);
+      return createJsonResponse({ success: true });
+    }
+  }
+
+  return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+}
+
+function handleStartDelivery(payload) {
+  if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER'])) {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+  }
+
+  const rl = checkWriteRateLimit(payload.employeeId, 'startDelivery');
+  if (!rl.allowed) {
+    return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+  }
+
+  if (!validateTrackingID(payload.trackingID)) {
+    return createJsonResponse({ success: false, error: "รูปแบบหมายเลขติดตามไม่ถูกต้อง" });
+  }
+
+  const storage = getParcelStorageByTrackingId(payload.trackingID);
+  if (!storage) {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+  }
+
+  const sheet = storage.sheet;
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[0] === payload.trackingID) {
+      if (!canReadParcelRow(payload, row)) {
+        return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+      }
+
+      const rowIndex = i + 1;
+      const currentStatus = String(row[9] || "");
+      const events = getParcelEventsForSpreadsheet(storage.spreadsheet, payload.trackingID);
+      const activeAssignment = getActiveDeliveryAssignmentFromEvents(events);
+      const currentEmployeeId = normalizeEmployeeId(payload.employeeId);
+
+      if (currentStatus === "ส่งถึงแล้ว") {
+        return createJsonResponse({ success: false, error: "พัสดุนี้ส่งสำเร็จแล้ว ไม่สามารถรับงานซ้ำได้" });
+      }
+
+      if (activeAssignment && activeAssignment.assignedToId && activeAssignment.assignedToId !== currentEmployeeId) {
+        return createJsonResponse({
+          success: false,
+          error: "งานนี้มีผู้รับงานแล้ว: " + activeAssignment.assignedToName,
+          assignedToId: activeAssignment.assignedToId,
+          assignedToName: activeAssignment.assignedToName
+        });
+      }
+
+      if (activeAssignment && activeAssignment.assignedToId === currentEmployeeId) {
+        return createJsonResponse({
+          success: true,
+          alreadyStarted: true,
+          assignedToId: activeAssignment.assignedToId,
+          assignedToName: activeAssignment.assignedToName
+        });
+      }
+
+      if (currentStatus !== "กำลังจัดส่ง") {
+        sheet.getRange(rowIndex, 10).setValue("กำลังจัดส่ง");
+      }
+
+      const eventSheet = getEventSheetForSpreadsheet(storage.spreadsheet);
+      if (eventSheet) {
+        const eventId = "EVT" + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMddHHmmssSSS") + Math.floor(Math.random() * 1000);
+        const eventTimeStr = formatThaiDateForSheet(new Date());
+        const assignedToName = escapeSheetValue(payload.name || payload.employeeId || "");
+        eventSheet.appendRow([
+          eventId,
+          payload.trackingID,
+          eventTimeStr,
+          "START_DELIVERY",
+          escapeSheetValue(row[3] || ""),
+          escapeSheetValue(row[5] || ""),
+          assignedToName,
+          "",
+          "",
+          "",
+          buildAssignmentNote(payload.employeeId),
+          "",
+          ""
+        ]);
+      }
+
+      writeAuditLog(payload.employeeId, "START_DELIVERY", payload.trackingID, "Status: " + currentStatus + " → กำลังจัดส่ง");
+      return createJsonResponse({
+        success: true,
+        assignedToId: currentEmployeeId,
+        assignedToName: payload.name || payload.employeeId || ""
+      });
+    }
+  }
+
+  return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+}
+
+function handleReleaseDelivery(payload) {
+  if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER'])) {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+  }
+
+  const rl = checkWriteRateLimit(payload.employeeId, 'releaseDelivery');
+  if (!rl.allowed) {
+    return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+  }
+
+  if (!validateTrackingID(payload.trackingID)) {
+    return createJsonResponse({ success: false, error: "รูปแบบหมายเลขติดตามไม่ถูกต้อง" });
+  }
+
+  const storage = getParcelStorageByTrackingId(payload.trackingID);
+  if (!storage) {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+  }
+
+  const sheet = storage.sheet;
+  const data = sheet.getDataRange().getValues();
+
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[0] === payload.trackingID) {
+      if (!canReadParcelRow(payload, row)) {
+        return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+      }
+
+      const rowIndex = i + 1;
+      const currentStatus = String(row[9] || "");
+      const events = getParcelEventsForSpreadsheet(storage.spreadsheet, payload.trackingID);
+      const activeAssignment = getActiveDeliveryAssignmentFromEvents(events);
+      const currentEmployeeId = normalizeEmployeeId(payload.employeeId);
+      const isAdmin = normalizeRole(payload.role) === "ADMIN";
+
+      if (currentStatus === "ส่งถึงแล้ว") {
+        return createJsonResponse({ success: false, error: "พัสดุนี้ส่งสำเร็จแล้ว ไม่สามารถปล่อยงานได้" });
+      }
+
+      if (!activeAssignment) {
+        if (currentStatus !== "รอจัดส่ง") {
+          sheet.getRange(rowIndex, 10).setValue("รอจัดส่ง");
+        }
+        return createJsonResponse({ success: true, alreadyReleased: true });
+      }
+
+      if (!isAdmin && activeAssignment.assignedToId && activeAssignment.assignedToId !== currentEmployeeId) {
+        return createJsonResponse({
+          success: false,
+          error: "ปล่อยงานได้เฉพาะคนที่รับงานไว้หรือ Admin",
+          assignedToId: activeAssignment.assignedToId,
+          assignedToName: activeAssignment.assignedToName
+        });
+      }
+
+      sheet.getRange(rowIndex, 10).setValue("รอจัดส่ง");
+
+      const eventSheet = getEventSheetForSpreadsheet(storage.spreadsheet);
+      if (eventSheet) {
+        const eventId = "EVT" + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMddHHmmssSSS") + Math.floor(Math.random() * 1000);
+        const eventTimeStr = formatThaiDateForSheet(new Date());
+        eventSheet.appendRow([
+          eventId,
+          payload.trackingID,
+          eventTimeStr,
+          "RELEASE_DELIVERY",
+          escapeSheetValue(row[3] || ""),
+          escapeSheetValue(row[5] || ""),
+          escapeSheetValue(payload.name || payload.employeeId || ""),
+          "",
+          "",
+          "",
+          buildAssignmentNote(payload.employeeId),
+          "",
+          ""
+        ]);
+      }
+
+      writeAuditLog(payload.employeeId, "RELEASE_DELIVERY", payload.trackingID, "Status: " + currentStatus + " → รอจัดส่ง");
       return createJsonResponse({ success: true });
     }
   }
