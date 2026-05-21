@@ -131,31 +131,31 @@ const LazyPanelFallback = ({ label = 'กำลังโหลด...' }: { label
 );
 
 const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; compact?: boolean }) => (
-  <div className={`rounded-xl border border-primary/10 bg-primary/[0.03] ${compact ? 'p-2.5' : 'p-3'}`}>
-    <div className={`grid items-stretch gap-2 ${compact ? 'grid-cols-[1fr_auto_1fr]' : 'grid-cols-[1fr_auto_1fr]'}`}>
-      <div className="min-w-0 rounded-lg bg-white px-2.5 py-2 shadow-sm ring-1 ring-outline-variant/10">
-        <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/50">
+  <div className={`rounded-xl border border-outline-variant/20 bg-surface-container-lowest/40 ${compact ? 'p-2.5' : 'p-3.5'}`}>
+    <div className="grid items-center gap-2 grid-cols-[1fr_auto_1fr]">
+      <div className="min-w-0">
+        <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40">
           <span className="material-symbols-outlined text-[13px]">package_2</span>
           ต้นทาง
         </div>
         <p className="truncate text-sm font-black leading-tight text-primary">{parcel['สาขาผู้ส่ง'] || '-'}</p>
         {!compact && <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">{parcel['ผู้ส่ง'] || '-'}</p>}
       </div>
-      <div className="grid w-8 place-items-center text-primary">
-        <span className="material-symbols-outlined text-xl">arrow_forward</span>
+      <div className="flex w-6 items-center justify-center text-on-surface-variant/30 shrink-0">
+        <span className="material-symbols-outlined text-lg">arrow_forward</span>
       </div>
-      <div className="min-w-0 rounded-lg bg-white px-2.5 py-2 shadow-sm ring-1 ring-outline-variant/10">
-        <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/50">
+      <div className="min-w-0">
+        <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/40">
           <span className="material-symbols-outlined text-[13px]">flag</span>
           ปลายทาง
         </div>
         <p className="truncate text-sm font-black leading-tight text-primary">{parcel['สาขาผู้รับ'] || '-'}</p>
-        {!compact && <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>}
+        {!compact && <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">{parcel['ผู้รับ'] || '-'}</p>}
       </div>
     </div>
     {compact && (
-      <div className="mt-2 flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1.5 text-xs font-black text-primary shadow-sm ring-1 ring-outline-variant/10">
-        <span className="material-symbols-outlined text-base">person_pin</span>
+      <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant/70">
+        <span className="material-symbols-outlined text-base text-on-surface-variant/50">person_pin</span>
         <span className="min-w-0 truncate">ผู้รับ: {parcel['ผู้รับ'] || '-'}</span>
       </div>
     )}
@@ -593,25 +593,35 @@ const MessengerDeliveryCard = ({
 
         {/* Notes and description */}
         {(parcel['รายละเอียด'] || note) && (
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-3 pt-0.5">
             {parcel['รายละเอียด'] && (
-              <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low/20 px-3.5 py-2.5 shadow-sm">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50 leading-none block mb-1">
-                  รายละเอียดสิ่งที่ส่ง
+              <div className="flex items-start gap-2.5 px-1">
+                <span className="material-symbols-outlined text-on-surface-variant/40 text-lg shrink-0 mt-0.5" style={{ fontVariationSettings: "'FILL' 0" }}>
+                  description
                 </span>
-                <p className="text-sm font-semibold text-primary truncate">
-                  {parcel['รายละเอียด']}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/40 leading-none block">
+                    รายละเอียดสิ่งที่ส่ง
+                  </span>
+                  <p className="mt-1 text-sm font-bold text-primary truncate">
+                    {parcel['รายละเอียด']}
+                  </p>
+                </div>
               </div>
             )}
             {note && (
-              <div className="rounded-xl border border-outline-variant/30 bg-surface-container-low/20 px-3.5 py-2.5 shadow-sm">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/50 leading-none block mb-1">
-                  หมายเหตุ
+              <div className="flex items-start gap-2.5 px-3 py-2.5 rounded-xl bg-amber-500/[0.04] border border-amber-500/10">
+                <span className="material-symbols-outlined text-amber-600/70 text-lg shrink-0 mt-0.5" style={{ fontVariationSettings: "'FILL' 1" }}>
+                  chat_bubble
                 </span>
-                <p className="text-sm font-semibold text-primary truncate italic">
-                  {note}
-                </p>
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-amber-600/60 leading-none block">
+                    หมายเหตุ
+                  </span>
+                  <p className="mt-1 text-sm font-bold text-amber-900/90 truncate italic">
+                    {note}
+                  </p>
+                </div>
               </div>
             )}
           </div>
