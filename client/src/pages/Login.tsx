@@ -1,13 +1,9 @@
-import { useState } from 'react';import { useAuth } from '@/contexts/AuthContext';
+import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import { ArrowRight, CheckCircle2, PackageSearch, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, PackageSearch, XCircle } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { getParcel, searchParcels } from '@/lib/parcelService';
-import StatusBadge from '@/components/StatusBadge';
-import { formatThaiDate } from '@/lib/dateUtils';
-import type { Parcel } from '@/types/parcel';
 import { isValidEmployeeId, normalizeEmployeeId, validatePassword, validateRequiredText } from '@/lib/validation';
-import { UI_COPY } from '@/lib/uiCopy';
 
 type AuthDialogState = {
   open: boolean;
@@ -16,7 +12,7 @@ type AuthDialogState = {
   message: string;
 };
 
-const DEFAULT_LOGIN_ERROR = 'ไม่พบรหัสหรือรหัสผ่านของท่านไม่ถูกต้อง';
+const DEFAULT_LOGIN_ERROR = 'เข้าสู่ระบบไม่สำเร็จ';
 
 function getLoginErrorMessage(error?: string) {
   const err = error || '';
@@ -31,10 +27,10 @@ function getLoginErrorMessage(error?: string) {
     err.includes('not found') ||
     err.includes('UNAVAILABLE')
   ) {
-    return `${DEFAULT_LOGIN_ERROR} กรุณาตรวจสอบรหัสพนักงาน หรือให้ Admin เพิ่มบัญชีพนักงานก่อนเข้าใช้งาน`;
+    return 'ไม่พบรหัสพนักงานนี้ กรุณาตรวจสอบอีกครั้ง หรือให้ Admin เพิ่มบัญชีก่อน';
   }
 
-  return err || 'เกิดข้อผิดพลาดในการเข้าสู่ระบบ กรุณาลองใหม่อีกครั้ง';
+  return err || 'ระบบไม่สามารถเข้าสู่ระบบได้ กรุณาลองใหม่อีกครั้ง';
 }
 
 export default function Login() {
@@ -43,11 +39,6 @@ export default function Login() {
   const [employeeId, setEmployeeId] = useState('');
   const [pin, setPin] = useState('');
   const [isSetup, setIsSetup] = useState(false);
-  const [isTrackOpen, setIsTrackOpen] = useState(false);
-  const [guestQuery, setGuestQuery] = useState('');
-  const [isTracking, setIsTracking] = useState(false);
-  const [guestParcel, setGuestParcel] = useState<Parcel | null>(null);
-  const [guestResults, setGuestResults] = useState<Parcel[]>([]);
   
   // For setup
   const [name, setName] = useState('');
@@ -159,82 +150,33 @@ export default function Login() {
     }
   };
 
-  const resetGuestTracking = () => {
-    setGuestQuery('');
-    setGuestParcel(null);
-    setGuestResults([]);
-    setIsTracking(false);
-  };
-
-  const handleTrackOpenChange = (open: boolean) => {
-    setIsTrackOpen(open);
-    if (!open) resetGuestTracking();
-  };
-
-  const handleGuestTracking = async (e?: React.FormEvent, queryOverride?: string) => {
-    e?.preventDefault();
-    const query = (queryOverride ?? guestQuery).trim();
-    if (!query) {
-      toast.error('กรุณากรอกหมายเลขติดตามหรือผู้รับ');
-      return;
-    }
-
-    if (queryOverride) setGuestQuery(queryOverride);
-    setIsTracking(true);
-    try {
-      const exact = await getParcel(query);
-      if (exact.success && exact.parcel) {
-        setGuestParcel(exact.parcel);
-        setGuestResults([]);
-        return;
-      }
-
-      const results = await searchParcels(query);
-      if (results.length === 1) {
-        setGuestParcel(results[0]);
-        setGuestResults([]);
-      } else if (results.length > 1) {
-        setGuestParcel(null);
-        setGuestResults(results);
-      } else {
-        setGuestParcel(null);
-        setGuestResults([]);
-        toast.error('ไม่พบข้อมูลพัสดุ');
-      }
-    } catch {
-      toast.error('ไม่สามารถติดตามสถานะได้ กรุณาลองใหม่');
-    } finally {
-      setIsTracking(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen w-screen overflow-x-hidden flex items-center justify-center bg-surface p-4">
+    <div className="flex min-h-screen w-screen items-center justify-center overflow-x-hidden bg-background p-3 sm:p-4">
       <div
-        className="bg-white rounded-2xl shadow-xl sm:shadow-2xl p-6 sm:p-8 border border-outline-variant/20"
+        className="app-card p-5 sm:p-7"
         style={{ width: 'min(28rem, calc(100vw - 2rem))' }}
       >
-        <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <PackageSearch className="h-8 w-8 text-primary" aria-hidden="true" />
+        <div className="mb-6 text-center">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <PackageSearch className="h-7 w-7" aria-hidden="true" />
           </div>
-          <h1 className="text-2xl font-black font-display text-primary">
+          <h1 className="text-2xl font-semibold text-foreground">
             {isSetup ? 'ตั้งค่าการเข้าใช้งาน' : 'เข้าสู่ระบบพนักงาน'}
           </h1>
-          <p className="text-sm text-on-surface-variant mt-2">
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
             {isSetup ? 'กรุณาตั้งรหัส PIN และข้อมูลของท่าน' : 'สำหรับ Admin และ Messenger'}
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="mx-auto space-y-4" style={{ width: 'min(100%, calc(100vw - 5rem))' }}>
+        <form onSubmit={handleLogin} className="mx-auto flex flex-col gap-4" style={{ width: 'min(100%, calc(100vw - 3rem))' }}>
           <div>
-            <label className="block text-sm font-bold text-on-surface-variant mb-1.5">Username</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Username</label>
             <input
               type="text"
               value={employeeId}
               onChange={e => setEmployeeId(normalizeEmployeeId(e.target.value))}
               disabled={isSetup || isLoginDisabled}
-              className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 text-primary font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all disabled:opacity-50"
+              className="app-input w-full font-medium uppercase"
               placeholder="โปรดกรอกรหัสพนักงานของท่าน"
             />
           </div>
@@ -242,24 +184,24 @@ export default function Login() {
           {isSetup && (
             <>
               <div>
-                <label className="block text-sm font-bold text-on-surface-variant mb-1.5">ชื่อ-นามสกุล</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">ชื่อ-นามสกุล</label>
                 <input
                   type="text"
                   value={name}
                   onChange={e => setName(e.target.value)}
                   disabled={isLoginDisabled}
-                  className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  className="app-input w-full"
                   placeholder="ชื่อของท่าน"
                 />
               </div>
               <div>
-                <label className="block text-sm font-bold text-on-surface-variant mb-1.5">สาขาประจำ</label>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">สาขาประจำ</label>
                 <input
                   type="text"
                   value={branch}
                   onChange={e => setBranch(e.target.value)}
                   disabled={isLoginDisabled}
-                  className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+                  className="app-input w-full"
                   placeholder="เช่น พิบูลสงคราม"
                 />
               </div>
@@ -267,7 +209,7 @@ export default function Login() {
           )}
 
           <div>
-            <label className="block text-sm font-bold text-on-surface-variant mb-1.5">
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
               {isSetup ? 'ตั้งรหัสผ่าน' : 'Password'}
             </label>
             <input
@@ -275,7 +217,7 @@ export default function Login() {
               value={pin}
               onChange={e => setPin(e.target.value)}
               disabled={isLoginDisabled}
-              className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 text-base font-bold focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+              className="app-input w-full font-medium"
               placeholder="••••••••"
             />
           </div>
@@ -284,7 +226,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoginDisabled}
-            className="w-full h-12 mt-6 bg-primary text-white rounded-2xl font-display font-bold shadow-md shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
           >
             {isLoginDisabled ? (
               <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
@@ -302,136 +244,10 @@ export default function Login() {
               >
                 ส่งพัสดุโดยไม่ต้องเข้าระบบ
               </button>
-              <button
-                type="button"
-                onClick={() => setIsTrackOpen(true)}
-                className="text-on-surface-variant/60 font-bold text-sm hover:text-primary hover:underline transition-colors"
-              >
-                ติดตามสถานะโดยไม่ต้องเข้าสู่ระบบ
-              </button>
             </div>
           )}
         </form>
       </div>
-
-      <Dialog open={isTrackOpen} onOpenChange={handleTrackOpenChange}>
-        <DialogContent className="max-h-[88vh] w-[calc(100vw-2rem)] max-w-3xl overflow-hidden rounded-3xl border-none bg-white p-0 shadow-2xl">
-          <DialogHeader className="border-b border-outline-variant/20 bg-surface-container-lowest px-5 py-5 sm:px-7 rounded-t-3xl">
-            <div className="flex items-center gap-3 pr-8">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <PackageSearch className="h-6 w-6" aria-hidden="true" />
-              </div>
-              <div>
-                <DialogTitle className="font-display text-xl font-black text-primary">{UI_COPY.nav.track}</DialogTitle>
-                <DialogDescription className="mt-1 text-xs text-on-surface-variant">
-                  ค้นหาด้วยหมายเลขติดตามหรือผู้รับ ระบบจะแสดงเฉพาะข้อมูลสรุป
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="max-h-[calc(88vh-96px)] overflow-y-auto p-5 sm:p-7">
-            <form onSubmit={handleGuestTracking} className="flex flex-col gap-3 sm:flex-row">
-              <div className="relative flex-1">
-                <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-on-surface-variant/45" aria-hidden="true" />
-                <input
-                  value={guestQuery}
-                  onChange={(e) => setGuestQuery(e.target.value.toUpperCase())}
-                  placeholder="กรอกหมายเลขติดตาม หรือผู้รับ..."
-                  className="h-12 w-full rounded-2xl border-2 border-outline-variant/50 bg-white pl-12 pr-4 font-display text-base font-bold text-primary outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
-                  autoFocus
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={isTracking}
-                className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-primary px-6 font-display text-sm font-bold text-white shadow-lg shadow-primary/15 transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
-              >
-                {isTracking ? (
-                  <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
-                ) : (
-                  <>
-                    {UI_COPY.action.track}
-                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="mt-5">
-              {guestParcel ? (
-                <div className="overflow-hidden rounded-3xl border border-outline-variant/30 bg-white shadow-sm">
-                  <div className="bg-primary px-5 py-4 text-white">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-white/55">Tracking ID</p>
-                        <code className="mt-1 block font-mono text-xl font-black tracking-wide">{guestParcel.TrackingID}</code>
-                      </div>
-                      <div className="rounded-xl bg-white/10 px-3 py-2">
-                        <StatusBadge status={guestParcel['สถานะ']} />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="grid gap-4 p-5 sm:grid-cols-2">
-                    <div className="rounded-2xl bg-surface-container-lowest p-4">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/50">ผู้ส่ง</p>
-                      <p className="mt-1 font-bold text-primary">{guestParcel['ผู้ส่ง']}</p>
-                      <p className="text-xs text-on-surface-variant/60">{guestParcel['สาขาผู้ส่ง']}</p>
-                    </div>
-                    <div className="rounded-2xl bg-surface-container-lowest p-4">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/50">ผู้รับ</p>
-                      <p className="mt-1 font-bold text-primary">{guestParcel['ผู้รับ']}</p>
-                      <p className="text-xs text-on-surface-variant/60">{guestParcel['สาขาผู้รับ']}</p>
-                    </div>
-                    <div className="rounded-2xl bg-surface-container-lowest p-4">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/50">ประเภท</p>
-                      <p className="mt-1 font-bold text-primary">{guestParcel['ประเภทเอกสาร'] || '-'}</p>
-                    </div>
-                    <div className="rounded-2xl bg-surface-container-lowest p-4">
-                      <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/50">วันที่สร้าง</p>
-                      <p className="mt-1 font-bold text-primary">{formatThaiDate(guestParcel['วันที่สร้าง'])}</p>
-                    </div>
-                  </div>
-                </div>
-              ) : guestResults.length > 0 ? (
-                <div className="space-y-3">
-                  <p className="px-1 text-xs font-bold text-on-surface-variant/60">พบ {guestResults.length} รายการ</p>
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    {guestResults.map(parcel => (
-                      <button
-                        key={parcel.TrackingID}
-                        type="button"
-                        onClick={() => {
-                          setGuestParcel(parcel);
-                          setGuestResults([]);
-                        }}
-                        className="rounded-2xl border border-outline-variant/30 bg-white p-4 text-left shadow-sm transition-all hover:border-primary/35 hover:bg-primary/[0.03]"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <code className="rounded-lg bg-primary/5 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
-                          <StatusBadge status={parcel['สถานะ']} />
-                        </div>
-                        <div className="mt-3 flex items-center gap-2 text-sm">
-                          <span className="truncate font-bold text-primary">{parcel['ผู้ส่ง']}</span>
-                          <ArrowRight className="h-4 w-4 shrink-0 text-on-surface-variant/35" aria-hidden="true" />
-                          <span className="truncate font-bold text-primary">{parcel['ผู้รับ']}</span>
-                        </div>
-                        <p className="mt-1 text-xs text-on-surface-variant/55">{formatThaiDate(parcel['วันที่สร้าง'])}</p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-3xl border border-dashed border-outline-variant/40 bg-surface-container-lowest px-6 py-12 text-center">
-                  <PackageSearch className="mx-auto h-10 w-10 text-on-surface-variant/30" aria-hidden="true" />
-                  <p className="mt-3 font-display text-sm font-bold text-primary">กรอกหมายเลขติดตามหรือผู้รับเพื่อเริ่มค้นหา</p>
-                  <p className="mt-1 text-xs text-on-surface-variant/60">ผู้ที่ยังไม่ได้เข้าสู่ระบบจะเห็นเฉพาะข้อมูลสรุปของรายการส่ง</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={authDialog.open}

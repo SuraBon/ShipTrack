@@ -722,18 +722,21 @@ function doPost(e) {
     const protectedActions = ['confirmReceipt', 'startDelivery', 'releaseDelivery', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
-      if (parts.length === 4) {
+      if (parts.length === 5) {
         const issuedAt = Number(parts[2]);
-        // Check token expiry (3 hours)
-        if (isNaN(issuedAt) || Date.now() - issuedAt > TOKEN_EXPIRY_MS) {
-          return createJsonResponse({ success: false, error: "Token expired" });
+        if (isNaN(issuedAt)) {
+          return createJsonResponse({ success: false, error: "Malformed token" });
         }
-        const payloadStr = parts[0] + "|" + parts[1] + "|" + parts[2];
+        const sessionId = String(parts[3] || "");
+        const payloadStr = parts[0] + "|" + parts[1] + "|" + parts[2] + "|" + sessionId;
         const expectedBytes = Utilities.computeHmacSha256Signature(payloadStr, configuredKey);
-        if (Utilities.base64Encode(expectedBytes) === parts[3]) {
+        if (Utilities.base64Encode(expectedBytes) === parts[4]) {
           const userRecord = getUserRecord(parts[0]);
           if (!userRecord) {
             return createJsonResponse({ success: false, error: "User not found" });
+          }
+          if (getActiveSessionId(userRecord.employeeId) !== sessionId) {
+            return createJsonResponse({ success: false, error: "Session replaced" });
           }
           // Role/name/branch always come from sheet — stale tokens cannot keep old privileges
           payload.employeeId = userRecord.employeeId;
@@ -743,9 +746,9 @@ function doPost(e) {
         } else {
           return createJsonResponse({ success: false, error: "Invalid token signature" });
         }
-      } else if (parts.length === 3) {
-        // Legacy token format (no expiry) — reject
-        return createJsonResponse({ success: false, error: "Token expired" });
+      } else if (parts.length === 3 || parts.length === 4) {
+        // Legacy token format — force a one-time re-login after deploying single-session tokens.
+        return createJsonResponse({ success: false, error: "Session replaced" });
       } else {
         return createJsonResponse({ success: false, error: "Malformed token" });
       }
@@ -1510,7 +1513,7 @@ function handleReleaseDelivery(payload) {
       const isAdmin = normalizeRole(payload.role) === "ADMIN";
 
       if (currentStatus === "ส่งถึงแล้ว") {
-        return createJsonResponse({ success: false, error: "พัสดุนี้ส่งสำเร็จแล้ว ไม่สามารถปล่อยงานได้" });
+        return createJsonResponse({ success: false, error: "พัสดุนี้ส่งสำเร็จแล้ว ไม่สามารถคืนงานได้" });
       }
 
       if (!activeAssignment) {
@@ -1523,7 +1526,7 @@ function handleReleaseDelivery(payload) {
       if (!isAdmin && activeAssignment.assignedToId && activeAssignment.assignedToId !== currentEmployeeId) {
         return createJsonResponse({
           success: false,
-          error: "ปล่อยงานได้เฉพาะคนที่รับงานไว้หรือ Admin",
+          error: "คืนงานได้เฉพาะคนที่รับงานไว้หรือ Admin",
           assignedToId: activeAssignment.assignedToId,
           assignedToName: activeAssignment.assignedToName
         });
@@ -1658,15 +1661,34 @@ function createJsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ── Token expiry: 3 hours in milliseconds ────────────────────────────────────
-const TOKEN_EXPIRY_MS = 3 * 60 * 60 * 1000;
-
 function generateToken(employeeId, role, secret) {
   const issuedAt = Date.now();
-  const payloadStr = employeeId + "|" + role + "|" + issuedAt;
+  const sessionId = createSessionId(employeeId);
+  setActiveSessionId(employeeId, sessionId);
+  const payloadStr = employeeId + "|" + role + "|" + issuedAt + "|" + sessionId;
   const signatureBytes = Utilities.computeHmacSha256Signature(payloadStr, secret);
   const signature = Utilities.base64Encode(signatureBytes);
   return payloadStr + "|" + signature;
+}
+
+function createSessionId(employeeId) {
+  const random = Utilities.getUuid();
+  const issuedAt = Date.now();
+  const bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    normalizeEmployeeId(employeeId) + "|" + issuedAt + "|" + random
+  );
+  return Utilities.base64EncodeWebSafe(bytes).slice(0, 48);
+}
+
+function getActiveSessionId(employeeId) {
+  const key = "active_session_" + normalizeEmployeeId(employeeId);
+  return PropertiesService.getScriptProperties().getProperty(key) || "";
+}
+
+function setActiveSessionId(employeeId, sessionId) {
+  const key = "active_session_" + normalizeEmployeeId(employeeId);
+  PropertiesService.getScriptProperties().setProperty(key, String(sessionId || ""));
 }
 
 // ── Audit Log ─────────────────────────────────────────────────────────────────

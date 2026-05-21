@@ -1,18 +1,40 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+Thai:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,400,0..1,0&display=swap");
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 0.875rem;
+  --radius-lg: 0.625rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 0.875rem;
+  --radius-3xl: 1rem;
+
+  --color-border: hsl(240 5.9% 90%);
+  --color-input: hsl(240 5.9% 90%);
+  --color-ring: hsl(240 5.9% 10%);
+  --color-card: #ffffff;
+  --color-card-foreground: hsl(240 10% 3.9%);
+  --color-popover: #ffffff;
+  --color-popover-foreground: hsl(240 10% 3.9%);
+  --color-muted: hsl(240 4.8% 95.9%);
+  --color-muted-foreground: hsl(240 3.8% 46.1%);
+  --color-accent: hsl(240 4.8% 95.9%);
+  --color-accent-foreground: hsl(240 5.9% 10%);
+  --color-destructive: hsl(0 84.2% 60.2%);
+  --color-destructive-foreground: #ffffff;
+  --color-foreground: hsl(240 10% 3.9%);
+  --color-background: hsl(0 0% 98%);
+  --color-primary-foreground: #ffffff;
+  --color-secondary-foreground: hsl(240 5.9% 10%);
   
   --color-error: #dc2626;
   --color-secondary-container: #fef3c7;
   --color-on-surface-variant: #52525b;
-  --color-primary: #18181b;
+  --color-primary: hsl(240 5.9% 10%);
   --color-primary-fixed-dim: #d4d4d8;
   --color-on-surface: #18181b;
   --color-error-container: #fee2e2;
@@ -21,7 +43,6 @@
   --color-surface-container-high: #e4e4e7;
   --color-on-primary-fixed-variant: #52525b;
   --color-on-background: #18181b;
-  --color-background: #fafafa;
   --color-primary-fixed: #f4f4f5;
   --color-on-error: #ffffff;
   --color-surface-container-low: #f4f4f5;
@@ -57,20 +78,34 @@
   --color-outline-variant: #d4d4d8;
   --color-on-primary-fixed: #18181b;
 
-  --font-display: "Inter", "Noto Sans Thai", sans-serif;
-  --font-headline: "Inter", "Noto Sans Thai", sans-serif;
-  --font-body: "Inter", "Noto Sans Thai", sans-serif;
+  --font-display: "Noto Sans Thai", "Inter", system-ui, sans-serif;
+  --font-headline: "Noto Sans Thai", "Inter", system-ui, sans-serif;
+  --font-body: "Noto Sans Thai", "Inter", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
 
 
 }
 
 :root {
-  --background: #fafafa;
-  --foreground: #18181b;
-  --primary: #18181b;
+  --background: hsl(0 0% 98%);
+  --foreground: hsl(240 10% 3.9%);
+  --card: #ffffff;
+  --card-foreground: hsl(240 10% 3.9%);
+  --popover: #ffffff;
+  --popover-foreground: hsl(240 10% 3.9%);
+  --primary: hsl(240 5.9% 10%);
   --primary-foreground: #ffffff;
-  --radius: 0.5rem;
+  --secondary: hsl(240 4.8% 95.9%);
+  --secondary-foreground: hsl(240 5.9% 10%);
+  --muted: hsl(240 4.8% 95.9%);
+  --muted-foreground: hsl(240 3.8% 46.1%);
+  --accent: hsl(240 4.8% 95.9%);
+  --accent-foreground: hsl(240 5.9% 10%);
+  --destructive: hsl(0 84.2% 60.2%);
+  --border: hsl(240 5.9% 90%);
+  --input: hsl(240 5.9% 90%);
+  --ring: hsl(240 5.9% 10%);
+  --radius: 0.625rem;
 }
 
 .dark {
@@ -93,9 +128,12 @@
 
   body {
     @apply bg-background text-on-background font-body antialiased;
-    background: #fafafa;
+    background:
+      radial-gradient(circle at top left, rgba(244, 244, 245, 0.9), transparent 34rem),
+      hsl(0 0% 98%);
     overflow-x: hidden;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
   }
 
   html,
@@ -106,6 +144,7 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-headline;
+    letter-spacing: 0;
   }
 
   code, pre {
@@ -140,10 +179,45 @@
   textarea,
   select {
     font-size: 16px;
+    font-family: var(--font-body);
+  }
+
+  .material-symbols-outlined {
+    font-family: "Material Symbols Outlined";
+    font-weight: normal;
+    font-style: normal;
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: normal;
+    text-transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    direction: ltr;
+    -webkit-font-feature-settings: "liga";
+    -webkit-font-smoothing: antialiased;
+    font-feature-settings: "liga";
   }
 }
 
 @layer components {
+  .app-card {
+    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
+  }
+
+  .app-input {
+    @apply min-h-11 rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .app-section-title {
+    @apply text-base font-semibold leading-tight text-foreground;
+  }
+
+  .app-muted {
+    @apply text-sm leading-relaxed text-muted-foreground;
+  }
 
   /**
    * Custom container utility that centers content and adds responsive padding.
@@ -242,8 +316,30 @@
   }
 
   @media (max-width: 639px) {
+    h1 {
+      font-size: clamp(1.25rem, 6vw, 1.75rem);
+      line-height: 1.2;
+    }
+
+    h2 {
+      font-size: clamp(1rem, 4.5vw, 1.25rem);
+      line-height: 1.3;
+    }
+
+    label,
+    input,
+    textarea,
+    select,
+    button {
+      letter-spacing: 0;
+    }
+
     [class*="rounded-3xl"] {
       border-radius: 0.875rem !important;
+    }
+
+    [class*="rounded-2xl"] {
+      border-radius: 0.75rem !important;
     }
 
     [class*="shadow-2xl"],
@@ -258,5 +354,17 @@
     .modal-scroll::-webkit-scrollbar {
       display: none;
     }
+  }
+}
+
+@layer utilities {
+  .font-black {
+    font-weight: 700;
+  }
+
+  .tracking-widest,
+  .tracking-\[0\.2em\],
+  .tracking-\[0\.18em\] {
+    letter-spacing: 0.04em;
   }
 }

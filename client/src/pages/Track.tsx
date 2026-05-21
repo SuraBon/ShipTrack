@@ -125,38 +125,38 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     <div className={`${embedded ? 'max-w-none pb-4' : 'max-w-6xl mx-auto pb-20'} space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500`}>
 
       {/* Header */}
-      <section className={`${embedded ? 'hidden' : 'rounded-2xl border border-outline-variant/25 bg-white/90 px-5 py-5 shadow-sm backdrop-blur-xl sm:px-6'}`}>
+      <section className={`${embedded ? 'hidden' : 'app-card px-4 py-4 sm:px-5'}`}>
         <div className="flex items-start gap-4">
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-sm">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
             <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>location_searching</span>
           </div>
           <div>
-            <h1 className="font-display text-3xl font-black leading-tight text-primary sm:text-[34px]">{UI_COPY.nav.track}</h1>
-            <p className="mt-1 text-sm text-on-surface-variant/75">ค้นหาด้วยหมายเลขติดตาม ผู้รับ หรือปลายทาง</p>
+            <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{UI_COPY.nav.track}</h1>
+            <p className="app-muted mt-1">ค้นหาด้วยหมายเลขติดตาม ผู้รับ หรือปลายทาง</p>
           </div>
         </div>
       </section>
 
       {/* Search box */}
-      <div className="rounded-2xl border border-outline-variant/25 bg-white/95 p-3 shadow-sm backdrop-blur-sm sm:p-4">
+      <div className="app-card p-3 sm:p-4">
         <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1 group">
-            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-on-surface-variant/45 transition-colors group-focus-within:text-primary">search</span>
+            <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground transition-colors group-focus-within:text-primary">search</span>
             <input
               placeholder="กรอกหมายเลขติดตาม ผู้รับ หรือปลายทาง..."
               value={trackingId}
               onChange={e => setTrackingId(sanitizeTextInput(e.target.value, 100).toUpperCase())}
               autoFocus
-              className="h-13 w-full rounded-xl border border-outline-variant/40 bg-surface-container-lowest pl-11 pr-12 text-base font-semibold text-primary outline-none transition-all placeholder:font-medium placeholder:text-outline-variant/55 focus:border-primary focus:bg-white focus:ring-4 focus:ring-primary/8 sm:h-14"
+              className="app-input h-12 w-full pl-11 pr-12 text-base font-semibold sm:h-12"
             />
             <button type="button" onClick={handlePaste}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-on-surface-variant/45 transition-all hover:bg-surface-container hover:text-primary"
+              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
               title="วางจากคลิปบอร์ด">
               <span className="material-symbols-outlined text-xl">content_paste</span>
             </button>
           </div>
           <button type="submit" disabled={isLoading}
-            className="h-13 rounded-xl bg-primary px-6 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98] disabled:opacity-50 sm:h-14 sm:px-8">
+            className="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 sm:px-8">
             {isLoading
               ? <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
               : 'ดูสถานะ'}
@@ -164,19 +164,19 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         </form>
 
         {recentSearches.length > 0 && (
-          <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-outline-variant/10">
-            <span className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest flex items-center gap-1">
+          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+            <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
               <span className="material-symbols-outlined text-sm">history</span>ประวัติค้นหา:
             </span>
             {recentSearches.map(id => (
-              <div key={id} className="flex items-center gap-0.5 rounded-xl bg-primary/5 p-0.5 ring-1 ring-primary/10">
+              <div key={id} className="flex items-center gap-0.5 rounded-lg bg-muted p-0.5 ring-1 ring-border">
                 <button onClick={() => { setTrackingId(id); handleSearch(undefined, id); }}
-                  className="px-3 py-1.5 text-xs font-mono font-bold text-primary rounded-lg transition-all active:scale-95 hover:bg-white">
+                  className="rounded-md px-3 py-1.5 font-mono text-xs font-semibold text-foreground transition-all active:scale-95 hover:bg-background">
                   {id}
                 </button>
                 <button
                   onClick={() => removeFromRecent(id)}
-                  className="px-1.5 py-1.5 hover:bg-error/10 hover:text-error text-on-surface-variant/40 rounded-lg transition-all"
+                  className="rounded-md px-1.5 py-1.5 text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
                   title="ลบออกจากประวัติ"
                 >
                   <span className="material-symbols-outlined text-sm">close</span>
@@ -188,13 +188,13 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       {createdHistory.length > 0 && !embedded && (
-        <section className="rounded-2xl border border-outline-variant/25 bg-white/95 p-4 shadow-sm">
+        <section className="app-card p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
-              <h2 className="font-display text-sm font-black text-primary">พัสดุที่สร้างจากเครื่องนี้</h2>
-              <p className="text-xs font-semibold text-on-surface-variant/60">บันทึกไว้เฉพาะ browser นี้ กดเพื่อดึงสถานะล่าสุดจากชีท</p>
+              <h2 className="text-sm font-semibold text-foreground">พัสดุที่สร้างจากเครื่องนี้</h2>
+              <p className="text-xs text-muted-foreground">บันทึกในเครื่องนี้ กดเพื่อดึงสถานะล่าสุดจากระบบ</p>
             </div>
-            <span className="rounded-full bg-primary/8 px-2.5 py-1 text-[11px] font-black text-primary">{createdHistory.length}</span>
+            <span className="rounded-md bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">{createdHistory.length}</span>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {createdHistory.slice(0, 6).map(item => (
@@ -202,18 +202,18 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 key={item.trackingID}
                 type="button"
                 onClick={() => { setTrackingId(item.trackingID); handleSearch(undefined, item.trackingID); }}
-                className="rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-4 text-left transition-all hover:border-primary/35 hover:bg-primary/[0.03]"
+                className="rounded-lg border border-border bg-background p-4 text-left transition-all hover:border-primary/35 hover:bg-muted/50"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <code className="min-w-0 break-all rounded-lg bg-primary/6 px-2.5 py-1 font-mono text-xs font-black text-primary">{item.trackingID}</code>
+                  <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">{item.trackingID}</code>
                   {item.status && <StatusBadge status={item.status} />}
                 </div>
                 <div className="mt-3 flex items-center gap-1.5 text-sm">
-                  <span className="truncate font-bold text-primary">{item.senderName}</span>
-                  <span className="material-symbols-outlined shrink-0 text-sm text-outline-variant">arrow_forward</span>
-                  <span className="truncate font-bold text-primary">{item.receiverName}</span>
+                  <span className="truncate font-medium text-foreground">{item.senderName}</span>
+                  <span className="material-symbols-outlined shrink-0 text-sm text-muted-foreground">arrow_forward</span>
+                  <span className="truncate font-medium text-foreground">{item.receiverName}</span>
                 </div>
-                <p className="mt-1 text-xs text-on-surface-variant/55">{formatThaiDateTime(item.createdAt)}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatThaiDateTime(item.createdAt)}</p>
               </button>
             ))}
           </div>
@@ -238,17 +238,17 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             {searchResults.map(p => (
               <div key={p.TrackingID}
                 onClick={() => { updateCreatedParcelHistoryFromParcel(p); setParcel(p); setSearchResults([]); addToRecent(p.TrackingID); }}
-                className="bg-white/95 border border-outline-variant/40 rounded-2xl p-4 shadow-sm hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all cursor-pointer group">
+                className="cursor-pointer rounded-lg border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-muted/40">
                 <div className="flex justify-between items-start mb-3">
-                  <code className="min-w-0 break-all text-xs font-mono font-black text-primary bg-primary/6 px-2.5 py-1 rounded-lg">{p.TrackingID}</code>
+                  <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">{p.TrackingID}</code>
                   <StatusBadge status={p['สถานะ']} />
                 </div>
                 <div className="flex items-center gap-1.5 text-sm">
-                  <span className="font-bold text-primary truncate">{p['ผู้ส่ง']}</span>
-                  <span className="material-symbols-outlined text-outline-variant text-sm shrink-0">arrow_forward</span>
-                  <span className="font-bold text-primary truncate">{p['ผู้รับ']}</span>
+                  <span className="truncate font-medium text-foreground">{p['ผู้ส่ง']}</span>
+                  <span className="material-symbols-outlined shrink-0 text-sm text-muted-foreground">arrow_forward</span>
+                  <span className="truncate font-medium text-foreground">{p['ผู้รับ']}</span>
                 </div>
-                <div className="flex items-center gap-1 mt-1.5 text-xs text-on-surface-variant/50">
+                <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
                   <span className="material-symbols-outlined text-sm">event</span>
                   {formatThaiDateTime(p['วันที่สร้าง'])}
                 </div>
@@ -266,26 +266,25 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             <span className="material-symbols-outlined text-base">arrow_back</span>ค้นหาใหม่
           </button>
 
-          <div className="bg-white/95 backdrop-blur-sm border border-outline-variant/40 rounded-2xl overflow-hidden shadow-xl shadow-primary/10">
+          <div className="app-card overflow-hidden">
             {/* Card header */}
-            <div className="p-5 sm:p-7 text-white"
-              style={{ background: 'linear-gradient(135deg, #0d1f3c 0%, #091426 100%)' }}>
+            <div className="border-b border-border bg-muted/45 p-4 sm:p-5">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="min-w-0 break-all text-xl sm:text-2xl font-black tracking-wider font-mono leading-tight">{parcel.TrackingID}</h2>
+                    <h2 className="min-w-0 break-all font-mono text-xl font-semibold leading-tight text-foreground sm:text-2xl">{parcel.TrackingID}</h2>
                     <button
                       onClick={() => { navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอก ${parcel.TrackingID}`); }}
-                      className="p-1.5 bg-white/10 rounded-lg hover:bg-white/20 transition-colors">
+                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-background hover:text-foreground">
                       <span className="material-symbols-outlined text-base">content_copy</span>
                     </button>
                   </div>
-                  <div className="flex items-center gap-1.5 text-white/60 text-sm">
+                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
                     <span className="material-symbols-outlined text-sm">category</span>
                     {parcel['ประเภทเอกสาร']}
                   </div>
                 </div>
-                <div className="bg-white/10 px-4 py-2 rounded-xl border border-white/10">
+                <div className="rounded-lg border border-border bg-background px-3 py-2">
                   <StatusBadge status={parcel['สถานะ']} />
                 </div>
               </div>
@@ -297,8 +296,8 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 {/* Info column */}
                 <div className="space-y-5">
                   {/* Sender / Receiver */}
-                  <div className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/30 space-y-4">
-                    <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em]">จากไหน ไปให้ใคร</p>
+                  <div className="space-y-4 rounded-lg border border-border bg-background p-4">
+                    <p className="text-xs font-semibold text-muted-foreground">จากไหน ไปให้ใคร</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
                         { label: 'ผู้ส่ง', name: parcel['ผู้ส่ง'], branch: parcel['สาขาผู้ส่ง'], icon: 'person', color: 'text-primary' },
@@ -316,7 +315,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                         </div>
                       ))}
                     </div>
-                    <div className="grid grid-cols-2 gap-4 pt-3 border-t border-outline-variant/10">
+                    <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
                       <div>
                         <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider">ประเภท</p>
                         <p className="font-bold text-primary text-sm mt-0.5">{parcel['ประเภทเอกสาร']}</p>
@@ -333,7 +332,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
 
                   {/* Notes */}
                   {(parcel['รายละเอียด'] || (parcel['หมายเหตุ'] && parcel['หมายเหตุ'].replace(/\[.*?\]/g, '').trim())) && (
-                    <div className="bg-surface-container-lowest rounded-2xl p-4 border border-outline-variant/30 space-y-3">
+                    <div className="space-y-3 rounded-lg border border-border bg-background p-4">
                       {parcel['รายละเอียด'] && (
                         <div>
                           <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1 flex items-center gap-1">
@@ -366,21 +365,21 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
 
                 {/* Timeline + Map column */}
                 <div className="space-y-5">
-                  <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 border border-outline-variant/30">
-                    <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-1.5">
+                  <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+                    <p className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                       <span className="material-symbols-outlined text-sm">route</span>{UI_COPY.parcel.routeHistory}
                     </p>
                     <Timeline events={timelineEvents} />
                   </div>
                   {hasLocationData ? (
-                    <div className="rounded-2xl overflow-hidden border border-outline-variant/30 shadow-sm">
+                    <div className="overflow-hidden rounded-lg border border-border shadow-sm">
                       <TrackingMap events={timelineEvents} />
                     </div>
                   ) : (
-                    <div className="rounded-2xl border border-outline-variant/30 shadow-sm h-[260px] bg-surface-container-lowest flex flex-col items-center justify-center p-6 text-center">
-                      <span className="material-symbols-outlined text-4xl text-on-surface-variant/30 mb-3">map_off</span>
-                      <p className="text-sm font-bold text-on-surface-variant">ยังไม่มีพิกัด GPS</p>
-                      <p className="text-xs text-on-surface-variant/60 mt-1">แผนที่จะแสดงเมื่อมีพิกัดจากการสร้างรายการหรือการส่งสำเร็จ</p>
+                    <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/40 p-6 text-center shadow-sm">
+                      <span className="material-symbols-outlined mb-3 text-4xl text-muted-foreground">map_off</span>
+                      <p className="text-sm font-semibold text-foreground">ยังไม่มีพิกัด GPS</p>
+                      <p className="mt-1 text-xs text-muted-foreground">แผนที่จะแสดงเมื่อมีพิกัดจากการสร้างรายการหรือการส่งสำเร็จ</p>
                     </div>
                   )}
                 </div>
@@ -392,13 +391,13 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
 
       {/* Empty state */}
       {!parcel && !searchResults.length && trackingId && !isLoading && (
-        <div className="bg-white/80 border border-outline-variant/30 border-dashed rounded-3xl p-12 text-center animate-in fade-in zoom-in-95 duration-400">
-          <div className="w-16 h-16 bg-surface-container rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="material-symbols-outlined text-3xl text-on-surface-variant/30">search_off</span>
+        <div className="app-card border-dashed p-8 text-center animate-in fade-in zoom-in-95 duration-400 sm:p-10">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg bg-muted">
+            <span className="material-symbols-outlined text-3xl text-muted-foreground">search_off</span>
           </div>
-          <h3 className="font-display text-lg font-bold text-primary">ไม่พบข้อมูลพัสดุ</h3>
-          <p className="text-sm text-on-surface-variant mt-1 max-w-xs mx-auto">ไม่พบรายการที่ค้นหา กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
-          <button onClick={() => setTrackingId('')} className="mt-4 text-sm text-primary font-bold hover:underline">
+          <h3 className="text-lg font-semibold text-foreground">ไม่พบข้อมูลพัสดุ</h3>
+          <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">ไม่พบรายการที่ค้นหา กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
+          <button onClick={() => setTrackingId('')} className="mt-4 text-sm font-semibold text-primary hover:underline">
             ล้างและค้นหาใหม่
           </button>
         </div>

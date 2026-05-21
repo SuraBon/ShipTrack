@@ -140,6 +140,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
     { id: "dashboard", label: dashboardLabel, icon: dashboardIcon, badge: null, roles: ['ADMIN', 'MESSENGER'], accent: "from-sky-400 to-blue-500" },
     { id: "create",    label: UI_COPY.nav.create, icon: PackagePlus, badge: null, roles: ['GUEST'], accent: "from-amber-300 to-orange-500" },
     { id: "track",     label: UI_COPY.nav.track, icon: Search, badge: null, roles: ['GUEST'], accent: "from-violet-300 to-indigo-500" },
+    { id: "login",     label: UI_COPY.nav.staffLogin, icon: LogIn, badge: null, roles: ['GUEST'], accent: "from-zinc-500 to-zinc-900" },
     { id: "users",     label: UI_COPY.nav.users, icon: Users, badge: null, roles: ['ADMIN'], accent: "from-rose-300 to-red-500" },
   ];
   const navItems = allNavItems.filter(item => item.roles.includes(currentRole));
@@ -223,21 +224,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
             )}
 
             <div className="flex shrink-0 items-center gap-1">
+              {user && (
               <div className="relative" ref={notifRef}>
-                <button
-                  onClick={handleBellClick}
-                  className="relative grid h-9 w-9 place-items-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
-                  aria-label="อัปเดตล่าสุด"
-                >
-                  <Bell className="h-5 w-5" aria-hidden="true" />
-                  {unreadCount > 0 && (
-                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-error px-0.5 text-[9px] font-black leading-none text-white">
-                      {unreadCount > 9 ? '9+' : unreadCount}
-                    </span>
-                  )}
-                </button>
+                  <button
+                    onClick={handleBellClick}
+                    className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="อัปเดตล่าสุด"
+                  >
+                    <Bell className="h-5 w-5" aria-hidden="true" />
+                    {unreadCount > 0 && (
+                      <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-destructive px-0.5 text-[9px] font-semibold leading-none text-white">
+                        {unreadCount > 9 ? '9+' : unreadCount}
+                      </span>
+                    )}
+                  </button>
 
-                {isNotifOpen && (
+                  {isNotifOpen && (
                   <div className="fixed right-3 top-16 z-50 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-outline-variant bg-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
                     <div className="flex items-center justify-between border-b border-outline-variant/60 px-4 py-3">
                       <div className="flex items-center gap-2">
@@ -273,8 +275,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                       ))}
                     </div>
                   </div>
-                )}
+                  )}
               </div>
+              )}
               {user ? (
                 <>
                   <button
@@ -297,15 +300,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                   </button>
                 </>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => setCurrentPage("login")}
-                  className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-white transition-all hover:opacity-90 active:scale-95"
-                  title={UI_COPY.nav.staffLogin}
-                  aria-label={UI_COPY.nav.staffLogin}
-                >
-                  <LogIn className="h-4.5 w-4.5" aria-hidden="true" />
-                </button>
+                null
               )}
             </div>
           </div>
@@ -318,7 +313,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
 
       {navItems.length > 1 && (
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant/60 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(24,24,27,0.08)] backdrop-blur md:hidden">
-          <div className="mx-auto grid max-w-md grid-cols-3 gap-1">
+          <div className={`mx-auto grid max-w-md gap-1 ${navItems.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
             {navItems.map((item) => {
               const active = currentPage === item.id;
               return (

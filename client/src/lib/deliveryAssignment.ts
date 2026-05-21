@@ -1,4 +1,5 @@
 import type { Parcel, ParcelEventRecord } from '@/types/parcel';
+import { normalizeRole, type AppRole } from './roles';
 
 export interface DeliveryAssignment {
   assignedToId: string;
@@ -41,10 +42,38 @@ export function getActiveDeliveryAssignment(parcel: Parcel): DeliveryAssignment 
   return active;
 }
 
+export function isAssignedToCurrentUser(parcel: Parcel, employeeId?: string): boolean {
+  const currentId = normalizeEmployeeId(employeeId);
+  if (!currentId) return false;
+  const assignment = getActiveDeliveryAssignment(parcel);
+  return assignment?.assignedToId === currentId;
+}
+
+export function isAvailableForMessenger(parcel: Parcel): boolean {
+  return parcel['สถานะ'] === 'รอจัดส่ง' && !getActiveDeliveryAssignment(parcel);
+}
+
+export function canReleaseMessengerJob(parcel: Parcel, employeeId?: string, role?: AppRole | string): boolean {
+  if (parcel['สถานะ'] === 'ส่งสำเร็จ') return false;
+  const assignment = getActiveDeliveryAssignment(parcel);
+  if (!assignment) return false;
+  if (normalizeRole(role) === 'ADMIN') return true;
+  return assignment.assignedToId === normalizeEmployeeId(employeeId);
+}
+
+export function canConfirmMessengerJob(parcel: Parcel, employeeId?: string): boolean {
+  if (parcel['สถานะ'] === 'ส่งสำเร็จ') return false;
+  return isAssignedToCurrentUser(parcel, employeeId);
+}
+
 function closesAssignment(event: ParcelEventRecord): boolean {
   return (
     event.eventType === 'RELEASE_DELIVERY' ||
     event.eventType === 'DELIVERED' ||
     event.eventType === 'PROXY'
   );
+}
+
+function normalizeEmployeeId(employeeId?: string): string {
+  return String(employeeId || '').trim().toUpperCase();
 }

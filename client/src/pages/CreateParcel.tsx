@@ -24,7 +24,7 @@ import {
 } from '@/lib/createParcelDraft';
 import { UI_COPY } from '@/lib/uiCopy';
 
-const DOC_TYPES = ['เอกสาร', 'พัสดุ'];
+const DEFAULT_DOC_TYPE = 'พัสดุ';
 
 type CreatedParcelDetails = {
   senderName: string;
@@ -110,7 +110,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
     senderBranch:   sanitizeTextInput(resolveSelectValue(formData.senderBranch), 100),
     receiverName:   sanitizeTextInput(formData.receiverName, 200),
     receiverBranch: sanitizeTextInput(resolveSelectValue(formData.receiverBranch), 100),
-    docType:        sanitizeTextInput(resolveSelectValue(formData.docType), 100),
+    docType:        DEFAULT_DOC_TYPE,
     description:    sanitizeTextInput(formData.description, 200),
     note:           sanitizeTextInput(formData.note, 2000),
   });
@@ -125,7 +125,6 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       validateRequiredText(v.senderBranch, 'สาขาผู้ส่ง', 1, 100) ||
       validateRequiredText(v.receiverName, 'ชื่อผู้รับหรือชื่อสถานที่ปลายทาง', 2, 200) ||
       validateRequiredText(v.receiverBranch, 'จุดหมายปลายทาง', 1, 100) ||
-      validateRequiredText(v.docType, 'ประเภทพัสดุ', 1, 100) ||
       (v.description && validateRequiredText(v.description, 'รายละเอียด', 0, 200)) ||
       (v.note && validateRequiredText(v.note, 'หมายเหตุปลายทาง', 0, 2000));
     if (validationError) {
@@ -196,48 +195,45 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
   };
 
   return (
-    <div className={`${embedded ? 'max-w-none space-y-5 pb-4' : 'max-w-5xl mx-auto space-y-8 pb-20'} animate-in fade-in slide-in-from-bottom-4 duration-700`}>
+    <div className={`${embedded ? 'max-w-none gap-4 pb-4' : 'mx-auto flex max-w-5xl flex-col gap-5 pb-20'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
       {/* Header Section */}
-      <div className={`${embedded ? 'hidden' : 'flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2'}`}>
+      <div className={`${embedded ? 'hidden' : 'flex flex-col gap-1'}`}>
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-black text-primary mb-0.5">{UI_COPY.nav.create}</h1>
-          <p className="text-xs sm:text-sm text-on-surface-variant">กรอกต้นทาง ปลายทาง ผู้รับ และแนบรูปสิ่งที่ส่งไว้เป็นหลักฐาน</p>
+          <h1 className="text-2xl font-semibold text-foreground sm:text-3xl">{UI_COPY.nav.create}</h1>
+          <p className="app-muted">กรอกข้อมูลที่จำเป็น แนบรูป และบันทึกพิกัดต้นทาง</p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {/* Sender Section */}
-          <div className="bg-white/90 backdrop-blur-sm border border-outline-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-5 border-b border-outline-variant/10"
-              style={{ background: 'linear-gradient(135deg, rgba(9,20,38,0.04) 0%, rgba(9,20,38,0.01) 100%)' }}>
+          <div className="app-card overflow-hidden">
+            <div className="border-b border-border bg-muted/45 p-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #091426 0%, #1e3a5f 100%)' }}>
-                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
+                <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <span className="material-symbols-outlined text-base">person</span>
                 </div>
                 <div>
-                  <h2 className="font-display font-bold text-primary text-sm">ต้นทาง</h2>
-                  <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ผู้ส่งและจุดรับของ</p>
+                  <h2 className="app-section-title">ต้นทาง</h2>
+                  <p className="text-xs text-muted-foreground">ผู้ส่งและจุดรับของ</p>
                 </div>
               </div>
             </div>
-            <div className="p-6 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">ชื่อผู้ส่ง *</label>
+            <div className="flex flex-col gap-4 p-4 sm:p-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="px-1 text-sm font-medium text-foreground">ชื่อผู้ส่ง *</label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">person_edit</span>
                   <input
                     name="senderName"
                     value={formData.senderName}
                     onChange={handleInputChange}
                     placeholder="ระบุชื่อบริษัท หรือ ผู้ส่ง"
-                    className="w-full bg-white border border-outline-variant rounded-2xl pl-10 pr-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none font-display transition-all"
+                    className="app-input w-full"
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">สาขาผู้ส่ง *</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="px-1 text-sm font-medium text-foreground">สาขาผู้ส่ง *</label>
                 <NativeSelect
                   value={formData.senderBranch}
                   onChange={v => setFormData(p => ({ ...p, senderBranch: v }))}
@@ -247,10 +243,10 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   otherPlaceholder="ระบุชื่อสาขาผู้ส่ง"
                 />
               </div>
-              <div className={`rounded-2xl border p-3 text-xs ${
-                geoStatus === 'success' ? 'border-green-200 bg-green-50 text-green-800' :
-                geoStatus === 'denied' || geoStatus === 'error' ? 'border-error/20 bg-error-container/25 text-error' :
-                'border-outline-variant/30 bg-surface-container-lowest text-on-surface-variant'
+              <div className={`rounded-lg border p-3 text-xs ${
+                geoStatus === 'success' ? 'border-emerald-200 bg-emerald-50 text-emerald-900' :
+                geoStatus === 'denied' || geoStatus === 'error' ? 'border-destructive/30 bg-destructive/5 text-destructive' :
+                'border-border bg-muted text-muted-foreground'
               }`}>
                 <div className="flex items-start gap-2.5">
                   <span className={`material-symbols-outlined text-lg ${geoStatus === 'loading' ? 'animate-spin' : ''}`}>
@@ -259,7 +255,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                      geoStatus === 'denied' || geoStatus === 'error' ? 'location_disabled' : 'location_searching'}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="font-bold">
+                    <p className="font-semibold">
                       {geoStatus === 'success' ? 'บันทึกพิกัดต้นทางแล้ว' :
                        geoStatus === 'loading' ? 'กำลังดึงพิกัดต้นทาง...' :
                        geoStatus === 'denied' ? 'ไม่ได้รับอนุญาต GPS' :
@@ -274,7 +270,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                       <button
                         type="button"
                         onClick={requestLocation}
-                        className="mt-1 font-bold underline underline-offset-2"
+                        className="mt-1 font-semibold underline underline-offset-2"
                       >
                         ลองดึงพิกัดอีกครั้ง
                       </button>
@@ -286,36 +282,33 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
           </div>
 
           {/* Receiver Section */}
-          <div className="bg-white/90 backdrop-blur-sm border border-outline-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-            <div className="p-5 border-b border-outline-variant/10"
-              style={{ background: 'linear-gradient(135deg, rgba(133,83,0,0.05) 0%, rgba(133,83,0,0.01) 100%)' }}>
+          <div className="app-card overflow-hidden">
+            <div className="border-b border-border bg-muted/45 p-4">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-                  style={{ background: 'linear-gradient(135deg, #855300 0%, #fea619 100%)' }}>
-                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
+                <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                  <span className="material-symbols-outlined text-base">flag</span>
                 </div>
                 <div>
-                  <h2 className="font-display font-bold text-primary text-sm">ปลายทาง</h2>
-                  <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ผู้รับ จุดส่งของ และหมายเหตุ</p>
+                  <h2 className="app-section-title">ปลายทาง</h2>
+                  <p className="text-xs text-muted-foreground">ผู้รับ จุดส่งของ และหมายเหตุ</p>
                 </div>
               </div>
             </div>
-            <div className="p-6 space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">ผู้รับหรือสถานที่ปลายทาง *</label>
+            <div className="flex flex-col gap-4 p-4 sm:p-5">
+              <div className="flex flex-col gap-1.5">
+                <label className="px-1 text-sm font-medium text-foreground">ผู้รับหรือสถานที่ปลายทาง *</label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">person</span>
                   <input
                     name="receiverName"
                     value={formData.receiverName}
                     onChange={handleInputChange}
                     placeholder="เช่น คุณสมชาย, แผนกบัญชี, ห้องธุรการ"
-                    className="w-full bg-white border border-outline-variant rounded-2xl pl-10 pr-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none font-display transition-all"
+                    className="app-input w-full"
                   />
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">ส่งไปที่ *</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="px-1 text-sm font-medium text-foreground">ส่งไปที่ *</label>
                 <NativeSelect
                   value={formData.receiverBranch}
                   onChange={v => setFormData(p => ({ ...p, receiverBranch: v }))}
@@ -324,14 +317,14 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   otherPlaceholder="ระบุสถานที่ปลายทาง"
                 />
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">หมายเหตุปลายทาง (ถ้ามี)</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="px-1 text-sm font-medium text-foreground">หมายเหตุปลายทาง (ถ้ามี)</label>
                 <textarea
                   name="note"
                   value={formData.note}
                   onChange={handleInputChange}
                   placeholder="เช่น อาคาร A ชั้น 3 แผนกบัญชี, ฝากไว้ที่เคาน์เตอร์, โทรหาผู้รับก่อนถึง"
-                  className="w-full bg-white border border-outline-variant rounded-2xl px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none font-display min-h-[96px] transition-all resize-none"
+                  className="app-input min-h-24 w-full resize-none py-3"
                 />
               </div>
             </div>
@@ -339,49 +332,35 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
         </div>
 
         {/* Parcel Details */}
-        <div className="bg-white/90 backdrop-blur-sm border border-outline-variant/40 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow">
-          <div className="p-5 border-b border-outline-variant/10"
-            style={{ background: 'linear-gradient(135deg, rgba(0,25,14,0.04) 0%, rgba(0,25,14,0.01) 100%)' }}>
+        <div className="app-card overflow-hidden">
+          <div className="border-b border-border bg-muted/45 p-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-sm"
-                style={{ background: 'linear-gradient(135deg, #005236 0%, #00a472 100%)' }}>
-                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>inventory_2</span>
+              <div className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+                <span className="material-symbols-outlined text-base">inventory_2</span>
               </div>
               <div>
-                <h2 className="font-display font-bold text-primary text-sm">สิ่งที่ส่ง</h2>
-                <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ประเภท รายละเอียด และรูปสิ่งที่ส่ง</p>
+                <h2 className="app-section-title">สิ่งที่ส่ง</h2>
+                <p className="text-xs text-muted-foreground">รายละเอียดและรูปสิ่งที่ส่ง</p>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-5 p-5 sm:p-6 lg:grid-cols-[1fr_1.15fr]">
-            <div className="space-y-5">
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">ประเภท *</label>
-                <NativeSelect
-                  value={formData.docType}
-                  onChange={v => setFormData(p => ({ ...p, docType: v }))}
-                  options={DOC_TYPES}
-                  placeholder="เลือกประเภท"
-                  icon="inventory_2"
-                  otherPlaceholder="ระบุประเภทพัสดุเอง"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">รายละเอียดเพิ่มเติม</label>
+          <div className="grid grid-cols-1 gap-4 p-4 sm:p-5 lg:grid-cols-[1fr_1.15fr]">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="px-1 text-sm font-medium text-foreground">รายละเอียดสิ่งที่ส่ง</label>
                 <div className="relative">
-                  <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">description</span>
                   <input
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
                     placeholder="เช่น เอกสาร 1 ชุด, พัสดุ 1 กล่อง"
-                    className="w-full bg-white border border-outline-variant rounded-2xl pl-10 pr-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none font-display transition-all"
+                    className="app-input w-full"
                   />
                 </div>
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">รูปสิ่งที่ส่ง *</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="px-1 text-sm font-medium text-foreground">รูปสิ่งที่ส่ง *</label>
               <input
                 ref={proofInputRef}
                 type="file"
@@ -394,22 +373,22 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 <button
                   type="button"
                   onClick={() => proofInputRef.current?.click()}
-                  className="flex min-h-[150px] w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-outline-variant/55 bg-surface-container-lowest px-4 py-5 text-center transition-all hover:border-primary/45 hover:bg-primary/5 active:scale-[0.99]"
+                  className="flex min-h-[138px] w-full flex-col items-center justify-center gap-2 rounded-lg border border-dashed border-border bg-muted/40 px-4 py-5 text-center transition-colors hover:bg-muted active:scale-[0.99]"
                 >
-                  <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
+                  <span className="grid size-11 place-items-center rounded-lg bg-background text-foreground shadow-xs">
                     <span className="material-symbols-outlined text-2xl">add_a_photo</span>
                   </span>
-                  <span className="font-display text-sm font-black text-primary">ถ่ายหรือแนบรูปสิ่งที่ส่ง</span>
-                  <span className="text-xs font-semibold text-on-surface-variant/55">เพื่อให้ Messenger เห็นของที่ต้องรับไปส่ง</span>
+                  <span className="text-sm font-semibold text-foreground">ถ่ายหรือแนบรูปสิ่งที่ส่ง</span>
+                  <span className="text-xs text-muted-foreground">ใช้ยืนยันของที่ Messenger ต้องรับไปส่ง</span>
                 </button>
               ) : (
-                <div className="overflow-hidden rounded-2xl border border-outline-variant/25 bg-white shadow-sm">
+                <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                   <div className="relative aspect-[4/3] bg-surface-container-low">
                     <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" className="h-full w-full object-cover" />
                     <button
                       type="button"
                       onClick={clearProofPhoto}
-                      className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-xl bg-white text-primary shadow-lg transition-all hover:bg-error hover:text-white active:scale-95"
+                      className="absolute right-2 top-2 grid size-9 place-items-center rounded-lg bg-background text-foreground shadow-md transition-colors hover:bg-destructive hover:text-destructive-foreground active:scale-95"
                       aria-label="ลบรูปสิ่งที่ส่ง"
                     >
                       <span className="material-symbols-outlined text-xl">close</span>
@@ -418,7 +397,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   <button
                     type="button"
                     onClick={() => proofInputRef.current?.click()}
-                    className="flex h-11 w-full items-center justify-center gap-2 bg-surface-container-lowest font-display text-sm font-black text-primary transition-colors hover:bg-surface-container-low"
+                    className="flex h-11 w-full items-center justify-center gap-2 bg-muted text-sm font-semibold text-foreground transition-colors hover:bg-muted/80"
                   >
                     <span className="material-symbols-outlined text-lg">photo_camera</span>
                     เปลี่ยนรูป
@@ -429,12 +408,11 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
           </div>
         </div>
 
-        <div className="flex justify-center pt-2">
+        <div className="flex justify-center pt-1">
           <button
             type="submit"
             disabled={isLoading}
-            className="group flex items-center gap-3 h-14 px-10 text-white rounded-2xl font-display font-bold shadow-lg hover:shadow-xl hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
-            style={{ background: 'linear-gradient(135deg, #091426 0%, #1e3a5f 100%)' }}
+            className="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 sm:w-auto"
           >
             <span className={`material-symbols-outlined ${isLoading ? 'animate-spin' : ''}`}>
               {isLoading ? 'progress_activity' : 'add_circle'}
@@ -446,25 +424,25 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
 
       {/* Confirmation Modal */}
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-xl max-h-[92vh] rounded-3xl p-0 border-none bg-white shadow-2xl overflow-hidden">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-xl max-h-[92vh] overflow-hidden rounded-lg border border-border bg-card p-0 shadow-lg">
           <div className="flex max-h-[92vh] flex-col">
             {/* Header */}
-            <div className="relative overflow-hidden bg-primary px-5 py-4 text-white sm:px-6">
+            <div className="border-b border-border bg-muted/45 px-5 py-4 sm:px-6">
               <div className="relative flex items-center gap-4">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-secondary-container text-primary shadow-sm">
+                <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
                   <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>fact_check</span>
                 </div>
                 <div className="min-w-0 text-left">
-                  <DialogTitle className="font-display text-xl font-black leading-tight sm:text-2xl">ตรวจสอบก่อนส่งรายการ</DialogTitle>
-                  <p className="mt-0.5 text-xs font-semibold text-white/65">เช็กให้ชัดว่าพัสดุนี้ต้องส่งจากใคร ไปให้ใครหรือไปที่ไหน</p>
+                  <DialogTitle className="text-xl font-semibold leading-tight text-foreground sm:text-2xl">ตรวจสอบก่อนส่งรายการ</DialogTitle>
+                  <p className="mt-0.5 text-xs text-muted-foreground">เช็กต้นทาง ปลายทาง และรูปก่อนสร้างรายการ</p>
                 </div>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto bg-surface-container-lowest p-4 sm:p-5">
+            <div className="flex-1 overflow-y-auto bg-background p-4 sm:p-5">
               <div className="space-y-3">
                 {/* Route summary */}
-                <div className="rounded-2xl border border-outline-variant/25 bg-white p-4 shadow-sm">
+                <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
                   <div className="relative space-y-4">
                     <div className="absolute bottom-10 left-[21px] top-10 w-px bg-outline-variant/30" />
                     <div className="relative flex min-w-0 gap-3">
@@ -492,18 +470,11 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 </div>
 
                 {/* Parcel Details */}
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                  <div className="rounded-2xl border border-outline-variant/25 bg-white p-4 shadow-sm">
-                    <div className="mb-2 flex items-center gap-2 text-primary">
-                      <span className="material-symbols-outlined text-lg">category</span>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">ประเภทพัสดุ</p>
-                    </div>
-                    <p className="font-display text-base font-black text-primary">{resolveSelectValue(formData.docType)}</p>
-                  </div>
-                  <div className="rounded-2xl border border-outline-variant/25 bg-white p-4 shadow-sm">
+                <div className="grid grid-cols-1 gap-3">
+                  <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
                     <div className="mb-2 flex items-center gap-2 text-primary">
                       <span className="material-symbols-outlined text-lg">description</span>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">รายละเอียด</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">รายละเอียดสิ่งที่ส่ง</p>
                     </div>
                     <p className="break-words font-display text-base font-black text-primary">{formData.description || '-'}</p>
                   </div>
@@ -533,7 +504,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 )}
 
                 {proofPhotoPreview && (
-                  <div className="overflow-hidden rounded-2xl border border-outline-variant/25 bg-white shadow-sm">
+                  <div className="overflow-hidden rounded-lg border border-border bg-card shadow-sm">
                     <div className="flex items-center gap-2 border-b border-outline-variant/10 px-4 py-3 text-primary">
                       <span className="material-symbols-outlined text-lg">photo_camera</span>
                       <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">รูปสิ่งที่ส่ง</p>
@@ -545,18 +516,18 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             </div>
 
             {/* Footer */}
-            <div className="border-t border-outline-variant/15 bg-white p-4 sm:p-5">
+            <div className="border-t border-border bg-card p-4 sm:p-5">
               <div className="flex flex-col-reverse gap-3 sm:flex-row">
                 <button
                   onClick={() => setIsConfirmOpen(false)}
-                  className="h-12 flex-1 rounded-2xl border border-outline-variant/50 font-display font-bold text-on-surface-variant transition-colors hover:bg-surface-container sm:h-13"
+                  className="h-12 flex-1 rounded-lg border border-border font-semibold text-muted-foreground transition-colors hover:bg-muted sm:h-13"
                 >
                   แก้ไข
                 </button>
                 <button
                   onClick={handleConfirmSubmit}
                   disabled={isLoading}
-                  className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-2xl bg-primary font-display font-bold text-white shadow-lg shadow-primary/20 transition-all hover:opacity-95 active:scale-[0.98] disabled:opacity-50 sm:h-13"
+                  className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 sm:h-13"
                 >
                   {isLoading ? (
                     <span className="material-symbols-outlined animate-spin">progress_activity</span>
@@ -576,24 +547,24 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       {/* Success Dialog */}
       <Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
         <DialogContent 
-            className="w-[calc(100vw-1rem)] max-w-md max-h-[92vh] rounded-3xl p-0 border-none shadow-2xl bg-background overflow-hidden"
+            className="w-[calc(100vw-1rem)] max-w-md max-h-[92vh] overflow-hidden rounded-lg border border-border bg-background p-0 shadow-lg"
           >
           <div className="max-h-[92vh] overflow-y-auto">
-          <div className="w-full bg-primary px-5 py-6 sm:p-7 text-white text-center relative">
-            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
-              <span className="material-symbols-outlined text-3xl sm:text-4xl text-secondary-container">check_circle</span>
+          <div className="relative w-full border-b border-border bg-muted/45 px-5 py-6 text-center sm:p-7">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg border border-border bg-background text-primary sm:size-16">
+              <span className="material-symbols-outlined text-3xl sm:text-4xl">check_circle</span>
             </div>
-            <DialogTitle className="text-xl sm:text-2xl font-bold font-display">สร้างรายการสำเร็จ</DialogTitle>
-            <p className="text-primary-fixed-dim text-sm mt-1">สร้างหมายเลขติดตามเรียบร้อยแล้ว</p>
+            <DialogTitle className="text-xl font-semibold text-foreground sm:text-2xl">สร้างรายการสำเร็จ</DialogTitle>
+            <p className="mt-1 text-sm text-muted-foreground">สร้างหมายเลขติดตามเรียบร้อยแล้ว</p>
           </div>
 
           <div className="w-full p-4 sm:p-6 space-y-5">
-            <div className="bg-white p-4 sm:p-6 rounded-2xl border border-outline-variant/30 flex flex-col items-center gap-5 shadow-sm min-w-0">
+            <div className="flex min-w-0 flex-col items-center gap-5 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-6">
               <div className="flex w-full min-w-0 flex-col items-center gap-1">
-                <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-[0.2em]">หมายเลขติดตาม</span>
-                <code className="block max-w-full break-all text-center font-mono text-[clamp(1.25rem,7vw,1.875rem)] font-black leading-tight text-primary">{createdTrackingId}</code>
+                <span className="text-xs font-semibold text-muted-foreground">หมายเลขติดตาม</span>
+                <code className="block max-w-full break-all text-center font-mono text-[clamp(1.25rem,7vw,1.875rem)] font-semibold leading-tight text-foreground">{createdTrackingId}</code>
               </div>
-              <div className="bg-surface-container-low p-3 rounded-2xl border border-outline-variant/20">
+              <div className="rounded-lg border border-border bg-muted p-3">
                 {qrDataUrl ? (
                   <img
                     src={qrDataUrl}
@@ -612,7 +583,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={handleCopyTrackingId}
-                className="flex min-w-0 flex-1 items-center justify-center gap-2 h-12 bg-surface-container-high text-primary border border-outline-variant/20 rounded-xl font-display font-bold hover:bg-surface-container transition-colors"
+                className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-muted text-sm font-semibold text-foreground transition-colors hover:bg-muted/80"
               >
                 <span className="material-symbols-outlined text-xl">content_copy</span>
                 คัดลอกหมายเลข
@@ -675,7 +646,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                     };
                   }
                 }}
-                className="flex min-w-0 flex-1 items-center justify-center gap-2 h-12 bg-primary text-white rounded-xl font-display font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity"
+                className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
               >
                 <span className="material-symbols-outlined text-xl">print</span>
                 พิมพ์ใบปะหน้า

@@ -72,8 +72,8 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
         events.push({
           id: String(idCounter++),
           status: 'completed',
-          title: 'ปล่อยงานจัดส่ง',
-          description: `ปล่อยงานโดย: ${evt.person || '-'}`,
+          title: 'คืนงานจัดส่ง',
+          description: `คืนงานโดย: ${evt.person || '-'}`,
           timestamp: evt.timestamp,
           location: evt.location,
           destLocation: evt.destLocation,

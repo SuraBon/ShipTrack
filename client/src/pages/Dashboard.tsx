@@ -11,10 +11,17 @@ import StatusBadge from '@/components/StatusBadge';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 import { parseParcelTimeline } from '@/lib/timeline';
-import { buildAssignmentNote, getActiveDeliveryAssignment, type DeliveryAssignment } from '@/lib/deliveryAssignment';
+import {
+  buildAssignmentNote,
+  canConfirmMessengerJob,
+  canReleaseMessengerJob,
+  getActiveDeliveryAssignment,
+  isAssignedToCurrentUser,
+  isAvailableForMessenger,
+  type DeliveryAssignment,
+} from '@/lib/deliveryAssignment';
 import { Skeleton } from '@/components/ui/skeleton';
 import { formatThaiDateTime, getDateTime } from '@/lib/dateUtils';
-import ImagePopup from '@/components/ImagePopup';
 import { normalizeRole, type AppRole } from '@/lib/roles';
 import type { TimelineEvent } from '@/types/timeline';
 import {
@@ -25,7 +32,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { UI_COPY } from '@/lib/uiCopy';
 import {
   AlertTriangle,
-  BellOff,
   Camera,
   CheckCircle2,
   ClipboardList,
@@ -47,10 +53,7 @@ import {
 interface DashboardProps { isConfigured: boolean; }
 
 const ParcelTimelineModal = lazy(() => import('@/components/ParcelTimelineModal'));
-const TrackingMap = lazy(() => import('@/components/TrackingMap'));
 const ConfirmReceipt = lazy(() => import('@/pages/ConfirmReceipt'));
-const CreateParcel = lazy(() => import('@/pages/CreateParcel'));
-const Track = lazy(() => import('@/pages/Track'));
 
 const STATS = [
   { key: 'total',     filter: 'ทั้งหมด',     label: 'ทั้งหมด',  icon: 'inventory_2',     iconBg: 'bg-slate-100',    iconText: 'text-primary' },
@@ -60,7 +63,6 @@ const STATS = [
 ] as const;
 
 const STALE_DAYS = 2;
-const PREVIEW_ROLES: AppRole[] = ['MESSENGER', 'ADMIN'];
 type MessengerView = 'waiting' | 'mine';
 
 const StatsCard = ({
@@ -182,25 +184,6 @@ const getLatestTimelineSummary = (parcel: Parcel) => {
   return `${latest.title}${latest.description ? `: ${latest.description}` : ''}`;
 };
 
-const getDeliveryProofSummary = (parcel: Parcel) => {
-  const deliveryEvent = [...(parcel.events || [])].reverse().find(evt => evt.eventType === 'DELIVERED' || evt.eventType === 'PROXY');
-  if (!deliveryEvent) return '';
-  const receiver = deliveryEvent.person ? `ผู้รับจริง: ${deliveryEvent.person}` : '';
-  const match =
-    deliveryEvent.deliveryMatchStatus === 'DELIVERED_ELSEWHERE'
-      ? `ส่งคนละจุด${deliveryEvent.deliveryMismatchReason ? ` (${deliveryEvent.deliveryMismatchReason})` : ''}`
-      : deliveryEvent.deliveryMatchStatus === 'MATCHED_DECLARED_DESTINATION'
-        ? 'ยืนยันส่งตรงปลายทาง'
-        : '';
-  return [receiver, match].filter(Boolean).join(' · ');
-};
-
-const getDeliveryProofEvent = (events: TimelineEvent[]) =>
-  [...events].reverse().find(event =>
-    event.title.includes('ส่งสำเร็จ') &&
-    (event.imageUrl || (typeof event.latitude === 'number' && typeof event.longitude === 'number'))
-  );
-
 const getParcelAgeDays = (parcel: Parcel) => {
   const createdAt = getDateTime(parcel['วันที่สร้าง']);
   if (!createdAt) return 0;
@@ -217,11 +200,6 @@ const sortMessengerWork = (a: Parcel, b: Parcel) => {
 };
 
 const resolveDashboardRole = (rawRole: unknown): AppRole => {
-  if (import.meta.env.DEV) {
-    const previewRole = new URLSearchParams(window.location.search).get('previewRole');
-    const normalizedPreview = normalizeRole(previewRole);
-    if (PREVIEW_ROLES.includes(normalizedPreview)) return normalizedPreview;
-  }
   return normalizeRole(rawRole);
 };
 
@@ -453,7 +431,7 @@ const AssignmentBadge = ({
         compact
         className="bg-white/85"
       >
-        {isReleasing ? 'กำลังปล่อย' : 'ปล่อยงาน'}
+        {isReleasing ? 'กำลังคืนงาน' : 'คืนงาน'}
       </DashboardActionButton>
     )}
   </div>
@@ -533,7 +511,7 @@ const MessengerDeliveryCard = ({
   canReleaseDelivery: boolean;
   canConfirmDelivery: boolean;
 }) => {
-  const proof = getDeliveryProofSummary(parcel);
+  const note = getCleanNote(parcel);
   const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
   const isAssignedElsewhere = Boolean(assignment && !canConfirmDelivery && !isDone);
   const actionLabel = canStartDelivery
@@ -542,15 +520,15 @@ const MessengerDeliveryCard = ({
       ? 'ส่งสำเร็จ'
       : '';
   return (
-    <article className={`rounded-2xl border bg-white p-3 shadow-sm sm:p-4 ${isDone ? 'border-emerald-100' : 'border-primary/15'}`}>
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+    <article className={`rounded-xl border bg-card p-3 shadow-sm sm:p-4 ${isDone ? 'border-emerald-100' : 'border-border'}`}>
+      <div className="mb-3 flex flex-col gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+            <code className="rounded-md bg-muted px-2 py-1 font-mono text-xs font-semibold text-foreground">{parcel.TrackingID}</code>
             {isDone && <StatusBadge status={parcel['สถานะ']} className="h-6 w-[92px] text-[10px]" />}
             <StaleBadge parcel={parcel} />
           </div>
-          <p className="mt-2 text-sm font-black leading-tight text-primary">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
+          <p className="mt-2 text-base font-semibold leading-tight text-foreground">{parcel['ผู้รับ'] || '-'}</p>
         </div>
         {!isDone && (canStartDelivery || canConfirmDelivery) && (
           <DashboardActionButton
@@ -558,7 +536,7 @@ const MessengerDeliveryCard = ({
             onClick={canStartDelivery ? onStartDelivery : onConfirm}
             loading={canStartDelivery ? isStartingDelivery : false}
             variant={canStartDelivery ? 'blue' : 'primary'}
-            compact
+            className="w-full sm:w-auto"
           >
             {actionLabel}
           </DashboardActionButton>
@@ -570,15 +548,20 @@ const MessengerDeliveryCard = ({
         </div>
       )}
       <MessengerRouteSummary parcel={parcel} />
-      <div className="mt-3">
-        <ParcelInfoStrip parcel={parcel} />
-      </div>
-      {isDone && (
-        <div className="mt-3 rounded-xl border border-outline-variant/15 bg-surface-container-lowest/70 px-3 py-2">
-          <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/45">หลักฐานสรุป</p>
-          <p className="mt-1 text-xs font-bold leading-snug text-primary">
-            {proof || 'ส่งสำเร็จแล้ว ดูประวัติเต็มเพื่อดูรูป/GPS'}
-          </p>
+      {(parcel['รายละเอียด'] || note) && (
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          {parcel['รายละเอียด'] && (
+            <div className="rounded-lg border border-border bg-muted/35 px-3 py-2">
+              <p className="text-[10px] font-semibold text-muted-foreground">รายละเอียดสิ่งที่ส่ง</p>
+              <p className="mt-0.5 truncate text-sm font-medium text-foreground">{parcel['รายละเอียด']}</p>
+            </div>
+          )}
+          {note && (
+            <div className="rounded-lg border border-border bg-muted/35 px-3 py-2">
+              <p className="text-[10px] font-semibold text-muted-foreground">หมายเหตุ</p>
+              <p className="mt-0.5 truncate text-sm font-medium text-foreground">{note}</p>
+            </div>
+          )}
         </div>
       )}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end">
@@ -590,7 +573,7 @@ const MessengerDeliveryCard = ({
             variant="warning"
             compact
           >
-            {isReleasingDelivery ? 'กำลังปล่อย' : 'ปล่อยงาน'}
+            {isReleasingDelivery ? 'กำลังคืนงาน' : 'คืนงาน'}
           </DashboardActionButton>
         )}
         <DashboardActionButton
@@ -601,77 +584,6 @@ const MessengerDeliveryCard = ({
         >
           ดูประวัติ
         </DashboardActionButton>
-      </div>
-    </article>
-  );
-};
-
-const UserParcelOverviewCard = ({
-  parcel,
-  timelineEvents,
-  onOpen,
-  onOpenMap,
-}: {
-  parcel: Parcel;
-  timelineEvents: TimelineEvent[];
-  onOpen: () => void;
-  onOpenMap: (events: TimelineEvent[]) => void;
-}) => {
-  const proofEvent = parcel['สถานะ'] === 'ส่งสำเร็จ' ? getDeliveryProofEvent(timelineEvents) : undefined;
-  const hasProofImage = Boolean(proofEvent?.imageUrl);
-  const hasProofMap = Boolean(
-    proofEvent &&
-    typeof proofEvent.latitude === 'number' &&
-    typeof proofEvent.longitude === 'number'
-  );
-
-  return (
-    <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0">
-          <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
-          <p className="mt-2 text-base font-black leading-tight text-primary">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
-          <p className="mt-1 text-xs font-semibold text-on-surface-variant/70">ปลายทาง: {parcel['สาขาผู้รับ'] || '-'}</p>
-        </div>
-        <StatusBadge status={parcel['สถานะ']} />
-      </div>
-      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
-          <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">วันที่สร้าง</p>
-          <p className="mt-0.5 text-xs font-bold text-primary">{formatThaiDateTime(parcel['วันที่สร้าง'])}</p>
-        </div>
-        <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
-          <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">อัปเดตล่าสุด</p>
-          <p className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-primary">{getLatestTimelineSummary(parcel)}</p>
-        </div>
-      </div>
-      <div className="mt-3">
-        <ParcelInfoStrip parcel={parcel} />
-      </div>
-      {(hasProofImage || hasProofMap) && (
-        <div className="mt-3">
-          <ActionGroup>
-          {hasProofImage && proofEvent?.imageUrl && (
-            <ImagePopup
-              url={proofEvent.imageUrl}
-              title={UI_COPY.parcel.proofPhoto}
-              className="h-10 flex-1 justify-center rounded-xl border border-outline-variant/35 bg-white px-4 py-2 text-xs font-black normal-case tracking-normal text-primary shadow-none transition-all hover:border-primary/35 hover:bg-primary/5 sm:flex-none"
-            />
-          )}
-          {hasProofMap && proofEvent && (
-            <DashboardActionButton
-              icon="map"
-              onClick={() => onOpenMap([proofEvent])}
-              variant="primary"
-            >
-              แผนที่ปลายทาง
-            </DashboardActionButton>
-          )}
-          </ActionGroup>
-        </div>
-      )}
-      <div className="mt-3">
-        <CardActions parcel={parcel} onOpen={onOpen} onConfirm={() => undefined} canConfirm={false} detailLabel="ดูรายละเอียด" compactDetail />
       </div>
     </article>
   );
@@ -738,7 +650,7 @@ const AdminParcelManagementCard = ({
 
 export default function Dashboard({ isConfigured }: DashboardProps) {
   const { user } = useAuth();
-  const { parcels, summary, loading, loadParcels, hasMore, loadMoreParcels, totalCount, removeParcelLocally, updateParcelLocally } = useParcelStore();
+  const { parcels, summary, loading, error, loadParcels, hasMore, loadMoreParcels, totalCount, removeParcelLocally, updateParcelLocally } = useParcelStore();
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearch = useDebounce(searchTerm, 300);
   const role = resolveDashboardRole(user?.role);
@@ -751,17 +663,13 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [confirmTrackingId, setConfirmTrackingId] = useState<string | null>(null);
   const [isConfirmFlowOpen, setIsConfirmFlowOpen] = useState(false);
   const [isConfirmPreparingCamera, setIsConfirmPreparingCamera] = useState(false);
-  const [isCreateFlowOpen, setIsCreateFlowOpen] = useState(false);
-  const [isTrackFlowOpen, setIsTrackFlowOpen] = useState(false);
   const [messengerView, setMessengerView] = useState<MessengerView>('waiting');
-  const [userMapEvents, setUserMapEvents] = useState<TimelineEvent[] | null>(null);
   const [startingDeliveryId, setStartingDeliveryId] = useState<string | null>(null);
   const [releasingDeliveryId, setReleasingDeliveryId] = useState<string | null>(null);
-  const [refreshCountdown, setRefreshCountdown] = useState(120);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize] = useState(10);
   const isFetchingRef = useRef(false);
-  const isUserDashboard = false;
   const canConfirmParcel = role === 'ADMIN' || role === 'MESSENGER';
   const currentEmployeeId = String(user?.employeeId || '').trim().toUpperCase();
   const stats = useMemo(() => {
@@ -782,11 +690,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     isFetchingRef.current = true;
     try {
       await loadParcelsRef.current();
+      setLastUpdatedAt(Date.now());
     } catch {
       toast.error('ไม่สามารถโหลดข้อมูลได้');
     } finally {
       isFetchingRef.current = false;
-      setRefreshCountdown(120);
     }
   }, []); // ✅ Empty deps — no infinite loop risk
 
@@ -796,26 +704,18 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     fetchData();
   }, [isConfigured, fetchData]);
 
-  // Countdown tick — pauses when tab is hidden to save GAS quota
+  // Refresh once when returning to an old visible dashboard. Avoid polling Apps Script.
   useEffect(() => {
     if (!isConfigured) return;
-    const timer = setInterval(() => {
-      // Don't refresh when tab is not visible
+    const handleVisibilityChange = () => {
       if (document.hidden) return;
-      let shouldRefresh = false;
-      setRefreshCountdown(prev => {
-        if (prev <= 1) {
-          shouldRefresh = true;
-          return 0;
-        }
-        return prev - 1;
-      });
-      if (shouldRefresh) {
+      if (!lastUpdatedAt || Date.now() - lastUpdatedAt > 2 * 60 * 1000) {
         fetchData();
       }
-    }, 1000);
-    return () => clearInterval(timer);
-  }, [isConfigured, fetchData]);
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [isConfigured, fetchData, lastUpdatedAt]);
 
   const filteredParcels = useMemo(() => {
     let f = parcels;
@@ -836,17 +736,13 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   const messengerWaitingParcels = useMemo(
     () => filteredParcels
-      .filter(parcel => parcel['สถานะ'] === 'รอจัดส่ง' && !getActiveDeliveryAssignment(parcel))
+      .filter(isAvailableForMessenger)
       .sort(sortMessengerWork),
     [filteredParcels],
   );
   const messengerMineParcels = useMemo(
     () => filteredParcels
-      .filter(parcel => {
-        if (parcel['สถานะ'] === 'ส่งสำเร็จ') return false;
-        const assignment = getActiveDeliveryAssignment(parcel);
-        return Boolean(assignment?.assignedToId && assignment.assignedToId === currentEmployeeId);
-      })
+      .filter(parcel => isAssignedToCurrentUser(parcel, currentEmployeeId) && parcel['สถานะ'] !== 'ส่งสำเร็จ')
       .sort(sortMessengerWork),
     [filteredParcels, currentEmployeeId],
   );
@@ -930,7 +826,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     setStartingDeliveryId(null);
 
     if (!res.success) {
-      toast.error(res.error || 'ไม่สามารถรับงานได้');
+      const message = res.error?.includes('มีผู้รับงานแล้ว')
+        ? 'งานนี้มีผู้รับแล้ว กรุณารีเฟรช'
+        : res.error || 'รับงานไม่ได้ กรุณาลองใหม่';
+      toast.error(message);
       return;
     }
 
@@ -950,7 +849,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       'สถานะ': 'กำลังจัดส่ง',
       events: res.alreadyStarted && hasLocalAssignment ? parcel.events : [...(parcel.events || []), startEvent],
     });
-    toast.success(res.alreadyStarted ? 'งานนี้อยู่ระหว่างจัดส่งแล้ว' : 'รับงานแล้ว เปลี่ยนสถานะเป็นกำลังจัดส่ง');
+    setMessengerView('mine');
+    toast.success(res.alreadyStarted ? 'งานนี้อยู่ในงานของฉันแล้ว' : 'รับงานแล้ว');
     loadParcels(undefined, true).catch(() => {});
   };
 
@@ -961,7 +861,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     setReleasingDeliveryId(null);
 
     if (!res.success) {
-      toast.error(res.error || 'ไม่สามารถปล่อยงานได้');
+      toast.error(res.error || 'คืนงานไม่ได้ กรุณาลองใหม่');
       return;
     }
 
@@ -980,7 +880,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       'สถานะ': 'รอจัดส่ง',
       events: [...(parcel.events || []), releaseEvent],
     });
-    toast.success(res.alreadyReleased ? 'งานนี้พร้อมให้รับแล้ว' : 'ปล่อยงานแล้ว งานกลับไปรอจัดส่ง');
+    setMessengerView('waiting');
+    toast.success(res.alreadyReleased ? 'งานนี้พร้อมให้รับแล้ว' : 'คืนงานแล้ว');
     loadParcels(undefined, true).catch(() => {});
   };
 
@@ -1016,66 +917,22 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   return (
     <div className="space-y-4 sm:space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {isMessengerDashboard && (
-        <div className="rounded-2xl border border-primary/15 bg-white p-4 shadow-sm sm:p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">
-                  <span className="material-symbols-outlined text-xl">local_shipping</span>
-                </span>
-                <div className="min-w-0">
-                  <h2 className="font-display text-lg font-black leading-tight text-primary">งานส่งของ Messenger</h2>
-                  <p className="text-xs font-semibold leading-snug text-on-surface-variant/65">มีแค่รับงานและงานของฉัน ใช้สำหรับออกไปส่งและยืนยันส่งสำเร็จ</p>
-                </div>
-              </div>
-            </div>
+      {error && (
+        <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="font-semibold">{isMessengerDashboard ? 'โหลดงานไม่ได้' : 'โหลดข้อมูลไม่สำเร็จ'}</div>
+            <div className="mt-0.5 text-xs leading-relaxed opacity-90">{isMessengerDashboard ? 'กดรีเฟรชอีกครั้ง หากยังไม่สำเร็จให้ตรวจสอบสัญญาณอินเทอร์เน็ต' : error}</div>
+          </div>
+          {isMessengerDashboard && (
             <button
               type="button"
               onClick={handleRefresh}
-              disabled={loading}
-              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-black text-white shadow-sm transition-all hover:bg-primary/95 active:scale-[0.98] disabled:opacity-50"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-destructive/25 bg-white px-3 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10"
             >
-              <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
-              อัปเดตงาน
+              <RotateCcw className="h-4 w-4" />
+              รีเฟรช
             </button>
-          </div>
-        </div>
-      )}
-      {import.meta.env.DEV && (
-        <div className="rounded-xl border border-dashed border-primary/20 bg-primary/[0.03] px-3 py-2 text-xs font-bold text-primary">
-          Preview role: {role} ใช้ `?previewRole=MESSENGER` หรือ `ADMIN` เพื่อทดสอบหน้าแต่ละ role
-        </div>
-      )}
-
-      {isUserDashboard && (
-        <div className="grid grid-cols-2 gap-2 sm:max-w-md">
-          <button
-            type="button"
-            onClick={() => setIsCreateFlowOpen(true)}
-            className="flex items-center gap-2.5 rounded-xl border border-outline-variant/25 bg-white p-3 text-left shadow-sm active:scale-[0.99]"
-          >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-amber-50 text-amber-600">
-              <span className="material-symbols-outlined text-xl">add_box</span>
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-primary">{UI_COPY.nav.create}</span>
-              <span className="block truncate text-[11px] font-semibold text-on-surface-variant/55">กรอกผู้รับ/ปลายทาง</span>
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsTrackFlowOpen(true)}
-            className="flex items-center gap-2.5 rounded-xl border border-outline-variant/25 bg-white p-3 text-left shadow-sm active:scale-[0.99]"
-          >
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-600">
-              <span className="material-symbols-outlined text-xl">qr_code_scanner</span>
-            </span>
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-black text-primary">{UI_COPY.nav.track}</span>
-              <span className="block truncate text-[11px] font-semibold text-on-surface-variant/55">ดูว่าส่งถึงไหนแล้ว</span>
-            </span>
-          </button>
+          )}
         </div>
       )}
 
@@ -1144,9 +1001,9 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             )}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div className="flex h-8 items-center gap-1 rounded-lg border border-outline-variant/35 bg-white px-2 text-[11px] font-medium text-on-surface-variant">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono font-bold text-primary">{refreshCountdown}s</span>
+            <div className="hidden h-8 items-center gap-1 rounded-lg border border-outline-variant/35 bg-white px-2 text-[11px] font-medium text-on-surface-variant sm:flex">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span>{lastUpdatedAt ? `อัปเดต ${new Date(lastUpdatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : 'รอข้อมูล'}</span>
             </div>
             <button
               onClick={handleRefresh}
@@ -1162,13 +1019,14 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
       {/* ── Role Cards ── */}
       <section className="overflow-hidden rounded-xl border border-outline-variant/35 bg-white/90 shadow-sm backdrop-blur-sm sm:rounded-2xl">
+        {!isMessengerDashboard && (
         <div className="flex items-center justify-between gap-3 border-b border-outline-variant/10 px-3 py-2.5 sm:px-5 sm:py-3">
           <div className="flex min-w-0 items-center gap-2.5">
             <span className="material-symbols-outlined text-base text-primary sm:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-              {isMessengerDashboard ? 'route' : isUserDashboard ? 'inventory_2' : 'view_agenda'}
+              {isMessengerDashboard ? 'route' : 'view_agenda'}
             </span>
             <h2 className="truncate font-display text-sm font-bold text-primary">
-              {isMessengerDashboard ? 'งานส่งหน้าเดียวจบ' : isUserDashboard ? 'พัสดุของฉัน' : 'รายการจัดการพัสดุ'}
+              {isMessengerDashboard ? 'งานจัดส่ง' : 'รายการจัดการพัสดุ'}
             </h2>
             <span className="rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-bold text-primary">
               {filteredParcels.length}
@@ -1183,6 +1041,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             </button>
           )}
         </div>
+        )}
 
         {loading && !filteredParcels.length ? (
           <TableSkeleton />
@@ -1200,11 +1059,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             />
           </div>
         ) : isMessengerDashboard ? (
-          <div className="space-y-5 p-3 sm:p-4">
-            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-outline-variant/30 bg-surface-container-lowest p-1">
+          <div className="space-y-4 p-3 sm:p-4">
+            <div className="grid grid-cols-2 gap-1 rounded-xl border border-border bg-muted p-1">
               {[
                 { id: 'waiting' as const, label: 'รับงาน', icon: 'inventory_2', count: messengerWaitingParcels.length },
-                { id: 'mine' as const, label: 'งานของฉัน', icon: 'local_shipping', count: messengerMineParcels.length + messengerDoneParcels.length },
+                { id: 'mine' as const, label: 'งานของฉัน', icon: 'local_shipping', count: messengerMineParcels.length },
               ].map(item => {
                 const active = messengerView === item.id;
                 return (
@@ -1213,8 +1072,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                     type="button"
                     onClick={() => setMessengerView(item.id)}
                     aria-pressed={active}
-                    className={`flex h-12 items-center justify-center gap-2 rounded-xl text-sm font-black transition-all ${
-                      active ? 'bg-primary text-white shadow-sm' : 'text-on-surface-variant hover:bg-white hover:text-primary'
+                    className={`flex h-11 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition-all ${
+                      active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-background hover:text-foreground'
                     }`}
                   >
                     <DashboardIcon icon={item.icon} className="h-4 w-4" />
@@ -1230,7 +1089,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 <RoleSectionHeader
                   icon="inventory_2"
                   title="รับงาน"
-                  subtitle="เลือกงานที่พร้อมออกไปส่ง กดรับงานก่อนเริ่มเดินทาง"
+                  subtitle="งานที่ยังไม่มีผู้รับ"
                   count={messengerWaitingParcels.length}
                   tone="amber"
                 />
@@ -1241,7 +1100,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                         key={parcel.TrackingID}
                         parcel={parcel}
                         assignment={null}
-                        canStartDelivery={parcel['สถานะ'] === 'รอจัดส่ง'}
+                        canStartDelivery={isAvailableForMessenger(parcel)}
                         canReleaseDelivery={false}
                         canConfirmDelivery={false}
                         onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
@@ -1263,7 +1122,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   <RoleSectionHeader
                     icon="local_shipping"
                     title="งานของฉัน"
-                    subtitle="งานที่คุณรับไว้แล้ว กดส่งสำเร็จเมื่อถึงปลายทาง"
+                    subtitle="กำลังส่ง"
                     count={messengerMineParcels.length}
                     tone="blue"
                   />
@@ -1277,8 +1136,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                             parcel={parcel}
                             assignment={assignment}
                             canStartDelivery={false}
-                            canReleaseDelivery={Boolean(assignment)}
-                            canConfirmDelivery
+                            canReleaseDelivery={canReleaseMessengerJob(parcel, currentEmployeeId, role)}
+                            canConfirmDelivery={canConfirmMessengerJob(parcel, currentEmployeeId)}
                             onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
                             onConfirm={() => openConfirmFlow(parcel.TrackingID)}
                             onStartDelivery={() => handleStartDelivery(parcel)}
@@ -1290,7 +1149,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                       })}
                     </div>
                   ) : (
-                    <EmptyState icon="local_shipping" title="ยังไม่มีงานที่คุณรับไว้" description="ไปหน้า รับงาน เพื่อเลือกงานก่อนออกไปส่ง" />
+                    <EmptyState icon="local_shipping" title="ยังไม่มีงานที่คุณรับไว้" description="กลับไปแท็บรับงานเพื่อเลือกงานก่อนออกไปส่ง" />
                   )}
                 </div>
 
@@ -1298,7 +1157,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   <RoleSectionHeader
                     icon="done_all"
                     title="ส่งสำเร็จแล้ว"
-                    subtitle="งานที่ปิดแล้ว เก็บไว้ดูหลักฐานและประวัติ"
+                    subtitle="ประวัติงานที่ปิดแล้ว"
                     count={messengerDoneParcels.length}
                     tone="emerald"
                   />
@@ -1330,7 +1189,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           </div>
         ) : (
           <div className="space-y-3 p-3 sm:p-4">
-            {!isUserDashboard && adminNeedsAttentionParcels.length > 0 && (
+            {adminNeedsAttentionParcels.length > 0 && (
               <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50/50 p-3 sm:p-4">
                 <RoleSectionHeader
                   icon="priority_high"
@@ -1355,35 +1214,23 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 </div>
               </div>
             )}
-            {!isUserDashboard && (
-              <RoleSectionHeader
-                icon="view_agenda"
-                title="รายการทั้งหมด"
-                subtitle="แสดงตามตัวกรองปัจจุบัน"
-                count={paginatedParcels.length}
-              />
-            )}
+            <RoleSectionHeader
+              icon="view_agenda"
+              title="รายการทั้งหมด"
+              subtitle="แสดงตามตัวกรองปัจจุบัน"
+              count={paginatedParcels.length}
+            />
             {paginatedParcels.map(parcel => (
-              isUserDashboard ? (
-                <UserParcelOverviewCard
-                  key={parcel.TrackingID}
-                  parcel={parcel}
-                  timelineEvents={getTimelineEvents(parcel)}
-                  onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                  onOpenMap={setUserMapEvents}
-                />
-              ) : (
-                <AdminParcelManagementCard
-                  key={parcel.TrackingID}
-                  parcel={parcel}
-                  assignment={getActiveDeliveryAssignment(parcel)}
-                  onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                  onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                  onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                  onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                  isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-                />
-              )
+              <AdminParcelManagementCard
+                key={parcel.TrackingID}
+                parcel={parcel}
+                assignment={getActiveDeliveryAssignment(parcel)}
+                onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                onReleaseDelivery={() => handleReleaseDelivery(parcel)}
+                isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
+              />
             ))}
           </div>
         )}
@@ -1442,39 +1289,6 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         </Suspense>
       )}
 
-      {userMapEvents && (
-      <Dialog open={Boolean(userMapEvents)} onOpenChange={(open) => { if (!open) setUserMapEvents(null); }}>
-        <DialogContent
-          showCloseButton={false}
-          className="w-[calc(100vw-1rem)] max-w-3xl overflow-hidden rounded-3xl border-none bg-transparent p-0 shadow-2xl"
-        >
-          <div className="bg-transparent p-2 sm:p-3">
-            <div className="relative">
-              <div className="pointer-events-none absolute bottom-12 left-3 z-[500] inline-flex items-center gap-2 rounded-2xl bg-primary/90 px-3 py-2 text-white shadow-lg backdrop-blur-sm sm:bottom-auto sm:left-4 sm:top-4">
-                <span className="material-symbols-outlined text-lg text-secondary">flag</span>
-                <span className="text-sm font-black">แผนที่ปลายทาง</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setUserMapEvents(null)}
-                className="absolute right-3 top-3 z-[500] grid h-11 w-11 place-items-center rounded-2xl bg-white text-primary shadow-lg shadow-black/20 transition-all hover:bg-secondary active:scale-95"
-                aria-label="ปิดแผนที่ปลายทาง"
-              >
-                <span className="material-symbols-outlined text-2xl font-black">close</span>
-              </button>
-              <Suspense fallback={<LazyPanelFallback label="กำลังโหลดแผนที่..." />}>
-                <TrackingMap
-                  events={userMapEvents || []}
-                  className="h-[62vh] max-h-[560px] min-h-[340px] rounded-2xl"
-                  mapClassName="min-h-0"
-                />
-              </Suspense>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-      )}
-
       {/* ── Confirm / Photo Capture Dialog ── */}
       {isConfirmFlowOpen && (
       <Dialog
@@ -1517,74 +1331,6 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   setIsConfirmPreparingCamera(false);
                 }}
               />
-            </Suspense>
-          </div>
-        </DialogContent>
-      </Dialog>
-      )}
-
-      {/* ── User Quick Create Dialog ── */}
-      {isCreateFlowOpen && (
-      <Dialog open={isCreateFlowOpen} onOpenChange={setIsCreateFlowOpen}>
-        <DialogContent
-          showCloseButton={false}
-          className="!left-0 !top-0 flex h-[100dvh] max-h-[100dvh] w-screen max-w-none !translate-x-0 !translate-y-0 flex-col overflow-hidden rounded-none border-none bg-background p-0 shadow-2xl"
-        >
-          <DialogHeader className="shrink-0 border-b border-outline-variant/20 bg-primary px-5 py-4 text-white">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/10 text-secondary-container">
-                  <span className="material-symbols-outlined text-xl">add_box</span>
-                </span>
-                <DialogTitle className="font-display text-lg font-black text-white">{UI_COPY.nav.create}</DialogTitle>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsCreateFlowOpen(false)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition-colors hover:bg-white/20"
-                aria-label={`ปิดหน้า${UI_COPY.nav.create}`}
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-          </DialogHeader>
-          <div className="min-h-0 flex-1 overflow-y-auto p-3 sm:p-5">
-            <Suspense fallback={<LazyPanelFallback label="กำลังโหลดฟอร์มส่งพัสดุ..." />}>
-              <CreateParcel embedded />
-            </Suspense>
-          </div>
-        </DialogContent>
-      </Dialog>
-      )}
-
-      {/* ── User Quick Track Dialog ── */}
-      {isTrackFlowOpen && (
-      <Dialog open={isTrackFlowOpen} onOpenChange={setIsTrackFlowOpen}>
-        <DialogContent
-          showCloseButton={false}
-          className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-3xl overflow-hidden rounded-3xl border-none bg-background p-0 shadow-2xl"
-        >
-          <DialogHeader className="shrink-0 border-b border-outline-variant/20 bg-primary px-5 py-4 text-white">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/10 text-secondary-container">
-                  <span className="material-symbols-outlined text-xl">qr_code_scanner</span>
-                </span>
-                <DialogTitle className="font-display text-lg font-black text-white">{UI_COPY.nav.track}</DialogTitle>
-              </div>
-              <button
-                type="button"
-                onClick={() => setIsTrackFlowOpen(false)}
-                className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-white/10 text-white transition-colors hover:bg-white/20"
-                aria-label={`ปิดหน้า${UI_COPY.nav.track}`}
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
-            </div>
-          </DialogHeader>
-          <div className="max-h-[calc(92vh-76px)] overflow-y-auto p-3 sm:p-5">
-            <Suspense fallback={<LazyPanelFallback label="กำลังโหลดหน้าติดตามสถานะ..." />}>
-              <Track embedded />
             </Suspense>
           </div>
         </DialogContent>

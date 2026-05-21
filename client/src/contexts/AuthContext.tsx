@@ -14,41 +14,26 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-// Session timeout: 3 hours of inactivity
-const SESSION_TIMEOUT_MS = 3 * 60 * 60 * 1000;
 const SESSION_KEY = 'doc_track_user';
-const LAST_ACTIVE_KEY = 'doc_track_last_active';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const authTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const clearSession = () => {
     if (authTransitionTimer.current) clearTimeout(authTransitionTimer.current);
     setUser(null);
     localStorage.removeItem(SESSION_KEY);
-    localStorage.removeItem(LAST_ACTIVE_KEY);
   };
 
   const completeLoginAfterFeedback = (authenticatedUser: User) => {
     if (authTransitionTimer.current) clearTimeout(authTransitionTimer.current);
     localStorage.setItem(SESSION_KEY, JSON.stringify(authenticatedUser));
-    resetInactivityTimer();
     authTransitionTimer.current = setTimeout(() => {
       setUser(authenticatedUser);
       authTransitionTimer.current = null;
     }, 900);
-  };
-
-  const resetInactivityTimer = () => {
-    localStorage.setItem(LAST_ACTIVE_KEY, String(Date.now()));
-    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
-    inactivityTimer.current = setTimeout(() => {
-      clearSession();
-      toast.warning('เซสชันหมดอายุเนื่องจากไม่มีการใช้งาน 3 ชั่วโมง');
-    }, SESSION_TIMEOUT_MS);
   };
 
   useEffect(() => {
@@ -56,20 +41,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedUser) {
       try {
         const parsed = JSON.parse(savedUser) as User;
-        // Check if session has already expired
-        const lastActive = Number(localStorage.getItem(LAST_ACTIVE_KEY) || '0');
-        if (lastActive && Date.now() - lastActive > SESSION_TIMEOUT_MS) {
+        const normalizedUser = { ...parsed, role: normalizeRole(parsed.role) };
+        if (normalizedUser.role === 'GUEST') {
           clearSession();
-          toast.warning('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
         } else {
-          const normalizedUser = { ...parsed, role: normalizeRole(parsed.role) };
-          if (normalizedUser.role === 'GUEST') {
-            clearSession();
-          } else {
-            setUser(normalizedUser);
-            localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedUser));
-            resetInactivityTimer();
-          }
+          setUser(normalizedUser);
+          localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedUser));
         }
       } catch {
         localStorage.removeItem(SESSION_KEY);
@@ -79,22 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleAuthError = () => {
       clearSession();
-      toast.error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
-    };
-
-    // Track user activity to reset inactivity timer
-    const activityEvents = ['mousedown', 'keydown', 'touchstart', 'scroll'];
-    const handleActivity = () => {
-      if (localStorage.getItem(SESSION_KEY)) resetInactivityTimer();
+      toast.error('บัญชีนี้ถูกใช้งานที่อื่น กรุณาเข้าสู่ระบบใหม่');
     };
 
     window.addEventListener('auth_error', handleAuthError);
-    activityEvents.forEach(e => window.addEventListener(e, handleActivity, { passive: true }));
 
     return () => {
       window.removeEventListener('auth_error', handleAuthError);
-      activityEvents.forEach(e => window.removeEventListener(e, handleActivity));
-      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
       if (authTransitionTimer.current) clearTimeout(authTransitionTimer.current);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -117,7 +85,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     clearSession();
-    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
   };
 
   const updateUserProfile = async (newName?: string, newBranch?: string, newPassword?: string, currentPassword?: string) => {

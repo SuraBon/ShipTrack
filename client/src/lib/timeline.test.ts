@@ -86,8 +86,8 @@ describe('parseParcelTimeline', () => {
     });
     const events = parseParcelTimeline(parcel);
     expect(events[0]).toMatchObject({
-      title: 'ปล่อยงานจัดส่ง',
-      description: 'ปล่อยงานโดย: Messenger A',
+      title: 'คืนงานจัดส่ง',
+      description: 'คืนงานโดย: Messenger A',
     });
   });
 

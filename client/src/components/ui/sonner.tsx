@@ -27,6 +27,10 @@ const Toaster = ({ ...props }: ToasterProps) => {
     <Sonner
       theme={theme as ToasterProps["theme"]}
       className="toaster group"
+      richColors
+      closeButton
+      position="top-center"
+      duration={3600}
       style={
         {
           "--normal-bg": "var(--popover)",
@@ -41,7 +45,11 @@ const Toaster = ({ ...props }: ToasterProps) => {
           msOverflowStyle: 'none',
         },
         classNames: {
-          toast: '!overflow-hidden !scrollbar-none',
+          toast: '!overflow-hidden !scrollbar-none !rounded-xl !border !bg-popover !text-popover-foreground !shadow-lg',
+          title: '!text-sm !font-semibold',
+          description: '!text-xs !text-muted-foreground',
+          actionButton: '!rounded-lg !bg-primary !text-primary-foreground',
+          cancelButton: '!rounded-lg !bg-muted !text-muted-foreground',
         },
       }}
       {...props}

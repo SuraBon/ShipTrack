@@ -26,10 +26,9 @@ export const UI_COPY = {
     acceptJob: 'รับงาน',
     completeDelivery: 'ส่งสำเร็จ',
     confirmCompleteDelivery: 'ยืนยันส่งสำเร็จ',
-    releaseJob: 'ปล่อยงาน',
+    releaseJob: 'คืนงาน',
     history: 'ประวัติ',
     retakePhoto: 'ถ่ายใหม่',
     removePhoto: 'ลบรูป',
   },
 } as const;
-

@@ -9,23 +9,23 @@ import { Loader2, Plus, Search, RefreshCw, Users, ShieldCheck, Truck, UserX } fr
 const ROLE_CONFIG: Record<AppRole, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
   ADMIN: {
     label: 'Admin',
-    color: 'text-rose-600',
-    bg: 'bg-rose-50',
-    border: 'border-rose-200',
+    color: 'text-foreground',
+    bg: 'bg-muted',
+    border: 'border-border',
     icon: <ShieldCheck className="h-3.5 w-3.5" />,
   },
   MESSENGER: {
     label: 'Messenger จัดส่ง',
-    color: 'text-blue-600',
-    bg: 'bg-blue-50',
-    border: 'border-blue-200',
+    color: 'text-foreground',
+    bg: 'bg-muted',
+    border: 'border-border',
     icon: <Truck className="h-3.5 w-3.5" />,
   },
   GUEST: {
     label: 'ไม่มีสิทธิ์พนักงาน',
-    color: 'text-slate-500',
-    bg: 'bg-slate-50',
-    border: 'border-slate-200',
+    color: 'text-muted-foreground',
+    bg: 'bg-muted',
+    border: 'border-border',
     icon: <UserX className="h-3.5 w-3.5" />,
   },
 };
@@ -57,7 +57,7 @@ function RoleDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setOpen(v => !v)}
-        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold transition-all
+        className={`inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition-all
           ${cfg.color} ${cfg.bg} ${cfg.border}
           ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-80 cursor-pointer'}`}
       >
@@ -71,7 +71,7 @@ function RoleDropdown({
       </button>
 
       {open && (
-        <div className="absolute z-50 bottom-full mb-1 left-0 w-40 bg-white rounded-2xl border border-outline-variant/30 shadow-xl overflow-hidden py-1">
+        <div className="absolute bottom-full left-0 z-50 mb-1 w-44 overflow-hidden rounded-xl border border-border bg-popover py-1 text-popover-foreground shadow-md">
           {SYSTEM_ROLES.map(role => {
             const c = ROLE_CONFIG[role];
             return (
@@ -79,8 +79,8 @@ function RoleDropdown({
                 key={role}
                 type="button"
                 onClick={() => { onChange(role); setOpen(false); }}
-                className={`w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold transition-colors
-                  ${value === role ? `${c.bg} ${c.color}` : 'hover:bg-surface-container-lowest text-on-surface'}`}
+                className={`flex w-full items-center gap-2 px-3 py-2.5 text-xs font-medium transition-colors
+                  ${value === role ? `${c.bg} ${c.color}` : 'text-foreground hover:bg-muted'}`}
               >
                 <span className={c.color}>{c.icon}</span>
                 {c.label}
@@ -195,20 +195,20 @@ export default function UserManagement() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center shrink-0">
-            <span className="material-symbols-outlined text-2xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>manage_accounts</span>
+          <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Users className="h-5 w-5" aria-hidden="true" />
           </div>
           <div>
-            <h1 className="text-2xl font-black font-display text-primary">จัดการพนักงาน</h1>
-            <p className="text-sm text-on-surface-variant">ตั้งค่าและมอบหมายสิทธิ์การใช้งานระบบ</p>
+            <h1 className="text-2xl font-semibold text-foreground">จัดการพนักงาน</h1>
+            <p className="text-sm text-muted-foreground">สร้างรหัสพนักงานและกำหนดสิทธิ์ Admin/Messenger</p>
           </div>
         </div>
         <button
           onClick={fetchUsers}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-outline-variant/40 text-sm font-bold text-on-surface-variant hover:bg-surface-container transition-all disabled:opacity-50"
+          className="flex h-10 items-center gap-2 rounded-lg border border-border bg-background px-3 text-sm font-medium text-foreground transition-colors hover:bg-muted disabled:opacity-50"
         >
           <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           รีเฟรช
@@ -217,10 +217,10 @@ export default function UserManagement() {
 
       <form
         onSubmit={handleCreateUser}
-        className="grid gap-3 rounded-2xl border border-outline-variant/30 bg-white p-4 shadow-sm lg:grid-cols-[1fr_1.4fr_1.2fr_0.9fr_1fr_auto]"
+        className="app-card grid gap-3 p-4 lg:grid-cols-[1fr_1.4fr_1.2fr_0.9fr_1fr_auto]"
       >
         <div className="lg:col-span-6">
-          <div className="flex items-center gap-2 text-sm font-black text-primary">
+          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <Plus className="h-4 w-4" aria-hidden="true" />
             สร้างผู้ใช้ใหม่
           </div>
@@ -230,27 +230,27 @@ export default function UserManagement() {
           onChange={e => setNewUser(current => ({ ...current, employeeId: normalizeEmployeeId(e.target.value) }))}
           disabled={creatingUser}
           placeholder="รหัสพนักงาน"
-          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm font-bold uppercase outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+          className="app-input uppercase"
         />
         <input
           value={newUser.name}
           onChange={e => setNewUser(current => ({ ...current, name: e.target.value }))}
           disabled={creatingUser}
           placeholder="ชื่อ-นามสกุล"
-          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+          className="app-input"
         />
         <input
           value={newUser.branch}
           onChange={e => setNewUser(current => ({ ...current, branch: e.target.value }))}
           disabled={creatingUser}
           placeholder="สาขา"
-          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+          className="app-input"
         />
         <select
           value={newUser.role}
           onChange={e => setNewUser(current => ({ ...current, role: e.target.value as SystemRole }))}
           disabled={creatingUser}
-          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm font-bold outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+          className="app-input font-medium"
         >
           {SYSTEM_ROLES.map(role => (
             <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>
@@ -262,12 +262,12 @@ export default function UserManagement() {
           onChange={e => setNewUser(current => ({ ...current, password: e.target.value }))}
           disabled={creatingUser}
           placeholder="รหัสผ่านเริ่มต้น"
-          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+          className="app-input"
         />
         <button
           type="submit"
           disabled={creatingUser}
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
         >
           {creatingUser ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
           สร้าง
@@ -275,30 +275,30 @@ export default function UserManagement() {
       </form>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         {[
-          { key: 'ALL' as const, label: 'ทั้งหมด', value: counts.total, icon: <Users className="h-5 w-5" />, color: 'text-primary', bg: 'bg-primary/10' },
-          { key: 'ADMIN' as const, label: 'Admin', value: counts.admin, icon: <ShieldCheck className="h-5 w-5" />, color: 'text-rose-600', bg: 'bg-rose-50' },
-          { key: 'MESSENGER' as const, label: 'Messenger จัดส่ง', value: counts.messenger, icon: <Truck className="h-5 w-5" />, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { key: 'GUEST' as const, label: 'ไม่มีสิทธิ์พนักงาน', value: counts.guest, icon: <UserX className="h-5 w-5" />, color: 'text-slate-500', bg: 'bg-slate-50' },
+          { key: 'ALL' as const, label: 'ทั้งหมด', value: counts.total, icon: <Users className="h-4 w-4" /> },
+          { key: 'ADMIN' as const, label: 'Admin', value: counts.admin, icon: <ShieldCheck className="h-4 w-4" /> },
+          { key: 'MESSENGER' as const, label: 'Messenger', value: counts.messenger, icon: <Truck className="h-4 w-4" /> },
+          { key: 'GUEST' as const, label: 'ไม่มีสิทธิ์', value: counts.guest, icon: <UserX className="h-4 w-4" /> },
         ].map(s => (
           <button
             key={s.label}
             type="button"
             onClick={() => setRoleFilter(s.key)}
-            className={`bg-white rounded-2xl border p-4 flex items-center gap-3 text-left shadow-sm transition-all active:scale-[0.99] ${
+            className={`app-card flex items-center gap-3 p-3 text-left transition-all active:scale-[0.99] sm:p-4 ${
               roleFilter === s.key
-                ? 'border-primary/45 ring-2 ring-primary/10'
-                : 'border-outline-variant/30 hover:border-primary/25 hover:shadow-md'
+                ? 'border-primary ring-2 ring-ring/10'
+                : 'hover:bg-muted/40'
             }`}
             aria-pressed={roleFilter === s.key}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${s.bg} ${s.color}`}>
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">
               {s.icon}
             </div>
             <div>
-              <p className="text-2xl font-black text-primary leading-none">{s.value}</p>
-              <p className="text-xs text-on-surface-variant mt-0.5">{s.label}</p>
+              <p className="text-xl font-semibold leading-none text-foreground sm:text-2xl">{s.value}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{s.label}</p>
             </div>
           </button>
         ))}
@@ -306,17 +306,17 @@ export default function UserManagement() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-on-surface-variant/40" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="ค้นหาด้วยรหัสพนักงาน ชื่อ สาขา หรือสิทธิ์..."
-          className="w-full h-11 pl-11 pr-4 bg-white border border-outline-variant/40 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all"
+          className="app-input w-full pl-10"
         />
       </div>
 
       {/* Users */}
-      <div className="bg-white border border-outline-variant/30 rounded-2xl shadow-sm overflow-hidden">
+      <div className="app-card overflow-hidden">
         <div className="sm:hidden">
           {loading ? (
             <div className="py-16 text-center">
