@@ -368,6 +368,14 @@ export interface UserRow extends User {
   createdAt: string;
 }
 
+export interface CreateUserInput {
+  employeeId: string;
+  name: string;
+  branch: string;
+  role: 'ADMIN' | 'MESSENGER';
+  password: string;
+}
+
 function normalizeUser(user: User): User {
   return { ...user, role: normalizeRole(user.role) };
 }
@@ -437,6 +445,25 @@ export async function getUsers(): Promise<{ success: boolean, users?: UserRow[],
     const res = await callAPI<{ success: boolean, users?: UserRow[], error?: string }>({ action: 'getUsers' });
     if (res.success && Array.isArray(res.users)) {
       res.users = res.users.map(user => ({ ...user, role: normalizeRole(user.role) }));
+    }
+    return res;
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+export async function createUser(input: CreateUserInput): Promise<{ success: boolean, user?: UserRow, error?: string }> {
+  try {
+    const res = await callAPI<{ success: boolean, user?: UserRow, error?: string }>({
+      action: 'createUser',
+      targetId: input.employeeId,
+      name: input.name,
+      branch: input.branch,
+      newRole: input.role,
+      password: input.password,
+    }, {}, NO_RETRY);
+    if (res.success && res.user) {
+      res.user = { ...res.user, role: normalizeRole(res.user.role) };
     }
     return res;
   } catch (err) {

@@ -1,9 +1,10 @@
 import { useState, useEffect, useRef } from 'react';
-import { getUsers, updateUserRole, UserRow } from '@/lib/parcelService';
+import { createUser, getUsers, updateUserRole, UserRow } from '@/lib/parcelService';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { SYSTEM_ROLES, type AppRole, type SystemRole } from '@/lib/roles';
-import { Search, RefreshCw, Users, ShieldCheck, Truck, UserX } from 'lucide-react';
+import { isValidEmployeeId, normalizeEmployeeId, sanitizeTextInput, validatePassword, validateRequiredText } from '@/lib/validation';
+import { Loader2, Plus, Search, RefreshCw, Users, ShieldCheck, Truck, UserX } from 'lucide-react';
 
 const ROLE_CONFIG: Record<AppRole, { label: string; color: string; bg: string; border: string; icon: React.ReactNode }> = {
   ADMIN: {
@@ -102,6 +103,14 @@ export default function UserManagement() {
   const [search, setSearch] = useState('');
   const [roleFilter, setRoleFilter] = useState<'ALL' | AppRole>('ALL');
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    employeeId: '',
+    name: '',
+    branch: '',
+    role: 'MESSENGER' as SystemRole,
+    password: '',
+  });
 
   useEffect(() => { fetchUsers(); }, []);
 
@@ -132,6 +141,39 @@ export default function UserManagement() {
     setUpdatingId(null);
   };
 
+  const handleCreateUser = async (event: React.FormEvent) => {
+    event.preventDefault();
+    const employeeId = normalizeEmployeeId(newUser.employeeId);
+    const name = sanitizeTextInput(newUser.name, 100);
+    const branch = sanitizeTextInput(newUser.branch, 100);
+    const role = newUser.role;
+    const password = newUser.password.trim();
+
+    const nameError = validateRequiredText(name, 'ชื่อ-นามสกุล', 1, 100);
+    const branchError = validateRequiredText(branch, 'สาขา', 1, 100);
+    const passwordError = validatePassword(password, 100);
+    if (!isValidEmployeeId(employeeId)) {
+      toast.error('รหัสพนักงานต้องใช้ A-Z, 0-9 หรือ _ เท่านั้น');
+      return;
+    }
+    if (nameError || branchError || passwordError) {
+      toast.error(nameError || branchError || passwordError || 'กรุณาตรวจสอบข้อมูลผู้ใช้');
+      return;
+    }
+
+    setCreatingUser(true);
+    const res = await createUser({ employeeId, name, branch, role, password });
+    setCreatingUser(false);
+
+    if (res.success && res.user) {
+      setUsers(prev => [res.user!, ...prev.filter(user => user.employeeId !== employeeId)]);
+      setNewUser({ employeeId: '', name: '', branch: '', role: 'MESSENGER', password: '' });
+      toast.success('สร้างผู้ใช้สำเร็จ');
+    } else {
+      toast.error(res.error || 'ไม่สามารถสร้างผู้ใช้ได้');
+    }
+  };
+
   const filtered = users.filter(u => {
     const q = search.toLowerCase();
     if (roleFilter !== 'ALL' && u.role !== roleFilter) return false;
@@ -159,7 +201,7 @@ export default function UserManagement() {
             <span className="material-symbols-outlined text-2xl text-primary" style={{ fontVariationSettings: "'FILL' 1" }}>manage_accounts</span>
           </div>
           <div>
-            <h1 className="text-2xl font-black font-display text-primary">การจัดการผู้ใช้งาน</h1>
+            <h1 className="text-2xl font-black font-display text-primary">จัดการพนักงาน</h1>
             <p className="text-sm text-on-surface-variant">ตั้งค่าและมอบหมายสิทธิ์การใช้งานระบบ</p>
           </div>
         </div>
@@ -172,6 +214,65 @@ export default function UserManagement() {
           รีเฟรช
         </button>
       </div>
+
+      <form
+        onSubmit={handleCreateUser}
+        className="grid gap-3 rounded-2xl border border-outline-variant/30 bg-white p-4 shadow-sm lg:grid-cols-[1fr_1.4fr_1.2fr_0.9fr_1fr_auto]"
+      >
+        <div className="lg:col-span-6">
+          <div className="flex items-center gap-2 text-sm font-black text-primary">
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            สร้างผู้ใช้ใหม่
+          </div>
+        </div>
+        <input
+          value={newUser.employeeId}
+          onChange={e => setNewUser(current => ({ ...current, employeeId: normalizeEmployeeId(e.target.value) }))}
+          disabled={creatingUser}
+          placeholder="รหัสพนักงาน"
+          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm font-bold uppercase outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+        />
+        <input
+          value={newUser.name}
+          onChange={e => setNewUser(current => ({ ...current, name: e.target.value }))}
+          disabled={creatingUser}
+          placeholder="ชื่อ-นามสกุล"
+          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+        />
+        <input
+          value={newUser.branch}
+          onChange={e => setNewUser(current => ({ ...current, branch: e.target.value }))}
+          disabled={creatingUser}
+          placeholder="สาขา"
+          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+        />
+        <select
+          value={newUser.role}
+          onChange={e => setNewUser(current => ({ ...current, role: e.target.value as SystemRole }))}
+          disabled={creatingUser}
+          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm font-bold outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+        >
+          {SYSTEM_ROLES.map(role => (
+            <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>
+          ))}
+        </select>
+        <input
+          type="password"
+          value={newUser.password}
+          onChange={e => setNewUser(current => ({ ...current, password: e.target.value }))}
+          disabled={creatingUser}
+          placeholder="รหัสผ่านเริ่มต้น"
+          className="h-11 rounded-xl border border-outline-variant/40 bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+        />
+        <button
+          type="submit"
+          disabled={creatingUser}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-sm font-bold text-white transition-all hover:opacity-90 disabled:opacity-50"
+        >
+          {creatingUser ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
+          สร้าง
+        </button>
+      </form>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">

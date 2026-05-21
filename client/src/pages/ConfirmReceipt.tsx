@@ -1,6 +1,6 @@
 /**
  * Confirm Receipt Page
- * ยืนยันการรับพัสดุด้วยรูปภาพ
+ * ยืนยันส่งสำเร็จด้วยรูปภาพ
  * Design: Premium Stepper UI
  */
 
@@ -56,7 +56,7 @@ function ParcelJobSummary({ parcel }: { parcel: Parcel }) {
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/55">งานส่งนี้</p>
-          <p className="truncate font-display text-base font-black leading-tight text-primary">ส่งให้ {parcel['ผู้รับ'] || '-'}</p>
+          <p className="truncate font-display text-base font-black leading-tight text-primary">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
         </div>
         <code className="shrink-0 rounded-lg bg-white px-2 py-1 font-mono text-[11px] font-black text-primary shadow-sm ring-1 ring-outline-variant/10">
           {parcel.TrackingID}
@@ -66,7 +66,7 @@ function ParcelJobSummary({ parcel }: { parcel: Parcel }) {
         <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-outline-variant/10">
           <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/50">
             <span className="material-symbols-outlined text-[13px]">package_2</span>
-            รับจาก
+            ต้นทาง
           </div>
           <p className="truncate text-sm font-black leading-tight text-primary">{parcel['สาขาผู้ส่ง'] || '-'}</p>
           <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">{parcel['ผู้ส่ง'] || '-'}</p>
@@ -77,10 +77,10 @@ function ParcelJobSummary({ parcel }: { parcel: Parcel }) {
         <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-outline-variant/10">
           <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/50">
             <span className="material-symbols-outlined text-[13px]">flag</span>
-            ส่งที่
+            ปลายทาง
           </div>
           <p className="truncate text-sm font-black leading-tight text-primary">{parcel['สาขาผู้รับ'] || '-'}</p>
-          <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">ให้ {parcel['ผู้รับ'] || '-'}</p>
+          <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
         </div>
       </div>
     </div>
@@ -382,7 +382,7 @@ export default function ConfirmReceipt({
       {/* Header Section */}
       <div className={`${embedded ? 'hidden' : 'text-center space-y-2 mb-8 sm:mb-10'}`}>
         <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">งานส่งพัสดุ</h1>
-        <p className="text-xs sm:text-sm text-on-surface-variant">สแกนหรือกรอกหมายเลข แล้วดูทันทีว่าต้องรับจากไหน ไปส่งที่ไหนหรือให้ใคร</p>
+        <p className="text-xs sm:text-sm text-on-surface-variant">สแกนหรือกรอกหมายเลข แล้วดูต้นทาง ปลายทาง และผู้รับทันที</p>
       </div>
 
       {!embedded && <StepIndicator currentStep={currentStep} />}
@@ -617,7 +617,7 @@ export default function ConfirmReceipt({
               <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>fact_check</span>
             </div>
             <h2 className="font-display text-lg font-black text-primary">เช็กปลายทางก่อนบันทึก</h2>
-            <p className="mt-0.5 text-xs font-semibold text-on-surface-variant/60">ดูว่าพัสดุมาจากไหน ต้องไปส่งที่ไหน และส่งให้ใคร</p>
+            <p className="mt-0.5 text-xs font-semibold text-on-surface-variant/60">ตรวจต้นทาง ปลายทาง และผู้รับก่อนยืนยัน</p>
           </div>
           <div className="space-y-4 p-4 sm:p-5">
             {checkedParcel && <ParcelJobSummary parcel={checkedParcel} />}
@@ -633,7 +633,7 @@ export default function ConfirmReceipt({
               <div className="flex items-center gap-2.5 text-on-surface-variant">
                 <span className="material-symbols-outlined text-lg text-primary">person</span>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 leading-none">ต้องส่งให้</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 leading-none">ผู้รับ</span>
                   <span className="text-sm font-black leading-tight text-primary">{checkedParcel?.['ผู้รับ']}</span>
                 </div>
               </div>

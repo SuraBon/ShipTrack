@@ -236,7 +236,7 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
       {!hasRouteData && (
         <div className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary-container/10 border-b border-outline-variant/10 flex items-center gap-2">
           <span className="material-symbols-outlined text-base">info</span>
-          ยังไม่มีข้อมูล GPS — แผนที่จะแสดงเมื่อมีการยืนยันรับพัสดุ
+          ยังไม่มีข้อมูล GPS — แผนที่จะแสดงเมื่อมีการสร้างรายการหรือยืนยันส่งสำเร็จ
         </div>
       )}
       {hasRouteData && hasUnresolved && (

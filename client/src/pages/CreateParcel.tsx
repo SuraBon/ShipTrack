@@ -22,6 +22,7 @@ import {
   loadCreateParcelDraft,
   saveCreateParcelDraft,
 } from '@/lib/createParcelDraft';
+import { UI_COPY } from '@/lib/uiCopy';
 
 const DOC_TYPES = ['เอกสาร', 'พัสดุ'];
 
@@ -137,7 +138,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       return;
     }
     if (!proofPhotoUrl) {
-      toast.error('กรุณาแนบรูปพัสดุหรือเอกสารที่จะส่ง');
+      toast.error('กรุณาแนบรูปสิ่งที่ส่ง');
       return;
     }
     setIsConfirmOpen(true);
@@ -151,7 +152,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       return;
     }
     if (!proofPhotoUrl) {
-      toast.error('กรุณาแนบรูปพัสดุหรือเอกสารที่จะส่ง');
+      toast.error('กรุณาแนบรูปสิ่งที่ส่ง');
       return;
     }
     setIsConfirmOpen(false);
@@ -199,8 +200,8 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       {/* Header Section */}
       <div className={`${embedded ? 'hidden' : 'flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2'}`}>
         <div>
-          <h1 className="font-display text-2xl sm:text-3xl font-black text-primary mb-0.5">ส่งพัสดุใหม่</h1>
-          <p className="text-xs sm:text-sm text-on-surface-variant">กรอกว่าต้องการส่งอะไร จากใคร ไปให้ใครหรือไปที่ไหน แล้วแนบรูปพัสดุไว้เป็นหลักฐาน</p>
+          <h1 className="font-display text-2xl sm:text-3xl font-black text-primary mb-0.5">{UI_COPY.nav.create}</h1>
+          <p className="text-xs sm:text-sm text-on-surface-variant">กรอกต้นทาง ปลายทาง ผู้รับ และแนบรูปสิ่งที่ส่งไว้เป็นหลักฐาน</p>
         </div>
       </div>
 
@@ -216,8 +217,8 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>person</span>
                 </div>
                 <div>
-                  <h2 className="font-display font-bold text-primary text-sm">ส่งจากใคร</h2>
-                  <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ชื่อผู้ส่งและสาขาต้นทาง</p>
+                  <h2 className="font-display font-bold text-primary text-sm">ต้นทาง</h2>
+                  <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ผู้ส่งและจุดรับของ</p>
                 </div>
               </div>
             </div>
@@ -294,8 +295,8 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
                 </div>
                 <div>
-                  <h2 className="font-display font-bold text-primary text-sm">ปลายทางจัดส่ง</h2>
-                  <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ผู้รับ สถานที่ และรายละเอียดปลายทาง</p>
+                  <h2 className="font-display font-bold text-primary text-sm">ปลายทาง</h2>
+                  <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ผู้รับ จุดส่งของ และหมายเหตุ</p>
                 </div>
               </div>
             </div>
@@ -347,8 +348,8 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>inventory_2</span>
               </div>
               <div>
-                <h2 className="font-display font-bold text-primary text-sm">สิ่งที่ต้องการส่ง</h2>
-                <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ประเภท รายละเอียด และรูปพัสดุ</p>
+                <h2 className="font-display font-bold text-primary text-sm">สิ่งที่ส่ง</h2>
+                <p className="text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-wider">ประเภท รายละเอียด และรูปสิ่งที่ส่ง</p>
               </div>
             </div>
           </div>
@@ -361,7 +362,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   onChange={v => setFormData(p => ({ ...p, docType: v }))}
                   options={DOC_TYPES}
                   placeholder="เลือกประเภท"
-                  icon="category"
+                  icon="inventory_2"
                   otherPlaceholder="ระบุประเภทพัสดุเอง"
                 />
               </div>
@@ -380,7 +381,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
               </div>
             </div>
             <div className="space-y-1.5">
-              <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">รูปพัสดุหรือเอกสารที่จะส่ง *</label>
+              <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">รูปสิ่งที่ส่ง *</label>
               <input
                 ref={proofInputRef}
                 type="file"
@@ -398,18 +399,18 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   <span className="grid h-12 w-12 place-items-center rounded-2xl bg-primary/10 text-primary">
                     <span className="material-symbols-outlined text-2xl">add_a_photo</span>
                   </span>
-                  <span className="font-display text-sm font-black text-primary">ถ่ายหรือแนบรูปพัสดุ</span>
-                  <span className="text-xs font-semibold text-on-surface-variant/55">เพื่อให้ messenger เห็นของที่ต้องรับไปส่ง</span>
+                  <span className="font-display text-sm font-black text-primary">ถ่ายหรือแนบรูปสิ่งที่ส่ง</span>
+                  <span className="text-xs font-semibold text-on-surface-variant/55">เพื่อให้ Messenger เห็นของที่ต้องรับไปส่ง</span>
                 </button>
               ) : (
                 <div className="overflow-hidden rounded-2xl border border-outline-variant/25 bg-white shadow-sm">
                   <div className="relative aspect-[4/3] bg-surface-container-low">
-                    <img src={proofPhotoPreview} alt="รูปหลักฐานสิ่งที่ส่ง" className="h-full w-full object-cover" />
+                    <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" className="h-full w-full object-cover" />
                     <button
                       type="button"
                       onClick={clearProofPhoto}
                       className="absolute right-2 top-2 grid h-9 w-9 place-items-center rounded-xl bg-white text-primary shadow-lg transition-all hover:bg-error hover:text-white active:scale-95"
-                      aria-label="ลบรูปหลักฐาน"
+                      aria-label="ลบรูปสิ่งที่ส่ง"
                     >
                       <span className="material-symbols-outlined text-xl">close</span>
                     </button>
@@ -438,7 +439,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             <span className={`material-symbols-outlined ${isLoading ? 'animate-spin' : ''}`}>
               {isLoading ? 'progress_activity' : 'add_circle'}
             </span>
-            {isLoading ? 'กำลังบันทึกรายการส่ง...' : 'บันทึกรายการส่งพัสดุ'}
+            {isLoading ? 'กำลังสร้างรายการ...' : UI_COPY.action.create}
           </button>
         </div>
       </form>
@@ -535,9 +536,9 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   <div className="overflow-hidden rounded-2xl border border-outline-variant/25 bg-white shadow-sm">
                     <div className="flex items-center gap-2 border-b border-outline-variant/10 px-4 py-3 text-primary">
                       <span className="material-symbols-outlined text-lg">photo_camera</span>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">รูปหลักฐานสิ่งที่ส่ง</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">รูปสิ่งที่ส่ง</p>
                     </div>
-                    <img src={proofPhotoPreview} alt="รูปหลักฐานสิ่งที่ส่ง" className="max-h-56 w-full object-contain bg-surface-container-low" />
+                    <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" className="max-h-56 w-full object-contain bg-surface-container-low" />
                   </div>
                 )}
               </div>
@@ -561,7 +562,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                     <span className="material-symbols-outlined animate-spin">progress_activity</span>
                   ) : (
                     <>
-                      ยืนยันส่งรายการ
+                  ยืนยันสร้างรายการ
                       <span className="material-symbols-outlined text-xl">verified</span>
                     </>
                   )}
@@ -582,8 +583,8 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             <div className="w-14 h-14 sm:w-16 sm:h-16 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-4 border border-white/20">
               <span className="material-symbols-outlined text-3xl sm:text-4xl text-secondary-container">check_circle</span>
             </div>
-            <DialogTitle className="text-xl sm:text-2xl font-bold font-display">บันทึกรายการส่งสำเร็จ</DialogTitle>
-            <p className="text-primary-fixed-dim text-sm mt-1">ระบบสร้างหมายเลขติดตามให้เรียบร้อยแล้ว</p>
+            <DialogTitle className="text-xl sm:text-2xl font-bold font-display">สร้างรายการสำเร็จ</DialogTitle>
+            <p className="text-primary-fixed-dim text-sm mt-1">สร้างหมายเลขติดตามเรียบร้อยแล้ว</p>
           </div>
 
           <div className="w-full p-4 sm:p-6 space-y-5">

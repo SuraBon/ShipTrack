@@ -719,7 +719,7 @@ function doPost(e) {
     }
 
     // --- Token Signature Verification ---
-    const protectedActions = ['confirmReceipt', 'startDelivery', 'releaseDelivery', 'getParcels', 'exportSummary', 'getUsers', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const protectedActions = ['confirmReceipt', 'startDelivery', 'releaseDelivery', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
       if (parts.length === 4) {
@@ -756,7 +756,7 @@ function doPost(e) {
       payload.role = 'GUEST';
     }
 
-    const writeActions = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery', 'login', 'setupPin', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const writeActions = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery', 'login', 'setupPin', 'createUser', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
     const isWrite = writeActions.includes(action);
 
     let result;
@@ -802,6 +802,7 @@ function routeAction(action, payload) {
   if (action === 'login') return handleLogin(payload);
   if (action === 'setupPin') return handleSetupPin(payload);
   if (action === 'getUsers') return handleGetUsers(payload);
+  if (action === 'createUser') return handleCreateUser(payload);
   if (action === 'updateUserRole') return handleUpdateUserRole(payload);
   if (action === 'deleteParcel') return handleDeleteParcel(payload);
   if (action === 'editParcel') return handleEditParcel(payload);
@@ -815,7 +816,7 @@ function doGet() {
 }
 
 function handleCreateParcel(payload) {
-  if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER', 'GUEST'])) {
+  if (!hasAnyRole(payload, ['ADMIN', 'GUEST'])) {
     return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
   }
 
@@ -1905,6 +1906,53 @@ function handleGetUsers(payload) {
     });
   }
   return createJsonResponse({ success: true, users: users });
+}
+
+function handleCreateUser(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะ Admin)" });
+  }
+
+  const employeeId = normalizeEmployeeId(payload.targetId);
+  const name = escapeSheetValue(payload.name);
+  const branch = escapeSheetValue(payload.branch);
+  const newRole = normalizeRole(payload.newRole);
+  const password = sanitizePassword(payload.password);
+
+  if (!employeeId || !name || !branch || !newRole || !password) {
+    return createJsonResponse({ success: false, error: "กรุณากรอกข้อมูลให้ครบถ้วน" });
+  }
+  if (!validateEmployeeId(employeeId)) return createJsonResponse({ success: false, error: "รหัสพนักงานไม่ถูกต้อง" });
+  if (VALID_ROLES.indexOf(newRole) === -1) return createJsonResponse({ success: false, error: "สิทธิ์ไม่ถูกต้อง" });
+  if (!validatePassword(password) || password.length > 100) {
+    return createJsonResponse({ success: false, error: "รหัสผ่านต้องมี 4-100 ตัวอักษร และห้ามขึ้นต้นด้วย = + - หรือ @" });
+  }
+  if (name.length > 100) return createJsonResponse({ success: false, error: "ชื่อยาวเกินไป" });
+  if (branch.length > 100) return createJsonResponse({ success: false, error: "ชื่อสาขายาวเกินไป" });
+
+  const sheet = getUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (normalizeEmployeeId(data[i][0]) === employeeId) {
+      return createJsonResponse({ success: false, error: "รหัสพนักงานนี้มีอยู่แล้ว" });
+    }
+  }
+
+  const createdAt = formatThaiDateForSheet(new Date());
+  sheet.appendRow([employeeId, name, branch, newRole, encodePassword(password), createdAt]);
+  writeAuditLog(payload.employeeId, "createUser", employeeId, "role=" + newRole);
+
+  return createJsonResponse({
+    success: true,
+    user: {
+      employeeId: employeeId,
+      name: name,
+      branch: branch,
+      role: newRole,
+      hasPin: true,
+      createdAt: createdAt
+    }
+  });
 }
 
 function handleUpdateUserRole(payload) {

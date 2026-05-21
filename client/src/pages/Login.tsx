@@ -7,6 +7,7 @@ import StatusBadge from '@/components/StatusBadge';
 import { formatThaiDate } from '@/lib/dateUtils';
 import type { Parcel } from '@/types/parcel';
 import { isValidEmployeeId, normalizeEmployeeId, validatePassword, validateRequiredText } from '@/lib/validation';
+import { UI_COPY } from '@/lib/uiCopy';
 
 type AuthDialogState = {
   open: boolean;
@@ -174,7 +175,7 @@ export default function Login() {
     e?.preventDefault();
     const query = (queryOverride ?? guestQuery).trim();
     if (!query) {
-      toast.error('กรุณากรอกหมายเลขติดตามหรือชื่อผู้รับ');
+      toast.error('กรุณากรอกหมายเลขติดตามหรือผู้รับ');
       return;
     }
 
@@ -201,7 +202,7 @@ export default function Login() {
         toast.error('ไม่พบข้อมูลพัสดุ');
       }
     } catch {
-      toast.error('ไม่สามารถติดตามพัสดุได้ กรุณาลองใหม่');
+      toast.error('ไม่สามารถติดตามสถานะได้ กรุณาลองใหม่');
     } finally {
       setIsTracking(false);
     }
@@ -306,7 +307,7 @@ export default function Login() {
                 onClick={() => setIsTrackOpen(true)}
                 className="text-on-surface-variant/60 font-bold text-sm hover:text-primary hover:underline transition-colors"
               >
-                ติดตามพัสดุโดยไม่ต้องเข้าระบบ
+                ติดตามสถานะโดยไม่ต้องเข้าสู่ระบบ
               </button>
             </div>
           )}
@@ -321,9 +322,9 @@ export default function Login() {
                 <PackageSearch className="h-6 w-6" aria-hidden="true" />
               </div>
               <div>
-                <DialogTitle className="font-display text-xl font-black text-primary">ติดตามพัสดุ</DialogTitle>
+                <DialogTitle className="font-display text-xl font-black text-primary">{UI_COPY.nav.track}</DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-on-surface-variant">
-                  ค้นหาด้วยหมายเลขติดตามหรือชื่อผู้รับ ระบบจะแสดงเฉพาะข้อมูลสรุป
+                  ค้นหาด้วยหมายเลขติดตามหรือผู้รับ ระบบจะแสดงเฉพาะข้อมูลสรุป
                 </DialogDescription>
               </div>
             </div>
@@ -336,7 +337,7 @@ export default function Login() {
                 <input
                   value={guestQuery}
                   onChange={(e) => setGuestQuery(e.target.value.toUpperCase())}
-                  placeholder="กรอกหมายเลขติดตาม หรือชื่อผู้รับ..."
+                  placeholder="กรอกหมายเลขติดตาม หรือผู้รับ..."
                   className="h-12 w-full rounded-2xl border-2 border-outline-variant/50 bg-white pl-12 pr-4 font-display text-base font-bold text-primary outline-none transition-all focus:border-primary focus:ring-4 focus:ring-primary/10"
                   autoFocus
                 />
@@ -350,7 +351,7 @@ export default function Login() {
                   <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
                 ) : (
                   <>
-                    ติดตามพัสดุ
+                    {UI_COPY.action.track}
                     <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </>
                 )}
@@ -423,8 +424,8 @@ export default function Login() {
               ) : (
                 <div className="rounded-3xl border border-dashed border-outline-variant/40 bg-surface-container-lowest px-6 py-12 text-center">
                   <PackageSearch className="mx-auto h-10 w-10 text-on-surface-variant/30" aria-hidden="true" />
-                  <p className="mt-3 font-display text-sm font-bold text-primary">กรอกหมายเลขติดตามหรือชื่อผู้รับเพื่อเริ่มค้นหา</p>
-                  <p className="mt-1 text-xs text-on-surface-variant/60">ผู้ที่ยังไม่ได้เข้าสู่ระบบจะเห็นเฉพาะข้อมูลสรุปของพัสดุ</p>
+                  <p className="mt-3 font-display text-sm font-bold text-primary">กรอกหมายเลขติดตามหรือผู้รับเพื่อเริ่มค้นหา</p>
+                  <p className="mt-1 text-xs text-on-surface-variant/60">ผู้ที่ยังไม่ได้เข้าสู่ระบบจะเห็นเฉพาะข้อมูลสรุปของรายการส่ง</p>
                 </div>
               )}
             </div>

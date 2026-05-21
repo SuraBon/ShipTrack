@@ -35,7 +35,7 @@ const pathPages: Record<string, PageId> = {
 const getRouteFromLocation = (): { page: PageId; isKnownPath: boolean } => {
   const path = window.location.pathname.replace(/\/+$/, "") || "/";
   const page = pathPages[path];
-  return page ? { page, isKnownPath: true } : { page: "dashboard", isKnownPath: false };
+  return page ? { page, isKnownPath: true } : { page: "create", isKnownPath: false };
 };
 
 const PageFallback = () => (
@@ -52,7 +52,7 @@ function App() {
   const [currentPage, setCurrentPage] = useState<PageId>(() => {
     const route = getRouteFromLocation();
     if (!route.isKnownPath) {
-      window.history.replaceState({}, "", pagePaths.track);
+      window.history.replaceState({}, "", pagePaths.create);
     }
     return route.page;
   });
@@ -70,7 +70,7 @@ function App() {
       const route = getRouteFromLocation();
       setCurrentPage(route.page);
       if (!route.isKnownPath) {
-        window.history.replaceState({}, "", pagePaths.track);
+        window.history.replaceState({}, "", pagePaths.create);
       }
     };
     window.addEventListener("popstate", handlePopState);

@@ -8,6 +8,24 @@ import { getBranches } from '@/lib/parcelService';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import NativeSelect, { resolveSelectValue } from '@/components/NativeSelect';
+import { UI_COPY } from '@/lib/uiCopy';
+import {
+  BarChart3,
+  Bell,
+  BellRing,
+  Inbox,
+  Loader2,
+  LockKeyhole,
+  LogIn,
+  LogOut,
+  PackagePlus,
+  Search,
+  Settings,
+  Truck,
+  Users,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 
 type PageId = "dashboard" | "create" | "track" | "users" | "login";
 
@@ -28,11 +46,15 @@ const pagePaths: Record<PageId, string> = {
 type NavItem = {
   id: PageId;
   label: string;
-  icon: string;
+  icon: LucideIcon;
   badge: null;
   roles: AppRole[];
   accent: string;
 };
+
+const NavIcon = ({ icon: Icon, active = false }: { icon: LucideIcon; active?: boolean }) => (
+  <Icon className={`h-[18px] w-[18px] ${active ? 'stroke-[2.6]' : 'stroke-2'}`} aria-hidden="true" />
+);
 
 const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }) => {
   const { parcels } = useParcelStore();
@@ -109,16 +131,16 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   };
 
   const currentRole = normalizeRole(user?.role ?? 'GUEST');
-  const dashboardLabel = currentRole === 'MESSENGER' ? 'งานที่ต้องไปส่ง' : 'ภาพรวมพัสดุ';
+  const dashboardLabel = currentRole === 'MESSENGER' ? UI_COPY.nav.messengerDashboard : UI_COPY.nav.adminDashboard;
   const dashboardIcon =
     currentRole === 'MESSENGER'
-      ? 'local_shipping'
-      : 'analytics';
+      ? Truck
+      : BarChart3;
   const allNavItems: NavItem[] = [
     { id: "dashboard", label: dashboardLabel, icon: dashboardIcon, badge: null, roles: ['ADMIN', 'MESSENGER'], accent: "from-sky-400 to-blue-500" },
-    { id: "create",    label: "ส่งพัสดุใหม่", icon: "add_box", badge: null, roles: ['ADMIN', 'MESSENGER', 'GUEST'], accent: "from-amber-300 to-orange-500" },
-    { id: "track",     label: "ดูสถานะพัสดุ", icon: "qr_code_scanner", badge: null, roles: ['ADMIN', 'MESSENGER', 'GUEST'], accent: "from-violet-300 to-indigo-500" },
-    { id: "users",     label: "จัดการผู้ใช้", icon: "manage_accounts", badge: null, roles: ['ADMIN'], accent: "from-rose-300 to-red-500" },
+    { id: "create",    label: UI_COPY.nav.create, icon: PackagePlus, badge: null, roles: ['GUEST'], accent: "from-amber-300 to-orange-500" },
+    { id: "track",     label: UI_COPY.nav.track, icon: Search, badge: null, roles: ['GUEST'], accent: "from-violet-300 to-indigo-500" },
+    { id: "users",     label: UI_COPY.nav.users, icon: Users, badge: null, roles: ['ADMIN'], accent: "from-rose-300 to-red-500" },
   ];
   const navItems = allNavItems.filter(item => item.roles.includes(currentRole));
 
@@ -161,55 +183,73 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   };
 
   return (
-    <div className="min-h-screen font-body text-on-background">
+    <div className="min-h-screen bg-background font-body text-on-background">
       {/* ── Main content ── */}
       <div className="flex min-h-screen flex-col">
         {/* Top bar */}
         <header
-          className="sticky top-0 z-40"
-          style={{
-            background: 'rgba(248,249,255,0.85)',
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            borderBottom: '1px solid rgba(197,198,205,0.3)',
-            boxShadow: '0 1px 12px rgba(9,20,38,0.06)',
-          }}
+          className="sticky top-0 z-40 border-b border-outline-variant/50 bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80"
         >
-          <div className="flex h-14 items-center justify-between gap-3 px-4 lg:px-8">
+          <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
             <div className="min-w-0">
-              <p className="hidden text-[10px] font-black uppercase tracking-[0.18em] text-on-surface-variant/35 sm:block">DocTrack</p>
-              <h1 className="truncate font-display text-base font-black leading-tight text-primary">
+              <p className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant/55 sm:block">{UI_COPY.appName}</p>
+              <h1 className="truncate text-base font-semibold leading-tight text-primary sm:text-lg">
                 {navItems.find(n => n.id === currentPage)?.label ?? currentPage}
               </h1>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5">
+            {navItems.length > 1 && (
+              <nav className="hidden min-w-0 flex-1 items-center justify-center gap-1 md:flex">
+                {navItems.map((item) => {
+                  const active = currentPage === item.id;
+                  return (
+                    <a
+                      key={item.id}
+                      href={pagePaths[item.id]}
+                      onClick={(event) => handleNav(event, item.id)}
+                      aria-current={active ? 'page' : undefined}
+                      className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
+                        active
+                          ? 'bg-primary text-on-primary'
+                          : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'
+                      }`}
+                    >
+                      <NavIcon icon={item.icon} active={active} />
+                      <span className="hidden lg:inline">{item.label}</span>
+                    </a>
+                  );
+                })}
+              </nav>
+            )}
+
+            <div className="flex shrink-0 items-center gap-1">
               <div className="relative" ref={notifRef}>
                 <button
                   onClick={handleBellClick}
-                  className="relative p-2 text-on-surface-variant hover:bg-surface-container transition-colors rounded-xl"
+                  className="relative grid h-9 w-9 place-items-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
+                  aria-label="อัปเดตล่าสุด"
                 >
-                  <span className="material-symbols-outlined text-xl">notifications</span>
+                  <Bell className="h-5 w-5" aria-hidden="true" />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-0.5 bg-error rounded-full border-2 border-white flex items-center justify-center text-[9px] font-black text-white leading-none">
+                    <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full border-2 border-white bg-error px-0.5 text-[9px] font-black leading-none text-white">
                       {unreadCount > 9 ? '9+' : unreadCount}
                     </span>
                   )}
                 </button>
 
                 {isNotifOpen && (
-                  <div className="fixed right-4 top-16 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-2xl shadow-2xl border border-outline-variant/20 z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                    <div className="px-4 py-3 border-b border-outline-variant/10 flex items-center justify-between">
+                  <div className="fixed right-3 top-16 z-50 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-outline-variant bg-white shadow-xl animate-in fade-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between border-b border-outline-variant/60 px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-base text-primary">notifications_active</span>
-                      <span className="font-display font-bold text-sm text-primary">อัปเดตล่าสุด</span>
+                        <BellRing className="h-4 w-4 text-primary" aria-hidden="true" />
+                      <span className="text-sm font-semibold text-primary">อัปเดตล่าสุด</span>
                       </div>
-                      <span className="text-[10px] text-on-surface-variant/50 font-bold uppercase tracking-wider">{recentParcels.length} รายการ</span>
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60">{recentParcels.length} รายการ</span>
                     </div>
-                    <div className="max-h-72 overflow-y-auto divide-y divide-outline-variant/8">
+                    <div className="max-h-72 divide-y divide-outline-variant/50 overflow-y-auto">
                       {recentParcels.length === 0 ? (
-                        <div className="py-8 text-center text-sm text-on-surface-variant/50">
-                          <span className="material-symbols-outlined text-3xl block mb-2 opacity-30">inbox</span>
+                        <div className="grid place-items-center gap-2 py-8 text-center text-sm text-on-surface-variant/60">
+                          <Inbox className="h-7 w-7 opacity-50" aria-hidden="true" />
                           ยังไม่มีรายการ
                         </div>
                       ) : recentParcels.map(p => (
@@ -240,7 +280,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                   <button
                     type="button"
                     onClick={openProfile}
-                    className="grid h-10 w-10 place-items-center rounded-2xl bg-primary text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
+                    className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-white shadow-sm transition-all hover:opacity-90 active:scale-95"
                     title="โปรไฟล์"
                     aria-label="โปรไฟล์"
                   >
@@ -249,71 +289,69 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                   <button
                     type="button"
                     onClick={logout}
-                    className="grid h-10 w-10 place-items-center rounded-2xl border border-red-200 bg-red-50 text-red-500 transition-all hover:bg-red-500 hover:text-white active:scale-95"
+                    className="grid h-9 w-9 place-items-center rounded-lg border border-red-200 bg-white text-red-600 transition-all hover:bg-red-50 active:scale-95"
                     title="ออกจากระบบ"
                     aria-label="ออกจากระบบ"
                   >
-                    <span className="material-symbols-outlined text-xl">logout</span>
+                    <LogOut className="h-4.5 w-4.5" aria-hidden="true" />
                   </button>
                 </>
               ) : (
                 <button
                   type="button"
                   onClick={() => setCurrentPage("login")}
-                  className="grid h-10 w-10 place-items-center rounded-2xl bg-primary/10 text-primary transition-all hover:bg-primary hover:text-white active:scale-95"
-                  title="เข้าสู่ระบบพนักงาน"
-                  aria-label="เข้าสู่ระบบพนักงาน"
+                  className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-white transition-all hover:opacity-90 active:scale-95"
+                  title={UI_COPY.nav.staffLogin}
+                  aria-label={UI_COPY.nav.staffLogin}
                 >
-                  <span className="material-symbols-outlined text-xl">login</span>
+                  <LogIn className="h-4.5 w-4.5" aria-hidden="true" />
                 </button>
               )}
             </div>
           </div>
-          {navItems.length > 1 && (
-            <nav className="flex gap-2 overflow-x-auto px-4 pb-3 lg:px-8">
-              {navItems.map((item) => {
-                const active = currentPage === item.id;
-                return (
-                  <a
-                    key={item.id}
-                    href={pagePaths[item.id]}
-                    onClick={(event) => handleNav(event, item.id)}
-                    aria-current={active ? 'page' : undefined}
-                    className={`inline-flex h-10 shrink-0 items-center gap-2 rounded-2xl border px-3 font-display text-xs font-black transition-all ${
-                      active
-                        ? 'border-primary bg-primary text-white shadow-sm'
-                        : 'border-outline-variant/30 bg-white/80 text-on-surface-variant hover:border-primary/30 hover:text-primary'
-                    }`}
-                  >
-                    <span
-                      className="material-symbols-outlined text-lg"
-                      style={{ fontVariationSettings: active ? "'FILL' 1" : "'FILL' 0" }}
-                    >
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </a>
-                );
-              })}
-            </nav>
-          )}
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-4 pb-10 pt-5 sm:px-6 lg:px-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-3 pb-24 pt-4 sm:px-6 sm:pb-10 lg:px-8">
           {children}
         </main>
       </div>
 
+      {navItems.length > 1 && (
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant/60 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(24,24,27,0.08)] backdrop-blur md:hidden">
+          <div className="mx-auto grid max-w-md grid-cols-3 gap-1">
+            {navItems.map((item) => {
+              const active = currentPage === item.id;
+              return (
+                <a
+                  key={item.id}
+                  href={pagePaths[item.id]}
+                  onClick={(event) => handleNav(event, item.id)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${
+                    active
+                      ? 'bg-primary text-on-primary'
+                      : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'
+                  }`}
+                >
+                  <NavIcon icon={item.icon} active={active} />
+                  <span className="w-full truncate px-1 text-center">{item.label}</span>
+                </a>
+              );
+            })}
+          </div>
+        </nav>
+      )}
+
       {/* ── Edit Profile Dialog ── */}
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-        <DialogContent className="flex max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-md flex-col overflow-hidden rounded-3xl border-none bg-white p-0 shadow-2xl">
-          <DialogHeader className="relative border-b border-outline-variant/20 bg-surface-container-lowest px-6 py-5 rounded-t-3xl">
+        <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md flex-col overflow-hidden rounded-xl border border-outline-variant bg-white p-0 shadow-xl sm:max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="relative border-b border-outline-variant/60 bg-white px-5 py-4">
             <div className="flex items-center gap-3 pr-8">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>manage_accounts</span>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-container text-primary">
+                <Settings className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <DialogTitle className="font-display text-xl font-black text-primary">แก้ไขโปรไฟล์</DialogTitle>
+                <DialogTitle className="text-lg font-semibold text-primary">แก้ไขโปรไฟล์</DialogTitle>
                 <DialogDescription className="mt-1 text-xs text-on-surface-variant">
                   แก้ไขชื่อ สาขา หรือรหัสผ่านของคุณ
                 </DialogDescription>
@@ -331,7 +369,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                 value={profileForm.name}
                 onChange={e => setProfileForm(f => ({ ...f, name: e.target.value }))}
                 disabled={profileLoading}
-                className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all disabled:opacity-50"
+                className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
                 placeholder="ชื่อ-นามสกุล"
               />
             </div>
@@ -356,9 +394,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                   type="button"
                   onClick={() => setShowPasswordFields(true)}
                   disabled={profileLoading}
-                  className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-outline-variant/40 bg-surface-container-lowest font-display text-sm font-bold text-primary transition-all hover:border-primary/30 hover:bg-surface-container disabled:opacity-50"
+                  className="flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-outline-variant bg-white text-sm font-semibold text-primary transition-all hover:bg-surface-container disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-lg">lock_reset</span>
+                  <LockKeyhole className="h-4 w-4" aria-hidden="true" />
                   เปลี่ยนรหัสผ่าน
                 </button>
               ) : (
@@ -372,9 +410,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                         setProfileForm(f => ({ ...f, currentPassword: '', newPassword: '', confirmPassword: '' }));
                       }}
                       disabled={profileLoading}
-                      className="inline-flex h-8 items-center gap-1 rounded-xl px-2 text-xs font-bold text-on-surface-variant/65 transition-colors hover:bg-surface-container hover:text-primary disabled:opacity-50"
+                      className="inline-flex h-8 items-center gap-1 rounded-lg px-2 text-xs font-semibold text-on-surface-variant/65 transition-colors hover:bg-surface-container hover:text-primary disabled:opacity-50"
                     >
-                      <span className="material-symbols-outlined text-base">close</span>
+                      <X className="h-3.5 w-3.5" aria-hidden="true" />
                       ไม่เปลี่ยน
                     </button>
                   </div>
@@ -385,7 +423,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                     value={profileForm.currentPassword}
                     onChange={e => setProfileForm(f => ({ ...f, currentPassword: e.target.value }))}
                     disabled={profileLoading}
-                    className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all disabled:opacity-50"
+                    className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
                     placeholder="••••••••"
                   />
                 </div>
@@ -396,7 +434,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                     value={profileForm.newPassword}
                     onChange={e => setProfileForm(f => ({ ...f, newPassword: e.target.value }))}
                     disabled={profileLoading}
-                    className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all disabled:opacity-50"
+                    className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
                     placeholder="อย่างน้อย 4 ตัวอักษร"
                   />
                 </div>
@@ -407,7 +445,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                     value={profileForm.confirmPassword}
                     onChange={e => setProfileForm(f => ({ ...f, confirmPassword: e.target.value }))}
                     disabled={profileLoading}
-                    className="w-full h-12 bg-surface-container-lowest border border-outline-variant/60 rounded-2xl px-4 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all disabled:opacity-50"
+                    className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
                     placeholder="••••••••"
                   />
                 </div>
@@ -422,17 +460,17 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                 type="button"
                 onClick={() => setIsProfileOpen(false)}
                 disabled={profileLoading}
-                className="flex-1 h-12 rounded-2xl border border-outline-variant/40 font-bold text-on-surface-variant hover:bg-surface-container transition-all disabled:opacity-50"
+                className="h-11 flex-1 rounded-lg border border-outline-variant font-semibold text-on-surface-variant transition-all hover:bg-surface-container disabled:opacity-50"
               >
                 ยกเลิก
               </button>
               <button
                 type="submit"
                 disabled={profileLoading}
-                className="flex-1 h-12 bg-primary text-white rounded-2xl font-display font-bold shadow-md shadow-primary/20 hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-white shadow-sm transition-all hover:opacity-90 active:scale-95 disabled:opacity-50"
               >
                 {profileLoading ? (
-                  <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
                 ) : 'บันทึก'}
               </button>
             </div>

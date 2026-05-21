@@ -13,6 +13,7 @@ import { parseParcelTimeline } from '@/lib/timeline';
 import TrackingMap from '@/components/TrackingMap';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
+import { UI_COPY } from '@/lib/uiCopy';
 import {
   getCreatedParcelHistory,
   updateCreatedParcelHistoryFromParcel,
@@ -130,8 +131,8 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>location_searching</span>
           </div>
           <div>
-            <h1 className="font-display text-3xl font-black leading-tight text-primary sm:text-[34px]">ดูสถานะพัสดุ</h1>
-            <p className="mt-1 text-sm text-on-surface-variant/75">ค้นหาด้วยหมายเลขติดตาม ชื่อผู้รับ หรือสถานที่ปลายทาง</p>
+            <h1 className="font-display text-3xl font-black leading-tight text-primary sm:text-[34px]">{UI_COPY.nav.track}</h1>
+            <p className="mt-1 text-sm text-on-surface-variant/75">ค้นหาด้วยหมายเลขติดตาม ผู้รับ หรือปลายทาง</p>
           </div>
         </div>
       </section>
@@ -142,7 +143,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
           <div className="relative flex-1 group">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-on-surface-variant/45 transition-colors group-focus-within:text-primary">search</span>
             <input
-              placeholder="กรอกหมายเลขติดตาม ชื่อผู้รับ หรือสถานที่ปลายทาง..."
+              placeholder="กรอกหมายเลขติดตาม ผู้รับ หรือปลายทาง..."
               value={trackingId}
               onChange={e => setTrackingId(sanitizeTextInput(e.target.value, 100).toUpperCase())}
               autoFocus
@@ -165,7 +166,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         {recentSearches.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-outline-variant/10">
             <span className="text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-widest flex items-center gap-1">
-              <span className="material-symbols-outlined text-sm">history</span>ค้นหาล่าสุด:
+              <span className="material-symbols-outlined text-sm">history</span>ประวัติค้นหา:
             </span>
             {recentSearches.map(id => (
               <div key={id} className="flex items-center gap-0.5 rounded-xl bg-primary/5 p-0.5 ring-1 ring-primary/10">
@@ -225,12 +226,12 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
-              <h3 className="text-sm font-bold text-primary">ผลการค้นหา</h3>
+              <h3 className="text-sm font-bold text-primary">รายการที่พบ</h3>
               <span className="px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-bold rounded-full">{searchResults.length}</span>
             </div>
             <button onClick={() => setSearchResults([])}
               className="text-xs text-on-surface-variant/60 hover:text-error font-semibold flex items-center gap-1 transition-colors">
-              <span className="material-symbols-outlined text-sm">close</span>ล้างผลค้นหา
+              <span className="material-symbols-outlined text-sm">close</span>ล้างรายการ
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -262,7 +263,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         <div className="space-y-5 animate-in zoom-in-95 duration-400">
           <button onClick={() => setParcel(null)}
             className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary font-semibold transition-colors">
-            <span className="material-symbols-outlined text-base">arrow_back</span>กลับไปค้นหา
+            <span className="material-symbols-outlined text-base">arrow_back</span>ค้นหาใหม่
           </button>
 
           <div className="bg-white/95 backdrop-blur-sm border border-outline-variant/40 rounded-2xl overflow-hidden shadow-xl shadow-primary/10">
@@ -301,7 +302,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
                         { label: 'ผู้ส่ง', name: parcel['ผู้ส่ง'], branch: parcel['สาขาผู้ส่ง'], icon: 'person', color: 'text-primary' },
-                        { label: 'ส่งให้ / ส่งไปที่', name: parcel['ผู้รับ'], branch: parcel['สาขาผู้รับ'], icon: 'person_pin_circle', color: 'text-secondary' },
+                        { label: 'ปลายทาง', name: parcel['ผู้รับ'], branch: parcel['สาขาผู้รับ'], icon: 'flag', color: 'text-secondary' },
                       ].map(({ label, name, branch, icon, color }) => (
                         <div key={label} className="flex items-start gap-2.5">
                           <div className="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mt-0.5">
@@ -356,7 +357,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                   {parcel['รูปยืนยัน'] && (
                     <div className="space-y-2">
                       <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">photo_library</span>รูปหลักฐาน
+                        <span className="material-symbols-outlined text-sm">photo_library</span>{UI_COPY.parcel.proofPhoto}
                       </p>
                       <ImagePopup url={parcel['รูปยืนยัน']} className="w-full rounded-2xl border border-outline-variant/30 shadow-sm hover:shadow-md transition-all" />
                     </div>
@@ -367,7 +368,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 <div className="space-y-5">
                   <div className="bg-surface-container-lowest rounded-2xl p-4 sm:p-5 border border-outline-variant/30">
                     <p className="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-[0.2em] mb-4 flex items-center gap-1.5">
-                      <span className="material-symbols-outlined text-sm">route</span>ลำดับการจัดส่ง
+                      <span className="material-symbols-outlined text-sm">route</span>{UI_COPY.parcel.routeHistory}
                     </p>
                     <Timeline events={timelineEvents} />
                   </div>
@@ -379,7 +380,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                     <div className="rounded-2xl border border-outline-variant/30 shadow-sm h-[260px] bg-surface-container-lowest flex flex-col items-center justify-center p-6 text-center">
                       <span className="material-symbols-outlined text-4xl text-on-surface-variant/30 mb-3">map_off</span>
                       <p className="text-sm font-bold text-on-surface-variant">ยังไม่มีพิกัด GPS</p>
-                      <p className="text-xs text-on-surface-variant/60 mt-1">แผนที่จะแสดงเมื่อมีการบันทึกพิกัดจากการสร้างพัสดุหรือบันทึกการจัดส่ง</p>
+                      <p className="text-xs text-on-surface-variant/60 mt-1">แผนที่จะแสดงเมื่อมีพิกัดจากการสร้างรายการหรือการส่งสำเร็จ</p>
                     </div>
                   )}
                 </div>
@@ -396,7 +397,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             <span className="material-symbols-outlined text-3xl text-on-surface-variant/30">search_off</span>
           </div>
           <h3 className="font-display text-lg font-bold text-primary">ไม่พบข้อมูลพัสดุ</h3>
-          <p className="text-sm text-on-surface-variant mt-1 max-w-xs mx-auto">ไม่พบหมายเลขพัสดุที่คุณระบุ กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
+          <p className="text-sm text-on-surface-variant mt-1 max-w-xs mx-auto">ไม่พบรายการที่ค้นหา กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
           <button onClick={() => setTrackingId('')} className="mt-4 text-sm text-primary font-bold hover:underline">
             ล้างและค้นหาใหม่
           </button>

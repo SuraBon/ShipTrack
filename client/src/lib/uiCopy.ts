@@ -1,0 +1,35 @@
+export const UI_COPY = {
+  appName: 'DocTrack',
+  nav: {
+    adminDashboard: 'ภาพรวมรายการส่ง',
+    messengerDashboard: 'งานจัดส่ง',
+    create: 'สร้างรายการส่ง',
+    track: 'ติดตามสถานะ',
+    users: 'พนักงาน',
+    staffLogin: 'เข้าสู่ระบบพนักงาน',
+  },
+  parcel: {
+    trackingId: 'หมายเลขติดตาม',
+    itemType: 'ประเภทสิ่งที่ส่ง',
+    proofPhoto: 'รูปหลักฐาน',
+    origin: 'ต้นทาง',
+    destination: 'ปลายทาง',
+    sender: 'ผู้ส่ง',
+    receiver: 'ผู้รับ',
+    recipient: 'ส่งให้',
+    routeHistory: 'ประวัติการจัดส่ง',
+  },
+  action: {
+    create: 'สร้างรายการ',
+    search: 'ค้นหา',
+    track: 'ติดตามสถานะ',
+    acceptJob: 'รับงาน',
+    completeDelivery: 'ส่งสำเร็จ',
+    confirmCompleteDelivery: 'ยืนยันส่งสำเร็จ',
+    releaseJob: 'ปล่อยงาน',
+    history: 'ประวัติ',
+    retakePhoto: 'ถ่ายใหม่',
+    removePhoto: 'ลบรูป',
+  },
+} as const;
+

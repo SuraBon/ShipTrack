@@ -7,6 +7,7 @@
 
 import { useState, useRef, useEffect, useCallback, useId } from 'react';
 import { createPortal } from 'react-dom';
+import { Check, ChevronDown, Pencil } from 'lucide-react';
 
 export const OTHER_VALUE = '__OTHER__';
 
@@ -136,11 +137,7 @@ export default function NativeSelect({
         <span className="flex-1 truncate">
           {displayLabel ?? placeholder}
         </span>
-        <span
-          className={`material-symbols-outlined text-[18px] text-on-surface-variant/40 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}
-        >
-          expand_more
-        </span>
+        <ChevronDown className={`h-4 w-4 shrink-0 text-on-surface-variant/45 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
 
       {/* Dropdown list — portalled to body, pointer-events: auto overrides Radix */}
@@ -177,18 +174,11 @@ export default function NativeSelect({
                   ].join(' ')}
                 >
                   {isOther && (
-                    <span className="material-symbols-outlined text-[16px] text-on-surface-variant/50 shrink-0">
-                      edit
-                    </span>
+                    <Pencil className="h-3.5 w-3.5 shrink-0 text-on-surface-variant/50" aria-hidden="true" />
                   )}
                   <span className="flex-1 truncate">{label}</span>
                   {isSelected && (
-                    <span
-                      className="material-symbols-outlined text-[15px] text-primary shrink-0"
-                      style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      check
-                    </span>
+                    <Check className="h-3.5 w-3.5 shrink-0 text-primary" aria-hidden="true" />
                   )}
                 </button>
               );
@@ -201,9 +191,7 @@ export default function NativeSelect({
       {/* Custom text input */}
       {showCustomInput && (
         <div className="relative animate-in slide-in-from-top-1 duration-200">
-          <span className="material-symbols-outlined pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[17px] text-primary/50 select-none">
-            edit
-          </span>
+          <Pencil className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 select-none text-primary/50" aria-hidden="true" />
           <input
             ref={customInputRef}
             type="text"

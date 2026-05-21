@@ -4,8 +4,8 @@ export type PageId = 'dashboard' | 'create' | 'track' | 'users' | 'login';
 
 const PAGE_ROLES: Record<PageId, AppRole[]> = {
   dashboard: ['ADMIN', 'MESSENGER'],
-  create: ['ADMIN', 'MESSENGER', 'GUEST'],
-  track: ['ADMIN', 'MESSENGER', 'GUEST'],
+  create: ['GUEST'],
+  track: ['GUEST'],
   users: ['ADMIN'],
   login: ['GUEST'],
 };
@@ -21,4 +21,3 @@ export function getDefaultPageForRole(role: unknown): PageId {
 export function getVisiblePage(page: PageId, role: unknown): PageId {
   return canAccessPage(page, role) ? page : getDefaultPageForRole(role);
 }
-
