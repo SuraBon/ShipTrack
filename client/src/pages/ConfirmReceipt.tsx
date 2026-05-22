@@ -382,11 +382,13 @@ export default function ConfirmReceipt({
   };
 
   return (
-    <div className={`${embedded ? 'max-w-none pb-4' : 'max-w-2xl mx-auto pb-20'} space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-700`}>
+    <div className={`${embedded ? 'max-w-none pb-4' : 'app-page-narrow'} animate-in fade-in slide-in-from-bottom-4 duration-700`}>
       {/* Header Section */}
-      <div className={`${embedded ? 'hidden' : 'text-center space-y-2 mb-8 sm:mb-10'}`}>
-        <h1 className="font-display text-2xl sm:text-3xl font-bold text-primary tracking-tight">งานส่งพัสดุ</h1>
-        <p className="text-xs sm:text-sm text-on-surface-variant">สแกนหรือกรอกหมายเลข แล้วดูต้นทาง ปลายทาง และผู้รับทันที</p>
+      <div className={`${embedded ? 'hidden' : 'app-page-header'}`}>
+        <div>
+          <h1 className="app-page-title">งานส่งพัสดุ</h1>
+          <p className="app-page-subtitle">สแกนหรือกรอกหมายเลข แล้วดูต้นทาง ปลายทาง และผู้รับทันที</p>
+        </div>
       </div>
 
       {!embedded && <StepIndicator currentStep={currentStep} />}
@@ -403,8 +405,8 @@ export default function ConfirmReceipt({
       )}
 
       {isAutoPreparingCamera && currentStep === 1 && (
-        <div className="rounded-3xl border border-outline-variant bg-white p-8 text-center shadow-xl animate-in fade-in zoom-in-95 duration-300">
-          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary">
+        <div className="app-panel p-8 text-center animate-in fade-in zoom-in-95 duration-300">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
             <span className="material-symbols-outlined animate-spin text-4xl">progress_activity</span>
           </div>
           <h2 className="font-display text-xl font-black text-primary">กำลังเปิดกล้อง...</h2>
@@ -414,9 +416,9 @@ export default function ConfirmReceipt({
 
       {/* Step 1: Check Tracking ID */}
       {currentStep === 1 && !isAutoPreparingCamera && (
-        <div className="bg-white border border-outline-variant rounded-3xl overflow-hidden shadow-xl animate-in slide-in-from-right-4 duration-500">
-          <div className="bg-surface-container-low/30 p-5 sm:p-8 border-b border-outline-variant/10 text-center">
-            <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-4 text-primary">
+        <div className="app-panel overflow-hidden animate-in slide-in-from-right-4 duration-500">
+          <div className="app-panel-header p-5 text-center sm:p-6">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
               <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>search</span>
             </div>
             <h2 className="font-display text-xl font-bold text-primary">ระบุหมายเลขติดตาม</h2>
@@ -429,7 +431,7 @@ export default function ConfirmReceipt({
                   placeholder="เช่น TRK20260420001"
                   value={trackingId}
                   onChange={(e) => setTrackingId(sanitizeTextInput(e.target.value, 100).toUpperCase())}
-                  className="w-full h-14 sm:h-16 text-base sm:text-2xl font-mono tracking-[0.05em] sm:tracking-[0.2em] pl-4 sm:pl-6 pr-12 sm:pr-14 rounded-2xl border-2 border-outline-variant focus:border-primary focus:ring-4 focus:ring-primary/5 outline-none transition-all text-primary placeholder:text-outline-variant placeholder:font-sans placeholder:text-sm sm:placeholder:text-lg placeholder:tracking-normal"
+                  className="app-input h-14 w-full pr-12 font-mono text-base font-semibold tracking-[0.05em] sm:h-14 sm:text-xl sm:tracking-[0.12em]"
                   autoFocus
                 />
                 <button
@@ -456,7 +458,7 @@ export default function ConfirmReceipt({
             <button
               onClick={handleCheckParcel}
               disabled={isChecking || !trackingId || isDelivered}
-              className="w-full group flex items-center justify-center gap-3 h-16 bg-primary text-white rounded-2xl font-display font-bold text-lg shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+              className="app-primary-button h-12 w-full"
             >
               {isChecking ? (
                 <>
@@ -476,8 +478,8 @@ export default function ConfirmReceipt({
 
       {/* Step 2: Photo Evidence */}
       {currentStep === 2 && (
-        <div className="overflow-hidden rounded-3xl border border-outline-variant bg-white shadow-xl animate-in slide-in-from-right-4 duration-500">
-          <div className="border-b border-outline-variant/10 bg-surface-container-low/30 p-4 text-center sm:p-5">
+        <div className="app-panel overflow-hidden animate-in slide-in-from-right-4 duration-500">
+          <div className="app-panel-header p-4 text-center sm:p-5">
             <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
               <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
             </div>
@@ -490,7 +492,7 @@ export default function ConfirmReceipt({
             {!photoPreview ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-outline-variant p-5 text-center transition-all hover:border-primary hover:bg-surface-container-lowest sm:p-6"
+                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center transition-all hover:border-primary/40 hover:bg-gray-100 sm:p-6"
               >
                 {/* hidden file input — capture="environment" เปิดกล้องหลังโดยตรงบน mobile */}
                 <input
@@ -508,13 +510,13 @@ export default function ConfirmReceipt({
                 <p className="mt-1 text-xs font-semibold text-on-surface-variant/60">ระบบจะบีบอัดรูปให้อัตโนมัติ</p>
               </div>
             ) : (
-              <div className="relative h-64 sm:h-80 rounded-2xl overflow-hidden border border-outline-variant bg-surface-container-lowest">
+              <div className="relative h-64 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 sm:h-80">
                 <img src={photoPreview} alt="หลักฐานการจัดส่ง" className="w-full h-full object-contain animate-in fade-in zoom-in-95 duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-4 right-4 flex items-center gap-2 bg-primary hover:bg-primary/95 text-white font-display text-sm font-black px-4.5 py-2.5 rounded-2xl shadow-lg transition-all hover:scale-[1.02] active:scale-95 z-10 cursor-pointer"
+                  className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
                 >
                   <span className="material-symbols-outlined text-lg">photo_camera</span>
                   ถ่ายใหม่
@@ -527,7 +529,7 @@ export default function ConfirmReceipt({
             )}
 
             {/* GPS status panel */}
-            <div className="rounded-2xl border border-outline-variant/60 bg-surface-container-low/10 p-4 space-y-4">
+            <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300 ${

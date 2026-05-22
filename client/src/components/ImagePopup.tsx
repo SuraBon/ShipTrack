@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog';
 
@@ -50,6 +51,7 @@ export default function ImagePopup({ url, title = 'รูปหลักฐา�
         )}
       </DialogTrigger>
       <DialogContent className="w-[calc(100vw-1rem)] sm:max-w-5xl max-h-[88vh] flex flex-col p-0 rounded-3xl overflow-hidden border-none bg-transparent shadow-2xl" showCloseButton={false}>
+        <DialogTitle className="sr-only">{title}</DialogTitle>
         <div className="bg-transparent p-2 sm:p-3">
           <div className="relative flex h-[62vh] max-h-[680px] min-h-[320px] w-full items-center justify-center overflow-hidden rounded-2xl border border-outline-variant/25 bg-surface-container shadow-sm">
             <div className="pointer-events-none absolute left-4 top-4 z-20 inline-flex items-center gap-2 rounded-2xl bg-primary/90 px-3 py-2 text-white shadow-lg backdrop-blur-sm">

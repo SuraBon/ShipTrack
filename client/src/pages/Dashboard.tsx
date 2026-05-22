@@ -66,6 +66,36 @@ const STATS = [
 
 const STALE_DAYS = 2;
 type MessengerView = 'waiting' | 'mine' | 'done';
+type AdminSortMode = 'newest' | 'oldest' | 'stale' | 'status';
+
+const MESSENGER_BATCH_SIZE = 10;
+
+const sortAdminParcels = (items: Parcel[], mode: AdminSortMode) => {
+  const sorted = [...items];
+  if (mode === 'oldest') {
+    return sorted.sort((a, b) => getDateTime(a['วันที่สร้าง']) - getDateTime(b['วันที่สร้าง']));
+  }
+  if (mode === 'stale') {
+    return sorted.sort((a, b) => {
+      const staleDiff = Number(isParcelStale(b)) - Number(isParcelStale(a));
+      if (staleDiff !== 0) return staleDiff;
+      return getDateTime(a['วันที่สร้าง']) - getDateTime(b['วันที่สร้าง']);
+    });
+  }
+  if (mode === 'status') {
+    const statusOrder: Record<string, number> = {
+      'รอจัดส่ง': 0,
+      'กำลังจัดส่ง': 1,
+      'ส่งสำเร็จ': 2,
+    };
+    return sorted.sort((a, b) => {
+      const statusDiff = (statusOrder[a['สถานะ']] ?? 9) - (statusOrder[b['สถานะ']] ?? 9);
+      if (statusDiff !== 0) return statusDiff;
+      return getDateTime(b['วันที่สร้าง']) - getDateTime(a['วันที่สร้าง']);
+    });
+  }
+  return sorted.sort((a, b) => getDateTime(b['วันที่สร้าง']) - getDateTime(a['วันที่สร้าง']));
+};
 
 const StatsCard = ({
   label,
@@ -90,8 +120,8 @@ const StatsCard = ({
     aria-pressed={active}
     className={`flex min-h-[92px] w-full items-center rounded-2xl border bg-white px-5 py-4 text-left shadow-sm transition-all duration-300 active:scale-[0.99] ${
       active
-        ? 'border-primary/45 ring-2 ring-primary/10'
-        : 'border-outline-variant/25 hover:border-primary/25 hover:shadow-md'
+        ? 'border-slate-900/35 ring-2 ring-slate-900/10'
+        : 'border-gray-100 hover:border-slate-300 hover:shadow-md'
     }`}
   >
     <div className="flex min-w-0 items-center gap-4">
@@ -806,7 +836,13 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [releasingDeliveryId, setReleasingDeliveryId] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(10);
+  const [adminSort, setAdminSort] = useState<AdminSortMode>('newest');
+  const [messengerVisibleCounts, setMessengerVisibleCounts] = useState<Record<MessengerView, number>>({
+    waiting: MESSENGER_BATCH_SIZE,
+    mine: MESSENGER_BATCH_SIZE,
+    done: MESSENGER_BATCH_SIZE,
+  });
   const isFetchingRef = useRef(false);
   const canConfirmParcel = role === 'ADMIN' || role === 'MESSENGER';
   const currentEmployeeId = String(user?.employeeId || '').trim().toUpperCase();
@@ -892,8 +928,12 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     () => filteredParcels.filter(parcel => parcel['สถานะ'] === 'ส่งสำเร็จ' && wasAssignedToMe(parcel, currentEmployeeId)),
     [filteredParcels, currentEmployeeId],
   );
+  const adminSortedParcels = useMemo(
+    () => sortAdminParcels(filteredParcels, adminSort),
+    [filteredParcels, adminSort],
+  );
   const adminNeedsAttentionParcels = useMemo(
-    () => filteredParcels
+    () => adminSortedParcels
       .filter(parcel => parcel['สถานะ'] !== 'ส่งสำเร็จ' || isParcelStale(parcel))
       .sort((a, b) => {
         const staleDiff = Number(isParcelStale(b)) - Number(isParcelStale(a));
@@ -901,21 +941,30 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         return sortMessengerWork(a, b);
       })
       .slice(0, 6),
-    [filteredParcels],
+    [adminSortedParcels],
   );
 
   // Pagination calculations — use totalCount from backend for accurate total pages
-  const backendTotalPages = Math.max(1, Math.ceil((totalCount || filteredParcels.length) / pageSize));
+  const hasAdminFilters = Boolean(debouncedSearch || statusFilter !== defaultStatusFilter);
+  const adminTotalCount = hasAdminFilters ? adminSortedParcels.length : (totalCount || adminSortedParcels.length);
+  const backendTotalPages = Math.max(1, Math.ceil(adminTotalCount / pageSize));
   const { totalPages, paginatedParcels, startIndex, endIndex } = useMemo(() => {
     const total = backendTotalPages;
-    const paginated = filteredParcels.slice((currentPage - 1) * pageSize, currentPage * pageSize);
-    const start = filteredParcels.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
-    const end = Math.min(currentPage * pageSize, filteredParcels.length);
+    const paginated = adminSortedParcels.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+    const start = adminSortedParcels.length === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+    const end = Math.min(currentPage * pageSize, adminSortedParcels.length);
     return { totalPages: total, paginatedParcels: paginated, startIndex: start, endIndex: end };
-  }, [filteredParcels, currentPage, pageSize, backendTotalPages]);
+  }, [adminSortedParcels, currentPage, pageSize, backendTotalPages]);
 
   // Reset page when filter changes
-  useEffect(() => { setCurrentPage(1); }, [statusFilter, debouncedSearch]);
+  useEffect(() => { setCurrentPage(1); }, [statusFilter, debouncedSearch, adminSort, pageSize]);
+  useEffect(() => {
+    setMessengerVisibleCounts({
+      waiting: MESSENGER_BATCH_SIZE,
+      mine: MESSENGER_BATCH_SIZE,
+      done: MESSENGER_BATCH_SIZE,
+    });
+  }, [debouncedSearch]);
 
   // Clamp currentPage ไม่ให้เกิน totalPages เมื่อข้อมูลเปลี่ยน
   useEffect(() => {
@@ -925,10 +974,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   // Load more from backend when navigating to a page that needs more data
   useEffect(() => {
     const neededCount = currentPage * pageSize;
-    if (neededCount > filteredParcels.length && hasMore && !loading) {
+    if (neededCount > adminSortedParcels.length && hasMore && !loading) {
       loadMoreParcels();
     }
-  }, [currentPage]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleRefresh = async () => {
     if (loading) return; // ป้องกันกดซ้ำระหว่าง loading
@@ -949,6 +998,15 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   const clearFilters = () => { setSearchTerm(''); setStatusFilter(defaultStatusFilter); setCurrentPage(1); };
   const hasFilters = !!(searchTerm || statusFilter !== defaultStatusFilter);
+  const showMoreMessenger = (view: MessengerView) => {
+    setMessengerVisibleCounts(current => ({
+      ...current,
+      [view]: current[view] + MESSENGER_BATCH_SIZE,
+    }));
+  };
+  const visibleMessengerWaitingParcels = messengerWaitingParcels.slice(0, messengerVisibleCounts.waiting);
+  const visibleMessengerMineParcels = messengerMineParcels.slice(0, messengerVisibleCounts.mine);
+  const visibleMessengerDoneParcels = messengerDoneParcels.slice(0, messengerVisibleCounts.done);
 
   const handleDelete = async () => {
     if (!selectedParcel) return;
@@ -1080,7 +1138,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   }
 
   return (
-    <div className={`${isMessengerDashboard ? 'mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5' : 'space-y-4 sm:space-y-6'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+    <div className={`${isMessengerDashboard ? 'mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5' : 'app-page'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
       {error && (
         <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -1141,7 +1199,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       )}
 
       {/* ── Filters ── */}
-      <div className={isMessengerDashboard ? 'bg-transparent md:rounded-2xl md:border md:border-gray-100 md:bg-white md:p-4 md:shadow-sm' : 'bg-white/85 backdrop-blur-sm border border-outline-variant/30 rounded-xl p-2.5 sm:rounded-2xl sm:p-4 shadow-sm'}>
+      <div className={isMessengerDashboard ? 'bg-transparent md:rounded-2xl md:border md:border-gray-100 md:bg-white md:p-4 md:shadow-sm' : 'app-toolbar'}>
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Search */}
           <div className="relative min-w-0 flex-1">
@@ -1152,7 +1210,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               placeholder="ค้นหาหมายเลขติดตาม ผู้ส่ง ผู้รับ หรือปลายทาง..."
               className={isMessengerDashboard
                 ? 'h-11 w-full rounded-xl border border-gray-100 bg-gray-50 pl-10 pr-10 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 md:h-12'
-                : 'h-10 w-full bg-surface-container-lowest border border-outline-variant/50 rounded-xl pl-10 pr-10 text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none font-display transition-all'}
+                : 'h-11 w-full rounded-xl border border-gray-100 bg-gray-50 pl-10 pr-10 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10'}
             />
             {searchTerm && (
               <button
@@ -1183,10 +1241,41 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             </button>
           </div>
         </div>
+        {!isMessengerDashboard && (
+          <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
+            <label className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-slate-600">
+              <span className="material-symbols-outlined text-base text-slate-400">sort</span>
+              <select
+                value={adminSort}
+                onChange={(event) => setAdminSort(event.target.value as AdminSortMode)}
+                className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-slate-700 outline-none"
+                aria-label="เรียงรายการ"
+              >
+                <option value="newest">ล่าสุด</option>
+                <option value="oldest">เก่าสุด</option>
+                <option value="stale">ค้างนาน</option>
+                <option value="status">สถานะ</option>
+              </select>
+            </label>
+            <label className="hidden min-w-0 items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-slate-600 sm:flex">
+              <span className="material-symbols-outlined text-base text-slate-400">view_list</span>
+              <select
+                value={pageSize}
+                onChange={(event) => setPageSize(Number(event.target.value))}
+                className="min-w-0 flex-1 bg-transparent text-xs font-semibold text-slate-700 outline-none"
+                aria-label="จำนวนรายการต่อหน้า"
+              >
+                <option value={10}>10 / หน้า</option>
+                <option value={20}>20 / หน้า</option>
+                <option value={50}>50 / หน้า</option>
+              </select>
+            </label>
+          </div>
+        )}
       </div>
 
       {/* ── Role Cards ── */}
-      <section className={isMessengerDashboard ? 'overflow-visible bg-transparent' : 'overflow-hidden rounded-xl border border-outline-variant/35 bg-white/90 shadow-sm backdrop-blur-sm sm:rounded-2xl'}>
+      <section className={isMessengerDashboard ? 'overflow-visible bg-transparent' : 'app-panel overflow-hidden'}>
         {!isMessengerDashboard && (
         <div className="flex items-center justify-between gap-3 border-b border-outline-variant/10 px-3 py-2.5 sm:px-5 sm:py-3">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -1238,8 +1327,9 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   tone="amber"
                 />
                 {messengerWaitingParcels.length ? (
+                  <>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {messengerWaitingParcels.map(parcel => (
+                    {visibleMessengerWaitingParcels.map(parcel => (
                       <MessengerDeliveryCard
                         key={parcel.TrackingID}
                         parcel={parcel}
@@ -1256,6 +1346,14 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                       />
                     ))}
                   </div>
+                  {messengerWaitingParcels.length > messengerVisibleCounts.waiting && (
+                    <div className="mt-3 flex justify-center">
+                      <button type="button" onClick={() => showMoreMessenger('waiting')} className="app-secondary-button h-10 px-4 text-xs">
+                        แสดงเพิ่ม {Math.min(MESSENGER_BATCH_SIZE, messengerWaitingParcels.length - messengerVisibleCounts.waiting)} รายการ
+                      </button>
+                    </div>
+                  )}
+                  </>
                 ) : (
                   <EmptyState icon="task_alt" title="ไม่มีงานให้รับในตอนนี้" description="เมื่อมีพัสดุใหม่ในระบบ งานจะแสดงที่นี่" tone="emerald" />
                 )}
@@ -1272,8 +1370,9 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   tone="blue"
                 />
                 {messengerMineParcels.length ? (
+                  <>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {messengerMineParcels.map(parcel => {
+                    {visibleMessengerMineParcels.map(parcel => {
                       const assignment = getActiveDeliveryAssignment(parcel);
                       return (
                         <MessengerDeliveryCard
@@ -1293,6 +1392,14 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                       );
                     })}
                   </div>
+                  {messengerMineParcels.length > messengerVisibleCounts.mine && (
+                    <div className="mt-3 flex justify-center">
+                      <button type="button" onClick={() => showMoreMessenger('mine')} className="app-secondary-button h-10 px-4 text-xs">
+                        แสดงเพิ่ม {Math.min(MESSENGER_BATCH_SIZE, messengerMineParcels.length - messengerVisibleCounts.mine)} รายการ
+                      </button>
+                    </div>
+                  )}
+                  </>
                 ) : (
                   <EmptyState 
                     icon="local_shipping" 
@@ -1313,8 +1420,9 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   tone="emerald"
                 />
                 {messengerDoneParcels.length ? (
+                  <>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {messengerDoneParcels.map(parcel => (
+                    {visibleMessengerDoneParcels.map(parcel => (
                       <MessengerDeliveryCard
                         key={parcel.TrackingID}
                         parcel={parcel}
@@ -1331,6 +1439,14 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                       />
                     ))}
                   </div>
+                  {messengerDoneParcels.length > messengerVisibleCounts.done && (
+                    <div className="mt-3 flex justify-center">
+                      <button type="button" onClick={() => showMoreMessenger('done')} className="app-secondary-button h-10 px-4 text-xs">
+                        แสดงเพิ่ม {Math.min(MESSENGER_BATCH_SIZE, messengerDoneParcels.length - messengerVisibleCounts.done)} รายการ
+                      </button>
+                    </div>
+                  )}
+                  </>
                 ) : (
                   <EmptyState icon="inventory_2" title="ยังไม่มีประวัติการส่งสำเร็จ" description="ประวัติงานส่งพัสดุที่สำเร็จของคุณจะแสดงที่นี่" />
                 )}
@@ -1402,7 +1518,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   count={adminNeedsAttentionParcels.length}
                   tone="amber"
                 />
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
                   {adminNeedsAttentionParcels.map(parcel => (
                     <AdminParcelManagementCard
                       key={`attention-${parcel.TrackingID}`}
@@ -1440,14 +1556,25 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         )}
 
         {!isMessengerDashboard && filteredParcels.length > 0 && (
-          <div className="flex flex-col items-center justify-between gap-3 border-t border-outline-variant/10 bg-surface-container-lowest/40 px-5 py-3 sm:flex-row">
+          <div className="flex flex-col gap-3 border-t border-outline-variant/10 bg-surface-container-lowest/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <span className="text-xs text-on-surface-variant/60">
-              แสดง <span className="font-bold text-primary">{startIndex}–{endIndex}</span> จาก <span className="font-bold text-primary">{totalCount || filteredParcels.length}</span> รายการ
+              แสดง <span className="font-bold text-primary">{startIndex}–{endIndex}</span> จาก <span className="font-bold text-primary">{adminTotalCount}</span> รายการ
               {filteredParcels.length !== parcels.length && <span className="text-on-surface-variant/40"> (กรองจาก {parcels.length})</span>}
             </span>
 
+            <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
             {totalPages > 1 && (
-              <div className="flex items-center gap-1">
+              <>
+              <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-100 bg-white p-1 sm:hidden">
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
+                  ก่อนหน้า
+                </button>
+                <span className="px-2 text-xs font-black text-primary">{currentPage}/{totalPages}</span>
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
+                  ถัดไป
+                </button>
+              </div>
+              <div className="hidden items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 sm:flex">
                 <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
                   <span className="material-symbols-outlined text-base">first_page</span>
                 </button>
@@ -1462,6 +1589,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   <span className="material-symbols-outlined text-base">last_page</span>
                 </button>
               </div>
+              </>
             )}
 
             {hasMore && (
@@ -1474,6 +1602,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 โหลดข้อมูลเพิ่ม
               </button>
             )}
+            </div>
           </div>
         )}
       </section>
@@ -1509,6 +1638,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           showCloseButton={false}
           className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-3xl border-none bg-transparent p-0 shadow-none"
         >
+          <DialogTitle className="sr-only">บันทึกผลการจัดส่ง</DialogTitle>
           <div className="modal-scroll relative max-h-[92vh] overflow-y-auto p-4 sm:p-6">
             {!isConfirmPreparingCamera && (
               <button

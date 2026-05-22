@@ -26,6 +26,7 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
   const mapRef      = useRef<L.Map | null>(null);
   const markersRef  = useRef<L.Marker[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
+  const polylineHaloRef = useRef<L.Polyline | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
 
   // Derive the ordered list of coordinate-bearing events from the timeline.
@@ -91,6 +92,8 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
     markersRef.current = [];
     polylineRef.current?.remove();
     polylineRef.current = null;
+    polylineHaloRef.current?.remove();
+    polylineHaloRef.current = null;
 
     if (!hasRouteData) {
       map.setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 7);
@@ -107,31 +110,29 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
         (!hasCreatedPoint && index === 0)
       );
       const iconName = isStartPoint ? 'inventory_2' : isDeliveredPoint ? 'task_alt' : 'local_shipping';
-      const markerColor = isStartPoint ? '#855300' : isDeliveredPoint ? '#008060' : '#091426';
+      const markerColor = isStartPoint ? '#2563eb' : isDeliveredPoint ? '#16a34a' : '#0f172a';
       const markerRing  = isStartPoint
-        ? 'rgba(133,83,0,0.2)'
+        ? 'rgba(37,99,235,0.18)'
         : isDeliveredPoint
-          ? 'rgba(0,128,96,0.2)'
-          : 'rgba(9,20,38,0.22)';
+          ? 'rgba(22,163,74,0.18)'
+          : 'rgba(15,23,42,0.18)';
 
-      const html = `<div title="${safeLabel}" style="position:relative;width:44px;height:54px;filter:drop-shadow(0 8px 14px rgba(9,20,38,.28));">
-        <svg viewBox="0 0 44 54" width="44" height="54" aria-hidden="true" style="position:absolute;left:0;top:0;overflow:visible;">
-          <path d="M22 2C11.5 2 4 9.7 4 19.6C4 32.8 22 52 22 52C22 52 40 32.8 40 19.6C40 9.7 32.5 2 22 2Z" fill="${markerRing}" opacity="0.95"/>
-          <path d="M22 6C13.8 6 8 12 8 19.8C8 29.8 22 45.5 22 45.5C22 45.5 36 29.8 36 19.8C36 12 30.2 6 22 6Z" fill="${markerColor}" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
-        </svg>
-        <div style="position:absolute;left:50%;top:12px;width:24px;height:24px;transform:translateX(-50%);display:grid;place-items:center;border-radius:999px;background:rgba(255,255,255,.16);color:#fff;">
+      const html = `<div title="${safeLabel}" style="position:relative;width:42px;height:42px;filter:drop-shadow(0 10px 18px rgba(15,23,42,.22));">
+        <div style="position:absolute;inset:0;border-radius:16px;background:${markerRing};"></div>
+        <div style="position:absolute;left:5px;top:5px;width:32px;height:32px;display:grid;place-items:center;border-radius:12px;background:${markerColor};border:3px solid #fff;color:#fff;box-shadow:0 5px 14px rgba(15,23,42,.18);">
           <span class="material-symbols-outlined" style="font-size:17px;line-height:1;">${iconName}</span>
         </div>
-        ${isLast ? '<div style="position:absolute;left:50%;top:2px;width:44px;height:44px;transform:translateX(-50%);border-radius:999px;border:2px solid rgba(9,20,38,.35);animation:logitrack-pin-pulse 1.6s infinite;"></div>' : ''}
+        <div style="position:absolute;left:18px;top:37px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:8px solid ${markerColor};filter:drop-shadow(0 2px 1px rgba(15,23,42,.12));"></div>
+        ${isLast ? '<div style="position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:16px;border:2px solid rgba(15,23,42,.22);animation:logitrack-pin-pulse 1.6s infinite;"></div>' : ''}
       </div>`;
 
       const marker = L.marker([lat, lng], {
         icon: L.divIcon({
           html,
           className: 'branch-marker bg-transparent',
-          iconSize: [44, 54],
-          iconAnchor: [22, 52],
-          popupAnchor: [0, -50],
+          iconSize: [42, 50],
+          iconAnchor: [21, 46],
+          popupAnchor: [0, -42],
         }),
       });
 
@@ -140,7 +141,7 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
       popupEl.style.cssText = 'padding:4px 2px 2px;font-family:Manrope,sans-serif;min-width:230px;max-width:280px';
 
       const badge = document.createElement('div');
-      badge.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:${isStartPoint ? '#fff4df' : isDeliveredPoint ? '#eef8f3' : '#091426'};color:${isStartPoint ? '#855300' : isDeliveredPoint ? '#006b50' : '#ffffff'};font-size:11px;font-weight:900;margin-bottom:8px`;
+      badge.style.cssText = `display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border-radius:999px;background:${isStartPoint ? '#eff6ff' : isDeliveredPoint ? '#f0fdf4' : '#0f172a'};color:${isStartPoint ? '#2563eb' : isDeliveredPoint ? '#15803d' : '#ffffff'};font-size:11px;font-weight:900;margin-bottom:8px`;
       badge.textContent = isStartPoint ? 'จุดเริ่มต้น' : isDeliveredPoint ? 'ปลายทาง' : 'กำลังจัดส่ง';
 
       const title = document.createElement('div');
@@ -200,9 +201,13 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
     });
 
     const coords = pathEntries.map(e => [e.lat, e.lng] as [number, number]);
+    polylineHaloRef.current = L.polyline(
+      coords,
+      { color: '#ffffff', opacity: 0.95, weight: 10, lineCap: 'round', lineJoin: 'round' },
+    ).addTo(map);
     polylineRef.current = L.polyline(
       coords,
-      { color: '#ff6b00', opacity: 0.85, weight: 6, lineCap: 'round', lineJoin: 'round', dashArray: '10, 12' },
+      { color: '#2563eb', opacity: 0.9, weight: 4, lineCap: 'round', lineJoin: 'round', dashArray: '8, 10' },
     ).addTo(map);
 
     if (coords.length > 1) {
@@ -218,6 +223,8 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
       markersRef.current = [];
       polylineRef.current?.remove();
       polylineRef.current = null;
+      polylineHaloRef.current?.remove();
+      polylineHaloRef.current = null;
     };
   }, [hasRouteData, isMapReady, pathEntries]);
 
@@ -232,17 +239,23 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
   const hasGpsMarkers = pathEntries.some(e => e.isGps);
 
   return (
-    <div className={`flex w-full flex-col overflow-hidden rounded-3xl border border-outline-variant/30 bg-white shadow-md ${className}`}>
+    <div className={`relative flex w-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>
       {!hasRouteData && (
-        <div className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-secondary bg-secondary-container/10 border-b border-outline-variant/10 flex items-center gap-2">
+        <div className="flex items-center gap-2 border-b border-gray-100 bg-blue-50 px-4 py-2.5 text-[11px] font-semibold text-blue-700">
           <span className="material-symbols-outlined text-base">info</span>
           ยังไม่มีข้อมูล GPS — แผนที่จะแสดงเมื่อมีการสร้างรายการหรือยืนยันส่งสำเร็จ
         </div>
       )}
       {hasRouteData && hasUnresolved && (
-        <div className="px-5 py-3 text-[10px] font-bold uppercase tracking-widest text-amber-700 bg-amber-50 border-b border-amber-200 flex items-center gap-2">
+        <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-4 py-2.5 text-[11px] font-semibold text-amber-700">
           <span className="material-symbols-outlined text-base">warning</span>
           บางจุดไม่มีข้อมูล GPS จึงไม่แสดงบนแผนที่
+        </div>
+      )}
+      {hasRouteData && (
+        <div className="pointer-events-none absolute left-3 top-3 z-[500] rounded-xl border border-white/80 bg-white/95 px-3 py-2 shadow-sm backdrop-blur">
+          <p className="text-xs font-semibold leading-none text-slate-800">แผนที่การจัดส่ง</p>
+          <p className="mt-1 text-[10px] font-medium text-slate-400">{pathEntries.length} จุด GPS</p>
         </div>
       )}
       <MapView
@@ -251,19 +264,19 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
         initialZoom={7}
         onMapReady={handleMapReady}
       />
-      <div className="px-5 py-3 bg-surface-container-low border-t border-outline-variant/10 text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest flex items-center justify-between">
-        <div className="flex flex-wrap items-center gap-3">
+      <div className="flex items-center justify-between gap-3 border-t border-gray-100 bg-white px-4 py-2.5 text-[10px] font-semibold text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-secondary" /> จุดเริ่มต้น
+            <span className="h-2 w-2 rounded-full bg-blue-600" /> จุดเริ่มต้น
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-primary" /> กำลังส่ง
+            <span className="h-2 w-2 rounded-full bg-slate-900" /> กำลังส่ง
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-green-600" /> ปลายทาง
+            <span className="h-2 w-2 rounded-full bg-green-600" /> ปลายทาง
           </span>
         </div>
-        <span className="text-secondary">LogiTrack Maps</span>
+        <span className="hidden text-slate-300 sm:inline">DocTrack Maps</span>
       </div>
     </div>
   );

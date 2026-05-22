@@ -147,13 +147,27 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen w-screen items-center justify-center overflow-x-hidden bg-background p-3 sm:p-4">
-      <div
-        className="app-card p-5 sm:p-7"
-        style={{ width: 'min(28rem, calc(100vw - 2rem))' }}
-      >
-        <div className="mb-6 text-center">
-          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+    <div className="flex min-h-screen w-screen items-center justify-center overflow-x-hidden bg-[#f8fafc] p-3 sm:p-4">
+      <div className="grid w-full max-w-[390px] overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm md:max-w-4xl md:grid-cols-[0.95fr_1.05fr]">
+        <div className="hidden bg-slate-900 p-8 text-white md:flex md:flex-col md:justify-between">
+          <div>
+            <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10">
+              <PackageSearch className="h-6 w-6" aria-hidden="true" />
+            </div>
+            <h2 className="text-2xl font-bold leading-tight">DocTrack</h2>
+            <p className="mt-2 text-sm leading-relaxed text-white/60">ระบบจัดการพัสดุภายในสำหรับ Admin และพนักงานส่ง</p>
+          </div>
+          <div className="space-y-3 text-xs text-white/55">
+            <div className="rounded-2xl bg-white/5 p-3">
+              <p className="font-semibold text-white">งานจัดส่ง</p>
+              <p className="mt-1">ติดตาม สร้างรายการ และบันทึกหลักฐานพร้อม GPS</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-5 sm:p-7">
+        <div className="mb-6 text-center md:text-left">
+          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-xl bg-slate-900 text-white md:mx-0">
             <PackageSearch className="h-7 w-7" aria-hidden="true" />
           </div>
           <h1 className="text-2xl font-semibold text-foreground">
@@ -164,7 +178,7 @@ export default function Login() {
           </p>
         </div>
 
-        <form onSubmit={handleLogin} className="mx-auto flex flex-col gap-4" style={{ width: 'min(100%, calc(100vw - 3rem))' }}>
+        <form onSubmit={handleLogin} className="mx-auto flex flex-col gap-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Username</label>
             <input
@@ -222,7 +236,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={isLoginDisabled}
-            className="mt-2 flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50"
+            className="app-primary-button mt-2 w-full"
           >
             {isLoginDisabled ? (
               <span className="material-symbols-outlined animate-spin text-lg">progress_activity</span>
@@ -243,6 +257,7 @@ export default function Login() {
             </div>
           )}
         </form>
+        </div>
       </div>
 
       <Dialog

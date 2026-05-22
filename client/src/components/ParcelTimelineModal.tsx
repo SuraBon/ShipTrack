@@ -93,6 +93,7 @@ export default function ParcelTimelineModal({
           showCloseButton={false}
           className="w-[calc(100vw-1rem)] max-w-3xl overflow-hidden rounded-3xl border-none bg-transparent p-0 shadow-2xl"
         >
+          <DialogTitle className="sr-only">แผนที่การจัดส่ง</DialogTitle>
           <div className="bg-transparent p-2 sm:p-3">
             <div className="relative">
               <div className="pointer-events-none absolute bottom-12 left-3 z-[500] inline-flex items-center gap-2 rounded-2xl bg-primary/90 px-3 py-2 text-white shadow-lg backdrop-blur-sm sm:bottom-auto sm:left-4 sm:top-4">

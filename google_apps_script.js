@@ -54,6 +54,14 @@ const EVENT_HEADERS = [
   "DeliveryMatchStatus",
   "DeliveryMismatchReason"
 ];
+
+const USER_HEADERS = ["EmployeeID", "Name", "Branch", "Role", "PIN", "CreatedAt", "Status", "UpdatedAt"];
+const BRANCH_HEADERS = ["Name", "CreatedAt", "CreatedBy"];
+const DEFAULT_BRANCHES = [
+  "MS", "พระประแดง", "บางนา", "มีนบุรี", "เลียบด่วน",
+  "เดอะมอลล์บางกะปิ", "วิภาวดี", "พิบูลสงคราม", "เซ็นทรัล พระราม 2",
+  "เดอะมอลล์บางแค", "มหาชัย", "ศาลายา", "กาญจนา"
+];
 const AUTO_PICKUP_RADIUS_METERS = 150;
 
 function getSpreadsheet() {
@@ -340,17 +348,6 @@ function getEventSheetForSpreadsheet(ss) {
   return eventSheet;
 }
 
-function getEventSheetForTrackingId(trackingID) {
-  const storage = getParcelStorageByTrackingId(trackingID);
-  if (storage) return getEventSheetForSpreadsheet(storage.spreadsheet);
-  const parsed = parseTrackingDate(trackingID);
-  if (parsed) {
-    const ss = getYearSpreadsheet(parsed.year, true);
-    return getEventSheetForSpreadsheet(ss);
-  }
-  return getEventSheetForSpreadsheet(getYearSpreadsheet(getYearFromDate(new Date()), true));
-}
-
 function getApiKey() {
   return PropertiesService.getScriptProperties().getProperty(API_KEY_PROPERTY) || SCRIPT_API_KEY || "";
 }
@@ -626,29 +623,36 @@ function setup() {
   }
   ensureEventSheetSchema(eventSheet);
 
-  let pinSheet = ss.getSheetByName("BranchPINs");
-  if (!pinSheet) {
-    pinSheet = ss.insertSheet("BranchPINs");
-    pinSheet.appendRow(["BranchName", "PIN"]);
-    pinSheet.getRange("A1:B1").setFontWeight("bold");
-    pinSheet.getRange("A1:B1").setBackground("#fee2e2");
-  }
-
   let usersSheet = ss.getSheetByName("Users");
   if (!usersSheet) {
     usersSheet = ss.insertSheet("Users");
-    usersSheet.appendRow(["EmployeeID", "Name", "Branch", "Role", "PIN", "CreatedAt"]);
-    usersSheet.getRange("A1:F1").setFontWeight("bold");
-    usersSheet.getRange("A1:F1").setBackground("#fef3c7");
+    usersSheet.appendRow(USER_HEADERS);
+    usersSheet.getRange(1, 1, 1, USER_HEADERS.length).setFontWeight("bold");
+    usersSheet.getRange(1, 1, 1, USER_HEADERS.length).setBackground("#fef3c7");
     // Add default admin
-    usersSheet.appendRow(["ADMIN", "System Admin", "HQ", "ADMIN", getInitialAdminPin(), formatThaiDateForSheet(new Date())]);
+    usersSheet.appendRow(["ADMIN", "System Admin", "HQ", "ADMIN", getInitialAdminPin(), formatThaiDateForSheet(new Date()), "ACTIVE", formatThaiDateForSheet(new Date())]);
   } else {
+    ensureUsersSheetSchema(usersSheet);
     const data = usersSheet.getDataRange().getValues();
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][0] || "").trim() === "admin") {
         usersSheet.getRange(i + 1, 1).setValue("ADMIN");
       }
     }
+  }
+
+  getBranchesSheet();
+}
+
+function ensureUsersSheetSchema(sheet) {
+  ensureHeaderRow(sheet, USER_HEADERS, "#fef3c7");
+  const lastRow = sheet.getLastRow();
+  if (lastRow > 1) {
+    const statusRange = sheet.getRange(2, 7, lastRow - 1, 1);
+    const statusValues = statusRange.getValues().map(function(row) {
+      return [String(row[0] || "").trim() || "ACTIVE"];
+    });
+    statusRange.setValues(statusValues);
   }
 }
 
@@ -659,7 +663,41 @@ function getUsersSheet() {
     setup();
     usersSheet = ss.getSheetByName("Users");
   }
+  ensureUsersSheetSchema(usersSheet);
   return usersSheet;
+}
+
+function getBranchesSheet() {
+  const ss = getSpreadsheet();
+  let sheet = ss.getSheetByName("Branches");
+  if (!sheet) {
+    sheet = ss.insertSheet("Branches");
+    sheet.appendRow(BRANCH_HEADERS);
+    DEFAULT_BRANCHES.forEach(function(name) {
+      sheet.appendRow([name, formatThaiDateForSheet(new Date()), "setup"]);
+    });
+  }
+  ensureHeaderRow(sheet, BRANCH_HEADERS, "#e0f2fe");
+  return sheet;
+}
+
+function readBranches() {
+  const sheet = getBranchesSheet();
+  const data = sheet.getDataRange().getValues();
+  const seen = {};
+  const branches = [];
+  for (let i = 1; i < data.length; i++) {
+    const name = String(data[i][0] || "").trim();
+    const key = name.toLowerCase();
+    if (name && !seen[key]) {
+      seen[key] = true;
+      branches.push(name);
+    }
+  }
+  if (branches.length === 0) {
+    DEFAULT_BRANCHES.forEach(function(name) { branches.push(name); });
+  }
+  return branches;
 }
 
 function normalizeRole(role) {
@@ -682,48 +720,17 @@ function getUserRecord(employeeId) {
         branch: String(data[i][2] || "").trim(),
         role: normalizeRole(data[i][3] || "GUEST"),
         pin: String(data[i][4] || "").trim(),
-        createdAt: data[i][5]
+        createdAt: data[i][5],
+        status: String(data[i][6] || "ACTIVE").trim().toUpperCase() || "ACTIVE",
+        updatedAt: data[i][7]
       };
     }
   }
   return null;
 }
 
-function getEventSheet() {
-  return getEventSheetForSpreadsheet(getYearSpreadsheet(getYearFromDate(new Date()), true));
-}
-
 function hasAnyRole(payload, roles) {
   return roles.indexOf(normalizeRole(payload.role)) !== -1;
-}
-
-function verifyPin(branchName, pin) {
-  const cache = CacheService.getScriptCache();
-  let pinData = cache.get("BranchPINs");
-
-  if (!pinData) {
-    const ss = getSpreadsheet();
-    let pinSheet = ss.getSheetByName("BranchPINs");
-    if (!pinSheet) {
-      setup();
-      pinSheet = ss.getSheetByName("BranchPINs");
-    }
-    const sheetData = pinSheet.getDataRange().getValues();
-    pinData = JSON.stringify(sheetData);
-    cache.put("BranchPINs", pinData, 600); // 10 minutes cache
-  }
-
-  const data = JSON.parse(pinData);
-  let correctPin = "0000"; // Default PIN is 0000 if not specified
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]).trim() === String(branchName).trim()) {
-      if (String(data[i][1]).trim() !== "") {
-        correctPin = String(data[i][1]).trim();
-      }
-      break;
-    }
-  }
-  return String(pin).trim() === correctPin;
 }
 
 function doPost(e) {
@@ -739,7 +746,7 @@ function doPost(e) {
     }
 
     // --- Token Signature Verification ---
-    const protectedActions = ['confirmReceipt', 'startDelivery', 'releaseDelivery', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const protectedActions = ['confirmReceipt', 'startDelivery', 'releaseDelivery', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'deleteParcel', 'editParcel', 'updateProfile'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
       if (parts.length === 5) {
@@ -754,6 +761,9 @@ function doPost(e) {
           const userRecord = getUserRecord(parts[0]);
           if (!userRecord) {
             return createJsonResponse({ success: false, error: "User not found" });
+          }
+          if (userRecord.status === "DISABLED") {
+            return createJsonResponse({ success: false, error: "บัญชีนี้ถูกปิดใช้งาน" });
           }
           if (getActiveSessionId(userRecord.employeeId) !== sessionId) {
             return createJsonResponse({ success: false, error: "Session replaced" });
@@ -779,7 +789,7 @@ function doPost(e) {
       payload.role = 'GUEST';
     }
 
-    const writeActions = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery', 'login', 'setupPin', 'createUser', 'updateUserRole', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const writeActions = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery', 'login', 'setupPin', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'deleteParcel', 'editParcel', 'updateProfile'];
     const isWrite = writeActions.includes(action);
 
     let result;
@@ -827,6 +837,12 @@ function routeAction(action, payload) {
   if (action === 'getUsers') return handleGetUsers(payload);
   if (action === 'createUser') return handleCreateUser(payload);
   if (action === 'updateUserRole') return handleUpdateUserRole(payload);
+  if (action === 'updateUser') return handleUpdateUser(payload);
+  if (action === 'disableUser') return handleDisableUser(payload);
+  if (action === 'deleteUser') return handleDeleteUser(payload);
+  if (action === 'getBranches') return handleGetBranches(payload);
+  if (action === 'createBranch') return handleCreateBranch(payload);
+  if (action === 'deleteBranch') return handleDeleteBranch(payload);
   if (action === 'deleteParcel') return handleDeleteParcel(payload);
   if (action === 'editParcel') return handleEditParcel(payload);
   if (action === 'updateProfile') return handleUpdateProfile(payload);
@@ -1880,6 +1896,10 @@ function handleLogin(payload) {
     if (normalizeEmployeeId(data[i][0]) === employeeId) {
       const storedPin = String(data[i][4] || "").trim();
       const role = normalizeRole(data[i][3] || "GUEST");
+      const status = String(data[i][6] || "ACTIVE").trim().toUpperCase() || "ACTIVE";
+      if (status === "DISABLED") {
+        return createJsonResponse({ success: false, error: "บัญชีนี้ถูกปิดใช้งาน" });
+      }
       if (role === "GUEST") {
         return createJsonResponse({ success: false, error: "บัญชีนี้ไม่มีสิทธิ์เข้าสู่ระบบพนักงาน" });
       }
@@ -1931,12 +1951,18 @@ function handleSetupPin(payload) {
   for (let i = 1; i < data.length; i++) {
     if (normalizeEmployeeId(data[i][0]) === employeeId) {
       const storedPin = String(data[i][4] || "").trim();
+      const status = String(data[i][6] || "ACTIVE").trim().toUpperCase() || "ACTIVE";
+      if (status === "DISABLED") {
+        return createJsonResponse({ success: false, error: "บัญชีนี้ถูกปิดใช้งาน" });
+      }
       if (storedPin) {
         return createJsonResponse({ success: false, error: "รหัสพนักงานนี้มีผู้ใช้งานแล้ว" });
       }
       if (name) sheet.getRange(i + 1, 2).setValue(name);
       if (branch) sheet.getRange(i + 1, 3).setValue(branch);
       sheet.getRange(i + 1, 5).setValue(encodePassword(pin));
+      sheet.getRange(i + 1, 7).setValue("ACTIVE");
+      sheet.getRange(i + 1, 8).setValue(formatThaiDateForSheet(new Date()));
       
       const role = normalizeRole(data[i][3] || "GUEST");
       if (role === "GUEST") {
@@ -1970,7 +1996,9 @@ function handleGetUsers(payload) {
       branch: String(row[2]),
       role: normalizeRole(row[3] || "GUEST"),
       hasPin: !!String(row[4]).trim(),
-      createdAt: formatSheetDateValue(row[5])
+      createdAt: formatSheetDateValue(row[5]),
+      status: String(row[6] || "ACTIVE").trim().toUpperCase() || "ACTIVE",
+      updatedAt: formatSheetDateValue(row[7])
     });
   }
   return createJsonResponse({ success: true, users: users });
@@ -2007,7 +2035,7 @@ function handleCreateUser(payload) {
   }
 
   const createdAt = formatThaiDateForSheet(new Date());
-  sheet.appendRow([employeeId, name, branch, newRole, encodePassword(password), createdAt]);
+  sheet.appendRow([employeeId, name, branch, newRole, encodePassword(password), createdAt, "ACTIVE", createdAt]);
   writeAuditLog(payload.employeeId, "createUser", employeeId, "role=" + newRole);
 
   return createJsonResponse({
@@ -2018,7 +2046,9 @@ function handleCreateUser(payload) {
       branch: branch,
       role: newRole,
       hasPin: true,
-      createdAt: createdAt
+      createdAt: createdAt,
+      status: "ACTIVE",
+      updatedAt: createdAt
     }
   });
 }
@@ -2043,11 +2073,182 @@ function handleUpdateUserRole(payload) {
   const data = sheet.getDataRange().getValues();
   for (let i = 1; i < data.length; i++) {
     if (normalizeEmployeeId(data[i][0]) === targetId) {
+      if (normalizeRole(data[i][3] || "GUEST") === "ADMIN" && newRole !== "ADMIN" && countActiveAdmins(data) <= 1) {
+        return createJsonResponse({ success: false, error: "ต้องมี Admin อย่างน้อย 1 คน" });
+      }
       sheet.getRange(i + 1, 4).setValue(newRole);
+      sheet.getRange(i + 1, 8).setValue(formatThaiDateForSheet(new Date()));
+      setActiveSessionId(targetId, "");
       return createJsonResponse({ success: true });
     }
   }
   return createJsonResponse({ success: false, error: "กรุณากรอกข้อมูลให้ครบถ้วน" });
+}
+
+function countActiveAdmins(data) {
+  let count = 0;
+  for (let i = 1; i < data.length; i++) {
+    const role = normalizeRole(data[i][3] || "GUEST");
+    const status = String(data[i][6] || "ACTIVE").trim().toUpperCase() || "ACTIVE";
+    if (role === "ADMIN" && status !== "DISABLED") count++;
+  }
+  return count;
+}
+
+function buildUserRowResponse(row) {
+  return {
+    employeeId: normalizeEmployeeId(row[0]),
+    name: String(row[1] || ""),
+    branch: String(row[2] || ""),
+    role: normalizeRole(row[3] || "GUEST"),
+    hasPin: !!String(row[4] || "").trim(),
+    createdAt: formatSheetDateValue(row[5]),
+    status: String(row[6] || "ACTIVE").trim().toUpperCase() || "ACTIVE",
+    updatedAt: formatSheetDateValue(row[7])
+  };
+}
+
+function handleUpdateUser(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะ Admin)" });
+  }
+
+  const targetId = normalizeEmployeeId(payload.targetId);
+  const name = escapeSheetValue(payload.name);
+  const branch = escapeSheetValue(payload.branch);
+  const newRole = normalizeRole(payload.newRole);
+  const password = payload.password ? sanitizePassword(payload.password) : "";
+  if (!targetId || !name || !branch || !newRole) return createJsonResponse({ success: false, error: "กรุณากรอกข้อมูลให้ครบถ้วน" });
+  if (!validateEmployeeId(targetId)) return createJsonResponse({ success: false, error: "รหัสพนักงานไม่ถูกต้อง" });
+  if (VALID_ROLES.indexOf(newRole) === -1) return createJsonResponse({ success: false, error: "สิทธิ์ไม่ถูกต้อง" });
+  if (name.length > 100) return createJsonResponse({ success: false, error: "ชื่อยาวเกินไป" });
+  if (branch.length > 100) return createJsonResponse({ success: false, error: "ชื่อแผนก/สาขายาวเกินไป" });
+  if (password && (!validatePassword(password) || password.length > 100)) {
+    return createJsonResponse({ success: false, error: "รหัสผ่านต้องมี 4-100 ตัวอักษร และห้ามขึ้นต้นด้วย = + - หรือ @" });
+  }
+
+  const sheet = getUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (normalizeEmployeeId(data[i][0]) === targetId) {
+      if (targetId === normalizeEmployeeId(payload.employeeId) && newRole !== 'ADMIN') {
+        return createJsonResponse({ success: false, error: "ไม่สามารถลดสิทธิ์ของตัวเองได้" });
+      }
+      if (normalizeRole(data[i][3] || "GUEST") === "ADMIN" && newRole !== "ADMIN" && countActiveAdmins(data) <= 1) {
+        return createJsonResponse({ success: false, error: "ต้องมี Admin อย่างน้อย 1 คน" });
+      }
+      const updatedAt = formatThaiDateForSheet(new Date());
+      sheet.getRange(i + 1, 2).setValue(name);
+      sheet.getRange(i + 1, 3).setValue(branch);
+      sheet.getRange(i + 1, 4).setValue(newRole);
+      if (password) {
+        sheet.getRange(i + 1, 5).setValue(encodePassword(password));
+        setActiveSessionId(targetId, "");
+      }
+      sheet.getRange(i + 1, 8).setValue(updatedAt);
+      const row = sheet.getRange(i + 1, 1, 1, USER_HEADERS.length).getValues()[0];
+      writeAuditLog(payload.employeeId, "UPDATE_USER", targetId, "role=" + newRole);
+      return createJsonResponse({ success: true, user: buildUserRowResponse(row) });
+    }
+  }
+  return createJsonResponse({ success: false, error: "ไม่พบผู้ใช้" });
+}
+
+function handleDisableUser(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะ Admin)" });
+  }
+  const targetId = normalizeEmployeeId(payload.targetId);
+  if (!targetId || !validateEmployeeId(targetId)) return createJsonResponse({ success: false, error: "รหัสพนักงานไม่ถูกต้อง" });
+  if (targetId === normalizeEmployeeId(payload.employeeId)) return createJsonResponse({ success: false, error: "ไม่สามารถปิดบัญชีของตัวเองได้" });
+
+  const sheet = getUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (normalizeEmployeeId(data[i][0]) === targetId) {
+      if (normalizeRole(data[i][3] || "GUEST") === "ADMIN" && countActiveAdmins(data) <= 1) {
+        return createJsonResponse({ success: false, error: "ต้องมี Admin อย่างน้อย 1 คน" });
+      }
+      const updatedAt = formatThaiDateForSheet(new Date());
+      sheet.getRange(i + 1, 7).setValue("DISABLED");
+      sheet.getRange(i + 1, 8).setValue(updatedAt);
+      setActiveSessionId(targetId, "");
+      const row = sheet.getRange(i + 1, 1, 1, USER_HEADERS.length).getValues()[0];
+      writeAuditLog(payload.employeeId, "DISABLE_USER", targetId, "");
+      return createJsonResponse({ success: true, user: buildUserRowResponse(row) });
+    }
+  }
+  return createJsonResponse({ success: false, error: "ไม่พบผู้ใช้" });
+}
+
+function handleDeleteUser(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะ Admin)" });
+  }
+  const targetId = normalizeEmployeeId(payload.targetId);
+  if (!targetId || !validateEmployeeId(targetId)) return createJsonResponse({ success: false, error: "รหัสพนักงานไม่ถูกต้อง" });
+  if (targetId === normalizeEmployeeId(payload.employeeId)) return createJsonResponse({ success: false, error: "ไม่สามารถลบบัญชีของตัวเองได้" });
+
+  const sheet = getUsersSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (normalizeEmployeeId(data[i][0]) === targetId) {
+      if (normalizeRole(data[i][3] || "GUEST") === "ADMIN" && countActiveAdmins(data) <= 1) {
+        return createJsonResponse({ success: false, error: "ต้องมี Admin อย่างน้อย 1 คน" });
+      }
+      sheet.deleteRow(i + 1);
+      setActiveSessionId(targetId, "");
+      writeAuditLog(payload.employeeId, "DELETE_USER", targetId, "");
+      return createJsonResponse({ success: true });
+    }
+  }
+  return createJsonResponse({ success: false, error: "ไม่พบผู้ใช้" });
+}
+
+function handleGetBranches(payload) {
+  if (!hasAnyRole(payload, ["ADMIN", "MESSENGER", "GUEST"])) {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+  }
+  return createJsonResponse({ success: true, branches: readBranches() });
+}
+
+function handleCreateBranch(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะ Admin)" });
+  }
+  const name = escapeSheetValue(payload.name || "");
+  if (!name) return createJsonResponse({ success: false, error: "กรุณากรอกชื่อแผนก/สาขา" });
+  if (name.length > 100) return createJsonResponse({ success: false, error: "ชื่อแผนก/สาขายาวเกินไป" });
+
+  const sheet = getBranchesSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][0] || "").trim().toLowerCase() === name.toLowerCase()) {
+      return createJsonResponse({ success: false, error: "มีแผนก/สาขานี้แล้ว" });
+    }
+  }
+  sheet.appendRow([name, formatThaiDateForSheet(new Date()), payload.employeeId || ""]);
+  writeAuditLog(payload.employeeId, "CREATE_BRANCH", name, "");
+  return createJsonResponse({ success: true, branches: readBranches() });
+}
+
+function handleDeleteBranch(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะ Admin)" });
+  }
+  const name = String(payload.name || "").trim();
+  if (!name) return createJsonResponse({ success: false, error: "กรุณาระบุแผนก/สาขา" });
+
+  const sheet = getBranchesSheet();
+  const data = sheet.getDataRange().getValues();
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][0] || "").trim().toLowerCase() === name.toLowerCase()) {
+      sheet.deleteRow(i + 1);
+      writeAuditLog(payload.employeeId, "DELETE_BRANCH", name, "");
+      return createJsonResponse({ success: true, branches: readBranches() });
+    }
+  }
+  return createJsonResponse({ success: false, error: "ไม่พบแผนก/สาขา" });
 }
 
 function handleDeleteParcel(payload) {

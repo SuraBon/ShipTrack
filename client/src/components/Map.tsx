@@ -24,13 +24,16 @@ export function MapView({
     map.current = L.map(mapContainer.current, {
       center: [initialCenter.lat, initialCenter.lng],
       zoom: initialZoom,
-      zoomControl: true,
+      zoomControl: false,
+      preferCanvas: true,
     });
 
-    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>',
       maxZoom: 19,
+      subdomains: "abcd",
     }).addTo(map.current);
+    L.control.zoom({ position: "bottomright" }).addTo(map.current);
 
     if (onMapReady) onMapReady(map.current);
 

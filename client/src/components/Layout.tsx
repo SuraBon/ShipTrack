@@ -23,11 +23,12 @@ import {
   Settings,
   Truck,
   Users,
+  Building2,
   X,
   type LucideIcon,
 } from 'lucide-react';
 
-type PageId = "dashboard" | "create" | "track" | "users" | "login";
+type PageId = "dashboard" | "create" | "track" | "users" | "branches" | "login";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -40,6 +41,7 @@ const pagePaths: Record<PageId, string> = {
   create: "/create",
   track: "/track",
   users: "/users",
+  branches: "/branches",
   login: "/login",
 };
 
@@ -142,6 +144,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
     { id: "track",     label: UI_COPY.nav.track, icon: Search, badge: null, roles: ['GUEST'], accent: "from-violet-300 to-indigo-500" },
     { id: "login",     label: UI_COPY.nav.staffLogin, icon: LogIn, badge: null, roles: ['GUEST'], accent: "from-zinc-500 to-zinc-900" },
     { id: "users",     label: UI_COPY.nav.users, icon: Users, badge: null, roles: ['ADMIN'], accent: "from-rose-300 to-red-500" },
+    { id: "branches",  label: "แผนก/สาขา", icon: Building2, badge: null, roles: ['ADMIN'], accent: "from-slate-400 to-slate-700" },
   ];
   const navItems = allNavItems.filter(item => item.roles.includes(currentRole));
 
@@ -184,12 +187,12 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   };
 
   return (
-    <div className="min-h-screen bg-background font-body text-on-background">
+    <div className="min-h-screen bg-[#f8fafc] font-body text-on-background">
       {/* ── Main content ── */}
       <div className="flex min-h-screen flex-col">
         {/* Top bar */}
         <header
-          className="sticky top-0 z-40 border-b border-outline-variant/50 bg-background/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-background/80"
+          className="sticky top-0 z-40 border-b border-gray-100 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85"
         >
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
             <div className="min-w-0">
@@ -211,8 +214,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                       aria-current={active ? 'page' : undefined}
                       className={`inline-flex h-9 shrink-0 items-center gap-2 rounded-lg px-3 text-sm font-medium transition-colors ${
                         active
-                          ? 'bg-primary text-on-primary'
-                          : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'
+                          ? 'bg-slate-900 text-white shadow-sm'
+                          : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'
                       }`}
                     >
                       <NavIcon icon={item.icon} active={active} />
@@ -228,7 +231,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
               <div className="relative" ref={notifRef}>
                   <button
                     onClick={handleBellClick}
-                    className="relative grid h-9 w-9 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    className="relative grid h-9 w-9 place-items-center rounded-xl text-slate-500 transition-colors hover:bg-slate-50 hover:text-slate-900"
                     aria-label="อัปเดตล่าสุด"
                   >
                     <Bell className="h-5 w-5" aria-hidden="true" />
@@ -306,13 +309,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-7xl flex-1 px-3 pb-24 pt-4 sm:px-6 sm:pb-10 lg:px-8">
+        <main className="mx-auto w-full max-w-7xl flex-1 px-3 pb-24 pt-4 sm:px-5 md:px-6 md:pb-10 lg:px-8">
           {children}
         </main>
       </div>
 
       {navItems.length > 1 && (
-        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-outline-variant/60 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(24,24,27,0.08)] backdrop-blur md:hidden">
+        <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
           <div className={`mx-auto grid max-w-md gap-1 ${navItems.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
             {navItems.map((item) => {
               const active = currentPage === item.id;
@@ -324,8 +327,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                   aria-current={active ? 'page' : undefined}
                   className={`flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${
                     active
-                      ? 'bg-primary text-on-primary'
-                      : 'text-on-surface-variant hover:bg-surface-container hover:text-primary'
+                      ? 'bg-slate-900 text-white'
+                      : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
                   }`}
                 >
                   <NavIcon icon={item.icon} active={active} />

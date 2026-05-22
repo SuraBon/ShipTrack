@@ -79,6 +79,18 @@ export function setBranches(branches: string[]): void {
   window.dispatchEvent(new Event(CONFIG_UPDATED_EVENT));
 }
 
+function normalizeBranchList(branches: unknown): string[] {
+  if (!Array.isArray(branches)) return [];
+  const seen = new Set<string>();
+  return branches
+    .map(branch => String(branch || '').trim())
+    .filter(branch => {
+      if (!branch || seen.has(branch)) return false;
+      seen.add(branch);
+      return true;
+    });
+}
+
 export function isConfigured(): boolean {
   return !!GAS_URL && BRANCHES.length > 0;
 }
@@ -361,6 +373,43 @@ export async function exportSummary(): Promise<ParcelSummary | null> {
   }
 }
 
+// --- Branches ---
+
+export async function loadBranches(): Promise<string[]> {
+  if (!GAS_URL) return BRANCHES;
+  try {
+    const res = await callAPI<{ success: boolean; branches?: string[]; error?: string }>({ action: 'getBranches' }, { includeAuth: true, dispatchAuthError: false });
+    const nextBranches = normalizeBranchList(res.branches);
+    if (res.success && nextBranches.length > 0) {
+      setBranches(nextBranches);
+      return nextBranches;
+    }
+  } catch {
+    // Keep local/default branch list as a safe form fallback.
+  }
+  return BRANCHES;
+}
+
+export async function createBranch(name: string): Promise<{ success: boolean; branches?: string[]; error?: string }> {
+  try {
+    const res = await callAPI<{ success: boolean; branches?: string[]; error?: string }>({ action: 'createBranch', name }, {}, NO_RETRY);
+    if (res.success && res.branches) setBranches(normalizeBranchList(res.branches));
+    return res;
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+export async function deleteBranch(name: string): Promise<{ success: boolean; branches?: string[]; error?: string }> {
+  try {
+    const res = await callAPI<{ success: boolean; branches?: string[]; error?: string }>({ action: 'deleteBranch', name }, {}, NO_RETRY);
+    if (res.success && res.branches) setBranches(normalizeBranchList(res.branches));
+    return res;
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
 // --- Users & RBAC ---
 
 export interface User {
@@ -374,6 +423,8 @@ export interface User {
 export interface UserRow extends User {
   hasPin: boolean;
   createdAt: string;
+  status?: 'ACTIVE' | 'DISABLED';
+  updatedAt?: string;
 }
 
 export interface CreateUserInput {
@@ -382,6 +433,20 @@ export interface CreateUserInput {
   branch: string;
   role: 'ADMIN' | 'MESSENGER';
   password: string;
+}
+
+export interface UpdateUserInput {
+  targetId: string;
+  name: string;
+  branch: string;
+  role: 'ADMIN' | 'MESSENGER';
+  password?: string;
+}
+
+export interface BranchRow {
+  name: string;
+  createdAt?: string;
+  createdBy?: string;
 }
 
 function normalizeUser(user: User): User {
@@ -482,6 +547,45 @@ export async function createUser(input: CreateUserInput): Promise<{ success: boo
 export async function updateUserRole(targetId: string, newRole: string): Promise<{ success: boolean, error?: string }> {
   try {
     return await callAPI({ action: 'updateUserRole', targetId, newRole }, {}, NO_RETRY);
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+export async function updateUser(input: UpdateUserInput): Promise<{ success: boolean, user?: UserRow, error?: string }> {
+  try {
+    const res = await callAPI<{ success: boolean, user?: UserRow, error?: string }>({
+      action: 'updateUser',
+      targetId: input.targetId,
+      name: input.name,
+      branch: input.branch,
+      newRole: input.role,
+      password: input.password,
+    }, {}, NO_RETRY);
+    if (res.success && res.user) {
+      res.user = { ...res.user, role: normalizeRole(res.user.role) };
+    }
+    return res;
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+export async function disableUser(targetId: string): Promise<{ success: boolean, user?: UserRow, error?: string }> {
+  try {
+    const res = await callAPI<{ success: boolean, user?: UserRow, error?: string }>({ action: 'disableUser', targetId }, {}, NO_RETRY);
+    if (res.success && res.user) {
+      res.user = { ...res.user, role: normalizeRole(res.user.role) };
+    }
+    return res;
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+export async function deleteUser(targetId: string): Promise<{ success: boolean, error?: string }> {
+  try {
+    return await callAPI({ action: 'deleteUser', targetId }, {}, NO_RETRY);
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
   }

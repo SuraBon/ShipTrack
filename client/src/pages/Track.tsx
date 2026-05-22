@@ -20,11 +20,14 @@ import {
   type CreatedParcelHistoryItem,
 } from '@/lib/createdParcelHistory';
 
+const TRACK_RESULTS_BATCH_SIZE = 12;
+
 export default function Track({ embedded = false }: { embedded?: boolean }) {
   const [trackingId, setTrackingId] = useState('');
   const [parcel, setParcel] = useState<Parcel | null>(null);
   const [searchResults, setSearchResults] = useState<Parcel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [visibleSearchResultCount, setVisibleSearchResultCount] = useState(TRACK_RESULTS_BATCH_SIZE);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [createdHistory, setCreatedHistory] = useState<CreatedParcelHistoryItem[]>([]);
 
@@ -70,6 +73,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     if (!id) { toast.error('กรุณากรอกหมายเลขติดตาม ชื่อผู้รับ หรือสถานที่ปลายทาง'); return; }
     // ✅ FIX: sync input display with what we're actually searching
     if (searchId && searchId !== trackingId) setTrackingId(searchId);
+    setVisibleSearchResultCount(TRACK_RESULTS_BATCH_SIZE);
     setIsLoading(true);
     try {
       const res = await getParcel(id);
@@ -111,6 +115,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
   };
 
   const timelineEvents = useMemo(() => parcel ? parseParcelTimeline(parcel) : [], [parcel]);
+  const visibleSearchResults = searchResults.slice(0, visibleSearchResultCount);
 
   /** True when we have GPS location data to display on the map. */
   const hasLocationData = useMemo(() => {
@@ -122,23 +127,23 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
   }, [parcel, timelineEvents]);
 
   return (
-    <div className={`${embedded ? 'max-w-none pb-4' : 'max-w-6xl mx-auto pb-20'} space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+    <div className={`${embedded ? 'max-w-none pb-4' : 'app-page'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
 
       {/* Header */}
-      <section className={`${embedded ? 'hidden' : 'app-card px-4 py-4 sm:px-5'}`}>
+      <section className={`${embedded ? 'hidden' : 'app-page-header'}`}>
         <div className="flex items-start gap-4">
-          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
+          <div className="hidden size-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm md:flex">
             <span className="material-symbols-outlined text-[24px]" style={{ fontVariationSettings: "'FILL' 1" }}>location_searching</span>
           </div>
           <div>
-            <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{UI_COPY.nav.track}</h1>
-            <p className="app-muted mt-1">ค้นหาด้วยหมายเลขติดตาม ผู้รับ หรือปลายทาง</p>
+            <h1 className="app-page-title">{UI_COPY.nav.track}</h1>
+            <p className="app-page-subtitle">ค้นหาด้วยหมายเลขติดตาม ผู้รับ หรือปลายทาง</p>
           </div>
         </div>
       </section>
 
       {/* Search box */}
-      <div className="app-card p-3 sm:p-4">
+      <div className="app-toolbar">
         <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1 group">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground transition-colors group-focus-within:text-primary">search</span>
@@ -156,7 +161,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             </button>
           </div>
           <button type="submit" disabled={isLoading}
-            className="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 active:scale-[0.98] disabled:opacity-50 sm:px-8">
+            className="app-primary-button h-12 sm:px-8">
             {isLoading
               ? <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
               : 'ดูสถานะ'}
@@ -188,7 +193,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       {createdHistory.length > 0 && !embedded && (
-        <section className="app-card p-4">
+        <section className="app-panel p-4">
           <div className="mb-3 flex items-center justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-foreground">พัสดุที่สร้างจากเครื่องนี้</h2>
@@ -202,7 +207,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 key={item.trackingID}
                 type="button"
                 onClick={() => { setTrackingId(item.trackingID); handleSearch(undefined, item.trackingID); }}
-                className="rounded-lg border border-border bg-background p-4 text-left transition-all hover:border-primary/35 hover:bg-muted/50"
+                  className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-left transition-all hover:border-primary/35 hover:bg-white"
               >
                 <div className="flex items-start justify-between gap-2">
                   <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">{item.trackingID}</code>
@@ -229,16 +234,16 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
               <h3 className="text-sm font-bold text-primary">รายการที่พบ</h3>
               <span className="px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-bold rounded-full">{searchResults.length}</span>
             </div>
-            <button onClick={() => setSearchResults([])}
+            <button onClick={() => { setSearchResults([]); setVisibleSearchResultCount(TRACK_RESULTS_BATCH_SIZE); }}
               className="text-xs text-on-surface-variant/60 hover:text-error font-semibold flex items-center gap-1 transition-colors">
               <span className="material-symbols-outlined text-sm">close</span>ล้างรายการ
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {searchResults.map(p => (
+            {visibleSearchResults.map(p => (
               <div key={p.TrackingID}
                 onClick={() => { updateCreatedParcelHistoryFromParcel(p); setParcel(p); setSearchResults([]); addToRecent(p.TrackingID); }}
-                className="cursor-pointer rounded-lg border border-border bg-card p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-muted/40">
+                className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-gray-50">
                 <div className="flex justify-between items-start mb-3">
                   <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">{p.TrackingID}</code>
                   <StatusBadge status={p['สถานะ']} />
@@ -255,6 +260,17 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
               </div>
             ))}
           </div>
+          {searchResults.length > visibleSearchResultCount && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setVisibleSearchResultCount(current => current + TRACK_RESULTS_BATCH_SIZE)}
+                className="app-secondary-button h-10 px-4 text-xs"
+              >
+                แสดงเพิ่ม {Math.min(TRACK_RESULTS_BATCH_SIZE, searchResults.length - visibleSearchResultCount)} รายการ
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -266,9 +282,9 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             <span className="material-symbols-outlined text-base">arrow_back</span>ค้นหาใหม่
           </button>
 
-          <div className="app-card overflow-hidden">
+          <div className="app-panel overflow-hidden">
             {/* Card header */}
-            <div className="border-b border-border bg-muted/45 p-4 sm:p-5">
+            <div className="app-panel-header sm:p-5">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -291,12 +307,12 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             </div>
 
             {/* Card body */}
-            <div className="p-4 sm:p-7">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+            <div className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(340px,1.1fr)] lg:gap-6">
                 {/* Info column */}
                 <div className="space-y-5">
                   {/* Sender / Receiver */}
-                  <div className="space-y-4 rounded-lg border border-border bg-background p-4">
+                  <div className="space-y-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
                     <p className="text-xs font-semibold text-muted-foreground">จากไหน ไปให้ใคร</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {[
@@ -315,7 +331,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                         </div>
                       ))}
                     </div>
-                    <div className="grid grid-cols-2 gap-4 border-t border-border pt-3">
+                    <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-3">
                       <div>
                         <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider">ประเภท</p>
                         <p className="font-bold text-primary text-sm mt-0.5">{parcel['ประเภทเอกสาร']}</p>
@@ -332,7 +348,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
 
                   {/* Notes */}
                   {(parcel['รายละเอียด'] || (parcel['หมายเหตุ'] && parcel['หมายเหตุ'].replace(/\[.*?\]/g, '').trim())) && (
-                    <div className="space-y-3 rounded-lg border border-border bg-background p-4">
+                    <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
                       {parcel['รายละเอียด'] && (
                         <div>
                           <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1 flex items-center gap-1">
@@ -365,14 +381,14 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
 
                 {/* Timeline + Map column */}
                 <div className="space-y-5">
-                  <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 sm:p-5">
                     <p className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                       <span className="material-symbols-outlined text-sm">route</span>{UI_COPY.parcel.routeHistory}
                     </p>
                     <Timeline events={timelineEvents} />
                   </div>
                   {hasLocationData ? (
-                    <div className="overflow-hidden rounded-lg border border-border shadow-sm">
+                    <div className="overflow-hidden rounded-xl border border-gray-100 shadow-sm">
                       <TrackingMap events={timelineEvents} />
                     </div>
                   ) : (

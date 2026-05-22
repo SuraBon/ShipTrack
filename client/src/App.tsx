@@ -5,7 +5,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
 import Login from "./pages/Login";
-import { isConfigured, onConfigUpdated } from "./lib/parcelService";
+import { isConfigured, loadBranches, onConfigUpdated } from "./lib/parcelService";
 import { useAuth } from "./contexts/AuthContext";
 import { normalizeRole } from "./lib/roles";
 import { canAccessPage, getVisiblePage, type PageId } from "./lib/permissionHelper";
@@ -14,12 +14,14 @@ const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CreateParcel = lazy(() => import("./pages/CreateParcel"));
 const Track = lazy(() => import("./pages/Track"));
 const UserManagement = lazy(() => import("./pages/UserManagement"));
+const BranchManagement = lazy(() => import("./pages/BranchManagement"));
 
 const pagePaths: Record<PageId, string> = {
   dashboard: "/dashboard",
   create: "/create",
   track: "/track",
   users: "/users",
+  branches: "/branches",
   login: "/login",
 };
 
@@ -29,6 +31,7 @@ const pathPages: Record<string, PageId> = {
   "/create": "create",
   "/track": "track",
   "/users": "users",
+  "/branches": "branches",
   "/login": "login",
 };
 
@@ -69,11 +72,16 @@ function App() {
     return route.page;
   });
   const [isConfiguredState, setIsConfiguredState] = useState(isConfigured());
+  const [, setConfigVersion] = useState(0);
 
   useEffect(() => {
-    const updateConfig = () => setIsConfiguredState(isConfigured());
+    const updateConfig = () => {
+      setIsConfiguredState(isConfigured());
+      setConfigVersion(version => version + 1);
+    };
     const unsubscribe = onConfigUpdated(updateConfig);
     updateConfig();
+    void loadBranches().finally(updateConfig);
     return unsubscribe;
   }, []);
 
@@ -131,6 +139,8 @@ function App() {
         return <ErrorBoundary><CreateParcel /></ErrorBoundary>;
       case "users":
         return <ErrorBoundary><UserManagement /></ErrorBoundary>;
+      case "branches":
+        return <ErrorBoundary><BranchManagement /></ErrorBoundary>;
       case "track":
         return <ErrorBoundary><Track /></ErrorBoundary>;
       case "login":

@@ -202,11 +202,11 @@
 
 @layer components {
   .app-card {
-    @apply rounded-xl border border-border bg-card text-card-foreground shadow-sm;
+    @apply rounded-2xl border border-gray-100 bg-white text-card-foreground shadow-sm;
   }
 
   .app-input {
-    @apply min-h-11 rounded-lg border border-input bg-background px-3 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/15 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply min-h-11 rounded-xl border border-gray-100 bg-gray-50 px-3 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-gray-400 focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .app-section-title {
@@ -215,6 +215,58 @@
 
   .app-muted {
     @apply text-sm leading-relaxed text-muted-foreground;
+  }
+
+  .app-page {
+    @apply mx-auto w-full max-w-[390px] space-y-4 pb-24 md:max-w-7xl md:space-y-5 md:pb-8;
+  }
+
+  .app-page-narrow {
+    @apply mx-auto w-full max-w-[390px] space-y-4 pb-24 md:max-w-5xl md:space-y-5 md:pb-8;
+  }
+
+  .app-page-header {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .app-page-title {
+    @apply text-xl font-bold leading-tight text-gray-800 md:text-2xl;
+  }
+
+  .app-page-subtitle {
+    @apply mt-0.5 text-xs leading-relaxed text-gray-500 md:text-sm;
+  }
+
+  .app-panel {
+    @apply rounded-2xl border border-gray-100 bg-white shadow-sm;
+  }
+
+  .app-panel-header {
+    @apply border-b border-gray-100 bg-gray-50 px-4 py-3;
+  }
+
+  .app-compact-card {
+    @apply rounded-2xl border border-gray-100 bg-white p-4 shadow-sm;
+  }
+
+  .app-toolbar {
+    @apply rounded-2xl border border-gray-100 bg-white p-3 shadow-sm md:p-4;
+  }
+
+  .app-primary-button {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .app-secondary-button {
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .app-bottom-action {
+    @apply fixed inset-x-0 bottom-[4.75rem] z-40 border-t border-gray-100 bg-white/95 px-4 pb-3 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none;
+  }
+
+  .app-desktop-split {
+    @apply grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(320px,0.44fr)] lg:grid-cols-[minmax(0,1fr)_400px];
   }
 
   /**
@@ -278,6 +330,34 @@
 
   .logitrack-popup .leaflet-popup-tip {
     box-shadow: 0 8px 18px rgba(9, 20, 38, 0.16);
+  }
+
+  .leaflet-container {
+    font-family: inherit;
+    background: #f8fafc;
+  }
+
+  .leaflet-control-zoom {
+    overflow: hidden;
+    border: 1px solid rgba(226, 232, 240, 0.95) !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12) !important;
+  }
+
+  .leaflet-control-zoom a {
+    width: 34px !important;
+    height: 34px !important;
+    border: 0 !important;
+    color: #0f172a !important;
+    font: 700 18px/34px ui-sans-serif, system-ui, sans-serif !important;
+  }
+
+  .leaflet-control-attribution {
+    border-radius: 10px 0 0 0;
+    background: rgba(255, 255, 255, 0.78) !important;
+    color: #94a3b8 !important;
+    font-size: 9px !important;
+    backdrop-filter: blur(8px);
   }
 
   @keyframes logitrack-pin-pulse {
