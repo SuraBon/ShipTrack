@@ -768,48 +768,117 @@ const AdminParcelManagementCard = ({
   onReleaseDelivery: () => void;
   isReleasingDelivery: boolean;
   assignment: DeliveryAssignment | null;
-}) => (
-  <article className="rounded-2xl border border-outline-variant/20 bg-white p-3 shadow-sm sm:p-4">
-    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2">
-          <code className="rounded-lg bg-primary/6 px-2 py-1 font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
-          <StaleBadge parcel={parcel} />
+}) => {
+  const note = getCleanNote(parcel);
+  const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
+  const isInTransit = parcel['สถานะ'] === 'กำลังจัดส่ง';
+  const statusLabel = isDone ? 'ส่งแล้ว' : isInTransit ? 'กำลังส่ง' : 'รอดำเนินการ';
+  const statusPillClass = isDone
+    ? 'bg-emerald-100 text-emerald-700'
+    : isInTransit
+      ? 'bg-blue-100 text-blue-600'
+      : 'bg-amber-100 text-amber-700';
+  const accentClass = isDone
+    ? 'bg-emerald-50 text-emerald-600'
+    : isInTransit
+      ? 'bg-blue-50 text-blue-500'
+      : 'bg-amber-50 text-amber-600';
+  const iconName = isDone ? 'check_circle' : isInTransit ? 'local_shipping' : 'inventory_2';
+  const dateLabel = parcel['วันที่รับ']
+    ? new Date(parcel['วันที่รับ']).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
+    : parcel['วันที่สร้าง']
+      ? new Date(parcel['วันที่สร้าง']).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
+      : 'ยังไม่มีวันที่';
+
+  return (
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.04)] transition-all duration-200 hover:shadow-md">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2">
+        <code className="min-w-0 truncate font-mono text-[10px] font-black tracking-wider text-slate-400">
+          {parcel.TrackingID}
+        </code>
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusPillClass}`}>
+          {statusLabel}
+        </span>
+      </div>
+
+      <div className="flex flex-1 flex-col justify-between p-4">
+        <div className="space-y-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${accentClass}`}>
+                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>{iconName}</span>
+              </span>
+              <div className="min-w-0">
+                <p className="text-[10px] leading-none text-slate-400">ผู้รับ</p>
+                <h3 className="mt-1 truncate text-sm font-semibold leading-tight text-slate-800">
+                  {parcel['ผู้รับ'] || '-'}
+                </h3>
+              </div>
+            </div>
+            <StatusBadge status={parcel['สถานะ']} />
+          </div>
+
+          <MessengerRouteSummary parcel={parcel} />
+
+          <div className="space-y-2">
+            {(parcel['รายละเอียด'] || note) && (
+              <>
+                {parcel['รายละเอียด'] && (
+                  <div className="flex min-w-0 items-start gap-2">
+                    <Package className="mt-0.5 h-3 w-3 shrink-0 text-slate-400" aria-hidden="true" />
+                    <p className="min-w-0 truncate text-[11px] text-slate-600">
+                      <span className="font-semibold text-slate-800">พัสดุ:</span> {parcel['รายละเอียด']}
+                    </p>
+                  </div>
+                )}
+                {note && (
+                  <div className="flex min-w-0 items-start gap-2">
+                    <span className="material-symbols-outlined mt-0.5 shrink-0 text-[13px] text-orange-400">sticky_note_2</span>
+                    <p className="min-w-0 truncate text-[11px] text-slate-600">
+                      <span className="font-semibold text-orange-600">หมายเหตุ:</span> {note}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+            <StaleBadge parcel={parcel} />
+          </div>
+
+          {assignment && !isDone && (
+            <AssignmentBadge
+              assignment={assignment}
+              canRelease
+              isReleasing={isReleasingDelivery}
+              onRelease={onReleaseDelivery}
+            />
+          )}
+
+          <div className="rounded-xl bg-slate-50 px-3 py-2">
+            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">ล่าสุด</p>
+            <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-slate-700">{getLatestTimelineSummary(parcel)}</p>
+          </div>
         </div>
-        <p className="mt-2 text-base font-black leading-tight text-primary">{parcel['ผู้ส่ง'] || '-'} → {parcel['ผู้รับ'] || '-'}</p>
-        <p className="mt-1 text-xs font-semibold text-on-surface-variant/70">{parcel['สาขาผู้ส่ง'] || '-'} → {parcel['สาขาผู้รับ'] || '-'}</p>
+
+        <div className="mt-4 flex flex-col gap-3 border-t border-slate-50 pt-3">
+          <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
+            <span className="material-symbols-outlined text-[14px]">schedule</span>
+            <span className="truncate">{dateLabel}</span>
+          </div>
+          <CardActions
+            parcel={parcel}
+            onOpen={onOpen}
+            onConfirm={onConfirm}
+            onDelete={onDelete}
+            canConfirm
+            canDelete
+            detailLabel="ดูรายละเอียด"
+            compactDetail
+          />
+        </div>
       </div>
-      <StatusBadge status={parcel['สถานะ']} />
-    </div>
-    <div className="mt-3">
-      <ParcelInfoStrip parcel={parcel} />
-    </div>
-    {assignment && parcel['สถานะ'] !== 'ส่งสำเร็จ' && (
-      <div className="mt-3">
-        <AssignmentBadge
-          assignment={assignment}
-          canRelease
-          isReleasing={isReleasingDelivery}
-          onRelease={onReleaseDelivery}
-        />
-      </div>
-    )}
-    <div className="mt-3 rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
-      <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">ล่าสุด</p>
-      <p className="mt-0.5 line-clamp-2 text-xs font-bold leading-snug text-primary">{getLatestTimelineSummary(parcel)}</p>
-    </div>
-    <div className="mt-3">
-      <CardActions
-        parcel={parcel}
-        onOpen={onOpen}
-        onConfirm={onConfirm}
-        onDelete={onDelete}
-        canConfirm
-        canDelete
-      />
-    </div>
-  </article>
-);
+    </article>
+  );
+};
 
 export default function Dashboard({ isConfigured }: DashboardProps) {
   const { user } = useAuth();
@@ -1138,7 +1207,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   }
 
   return (
-    <div className={`${isMessengerDashboard ? 'mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5' : 'app-page'} animate-in fade-in slide-in-from-bottom-4 duration-500`}>
+    <div className="mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {error && (
         <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -1199,7 +1268,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       )}
 
       {/* ── Filters ── */}
-      <div className={isMessengerDashboard ? 'bg-transparent md:rounded-2xl md:border md:border-gray-100 md:bg-white md:p-4 md:shadow-sm' : 'app-toolbar'}>
+      <div className="bg-transparent md:rounded-2xl md:border md:border-gray-100 md:bg-white md:p-4 md:shadow-sm">
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Search */}
           <div className="relative min-w-0 flex-1">
@@ -1270,36 +1339,22 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 <option value={50}>50 / หน้า</option>
               </select>
             </label>
+            {hasFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="col-span-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-white px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 sm:col-span-1"
+              >
+                <FilterX className="h-3.5 w-3.5" aria-hidden="true" />
+                ล้างตัวกรอง
+              </button>
+            )}
           </div>
         )}
       </div>
 
       {/* ── Role Cards ── */}
-      <section className={isMessengerDashboard ? 'overflow-visible bg-transparent' : 'app-panel overflow-hidden'}>
-        {!isMessengerDashboard && (
-        <div className="flex items-center justify-between gap-3 border-b border-outline-variant/10 px-3 py-2.5 sm:px-5 sm:py-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <span className="material-symbols-outlined text-base text-primary sm:text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>
-              {isMessengerDashboard ? 'route' : 'view_agenda'}
-            </span>
-            <h2 className="truncate font-display text-sm font-bold text-primary">
-              {isMessengerDashboard ? 'งานจัดส่ง' : 'รายการจัดการพัสดุ'}
-            </h2>
-            <span className="rounded-full bg-primary/8 px-2 py-0.5 text-[11px] font-bold text-primary">
-              {filteredParcels.length}
-            </span>
-            {loading && <span className="material-symbols-outlined text-sm text-primary animate-spin">progress_activity</span>}
-          </div>
-          {hasFilters && !isMessengerDashboard && (
-            <button onClick={clearFilters}
-              className="flex shrink-0 items-center gap-1 text-[11px] font-semibold text-error/80 transition-colors hover:text-error sm:text-xs">
-              <span className="material-symbols-outlined text-sm">filter_alt_off</span>
-              ล้างตัวกรอง
-            </button>
-          )}
-        </div>
-        )}
-
+      <section className="overflow-visible bg-transparent">
         {loading && !filteredParcels.length ? (
           <TableSkeleton />
         ) : !filteredParcels.length ? (
@@ -1508,17 +1563,17 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             </div>
           </div>
         ) : (
-          <div className="space-y-3 p-3 sm:p-4">
+          <div className="space-y-4 pb-4">
             {adminNeedsAttentionParcels.length > 0 && (
-              <div className="mb-5 rounded-2xl border border-amber-100 bg-amber-50/50 p-3 sm:p-4">
-                <RoleSectionHeader
+              <div>
+                <MessengerViewBanner
                   icon="priority_high"
                   title="ต้องจัดการ"
                   subtitle="งานที่ยังไม่สำเร็จหรือค้างนาน แสดงก่อนเพื่อไม่ต้องไล่หาเอง"
                   count={adminNeedsAttentionParcels.length}
                   tone="amber"
                 />
-                <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                   {adminNeedsAttentionParcels.map(parcel => (
                     <AdminParcelManagementCard
                       key={`attention-${parcel.TrackingID}`}
@@ -1534,29 +1589,31 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 </div>
               </div>
             )}
-            <RoleSectionHeader
+            <MessengerViewBanner
               icon="view_agenda"
               title="รายการทั้งหมด"
               subtitle="แสดงตามตัวกรองปัจจุบัน"
               count={paginatedParcels.length}
             />
-            {paginatedParcels.map(parcel => (
-              <AdminParcelManagementCard
-                key={parcel.TrackingID}
-                parcel={parcel}
-                assignment={getActiveDeliveryAssignment(parcel)}
-                onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-              />
-            ))}
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {paginatedParcels.map(parcel => (
+                <AdminParcelManagementCard
+                  key={parcel.TrackingID}
+                  parcel={parcel}
+                  assignment={getActiveDeliveryAssignment(parcel)}
+                  onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                  onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                  onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                  onReleaseDelivery={() => handleReleaseDelivery(parcel)}
+                  isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
+                />
+              ))}
+            </div>
           </div>
         )}
 
         {!isMessengerDashboard && filteredParcels.length > 0 && (
-          <div className="flex flex-col gap-3 border-t border-outline-variant/10 bg-surface-container-lowest/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white/95 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
             <span className="text-xs text-on-surface-variant/60">
               แสดง <span className="font-bold text-primary">{startIndex}–{endIndex}</span> จาก <span className="font-bold text-primary">{adminTotalCount}</span> รายการ
               {filteredParcels.length !== parcels.length && <span className="text-on-surface-variant/40"> (กรองจาก {parcels.length})</span>}
