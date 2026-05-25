@@ -13,6 +13,7 @@ import TrackingMap from '@/components/TrackingMap';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
 import { UI_COPY } from '@/lib/uiCopy';
+import { translateSystemNote } from '@/lib/translationUtils';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   clearCreatedParcelHistory,
@@ -41,6 +42,42 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
   const [createdHistory, setCreatedHistory] = useState<CreatedParcelHistoryItem[]>([]);
   const [notFoundQuery, setNotFoundQuery] = useState<string | null>(null);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [isRefreshingHistory, setIsRefreshingHistory] = useState(false);
+
+  const handleRefreshHistory = async () => {
+    if (isRefreshingHistory) return;
+    setIsRefreshingHistory(true);
+    const history = getCreatedParcelHistory();
+    if (history.length === 0) {
+      setIsRefreshingHistory(false);
+      return;
+    }
+    toast.promise(
+      (async () => {
+        let updatedCount = 0;
+        for (const item of history) {
+          try {
+            const res = await getParcel(item.trackingID);
+            if (res.success && res.parcel) {
+              updateCreatedParcelHistoryFromParcel(res.parcel);
+              updatedCount++;
+            }
+          } catch {
+            // ignore
+          }
+        }
+        setCreatedHistory(getCreatedParcelHistory());
+        return updatedCount;
+      })(),
+      {
+        loading: 'กำลังอัปเดตสถานะล่าสุด...',
+        success: (count) => `อัปเดตสถานะสำเร็จ ${count} รายการ`,
+        error: 'เกิดข้อผิดพลาดในการอัปเดตสถานะ',
+      }
+    ).finally(() => {
+      setIsRefreshingHistory(false);
+    });
+  };
 
   useEffect(() => {
     try {
@@ -62,6 +99,26 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     syncHistory();
     window.addEventListener('doc-track-created-parcels-updated', syncHistory);
     return () => window.removeEventListener('doc-track-created-parcels-updated', syncHistory);
+  }, []);
+
+  // Silent update on mount to keep local history statuses fresh
+  useEffect(() => {
+    const silentRefreshHistory = async () => {
+      const history = getCreatedParcelHistory();
+      if (history.length === 0) return;
+      for (const item of history) {
+        try {
+          const res = await getParcel(item.trackingID);
+          if (res.success && res.parcel) {
+            updateCreatedParcelHistoryFromParcel(res.parcel);
+          }
+        } catch {
+          // ignore
+        }
+      }
+      setCreatedHistory(getCreatedParcelHistory());
+    };
+    void silentRefreshHistory();
   }, []);
 
   const addToRecent = (id: string) => {
@@ -225,6 +282,55 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         </div>
       </div>
 
+      {/* Search results */}
+      {searchResults.length > 0 && !parcel && (
+        <div className="space-y-3 animate-in slide-in-from-bottom-4 duration-400">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
+              <h3 className="text-sm font-bold text-primary">รายการที่พบ</h3>
+              <span className="px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-bold rounded-full">{searchResults.length}</span>
+            </div>
+            <button onClick={() => { setSearchResults([]); setVisibleSearchResultCount(TRACK_RESULTS_BATCH_SIZE); }}
+              className="text-xs text-on-surface-variant/60 hover:text-error font-semibold flex items-center gap-1 transition-colors">
+              <span className="material-symbols-outlined text-sm">close</span>ล้างรายการ
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
+            {visibleSearchResults.map(p => (
+              <div key={p.TrackingID}
+                onClick={() => { updateCreatedParcelHistoryFromParcel(p); setParcel(p); setSearchResults([]); addToRecent(p.TrackingID); }}
+                className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-gray-50">
+                <div className="flex justify-between items-start mb-3">
+                  <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">{p.TrackingID}</code>
+                  <StatusBadge status={p['สถานะ']} />
+                </div>
+                <div className="flex items-center gap-1.5 text-sm">
+                  <span className="truncate font-medium text-foreground">{p['ผู้ส่ง']}</span>
+                  <span className="material-symbols-outlined shrink-0 text-sm text-muted-foreground">arrow_forward</span>
+                  <span className="truncate font-medium text-foreground">{p['ผู้รับ']}</span>
+                </div>
+                <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
+                  <span className="material-symbols-outlined text-sm">event</span>
+                  {formatThaiDateTime(p['วันที่สร้าง'])}
+                </div>
+              </div>
+            ))}
+          </div>
+          {searchResults.length > visibleSearchResultCount && (
+            <div className="flex justify-center">
+              <button
+                type="button"
+                onClick={() => setVisibleSearchResultCount(current => current + TRACK_RESULTS_BATCH_SIZE)}
+                className="app-secondary-button h-10 px-4 text-xs"
+              >
+                แสดงเพิ่ม {Math.min(TRACK_RESULTS_BATCH_SIZE, searchResults.length - visibleSearchResultCount)} รายการ
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
       {createdHistory.length > 0 && !embedded && (
         <section className="app-card overflow-hidden">
           <div className="app-panel-header">
@@ -240,6 +346,15 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="rounded-md bg-white px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-xs ring-1 ring-gray-100">{createdHistory.length}</span>
+                <button
+                  type="button"
+                  onClick={handleRefreshHistory}
+                  disabled={isRefreshingHistory}
+                  className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-white hover:text-primary disabled:opacity-50 flex items-center gap-1"
+                >
+                  <span className={`material-symbols-outlined text-[14px] ${isRefreshingHistory ? 'animate-spin' : ''}`}>refresh</span>
+                  อัปเดตสถานะ
+                </button>
                 <button
                   type="button"
                   onClick={() => {
@@ -309,54 +424,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         </section>
       )}
 
-      {/* Search results */}
-      {searchResults.length > 0 && !parcel && (
-        <div className="space-y-3 animate-in slide-in-from-bottom-4 duration-400">
-          <div className="flex items-center justify-between px-1">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
-              <h3 className="text-sm font-bold text-primary">รายการที่พบ</h3>
-              <span className="px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-bold rounded-full">{searchResults.length}</span>
-            </div>
-            <button onClick={() => { setSearchResults([]); setVisibleSearchResultCount(TRACK_RESULTS_BATCH_SIZE); }}
-              className="text-xs text-on-surface-variant/60 hover:text-error font-semibold flex items-center gap-1 transition-colors">
-              <span className="material-symbols-outlined text-sm">close</span>ล้างรายการ
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
-            {visibleSearchResults.map(p => (
-              <div key={p.TrackingID}
-                onClick={() => { updateCreatedParcelHistoryFromParcel(p); setParcel(p); setSearchResults([]); addToRecent(p.TrackingID); }}
-                className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-gray-50">
-                <div className="flex justify-between items-start mb-3">
-                  <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">{p.TrackingID}</code>
-                  <StatusBadge status={p['สถานะ']} />
-                </div>
-                <div className="flex items-center gap-1.5 text-sm">
-                  <span className="truncate font-medium text-foreground">{p['ผู้ส่ง']}</span>
-                  <span className="material-symbols-outlined shrink-0 text-sm text-muted-foreground">arrow_forward</span>
-                  <span className="truncate font-medium text-foreground">{p['ผู้รับ']}</span>
-                </div>
-                <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className="material-symbols-outlined text-sm">event</span>
-                  {formatThaiDateTime(p['วันที่สร้าง'])}
-                </div>
-              </div>
-            ))}
-          </div>
-          {searchResults.length > visibleSearchResultCount && (
-            <div className="flex justify-center">
-              <button
-                type="button"
-                onClick={() => setVisibleSearchResultCount(current => current + TRACK_RESULTS_BATCH_SIZE)}
-                className="app-secondary-button h-10 px-4 text-xs"
-              >
-                แสดงเพิ่ม {Math.min(TRACK_RESULTS_BATCH_SIZE, searchResults.length - visibleSearchResultCount)} รายการ
-              </button>
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* Parcel detail popup */}
       <Dialog open={!!parcel} onOpenChange={(open) => { if (!open) { setParcel(null); setIsMapOpen(false); } }}>
@@ -431,18 +499,20 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                   </div>
                 </div>
 
-                {(parcel['รายละเอียด'] || parcel['หมายเหตุ']?.replace(/\[.*?\]/g, '').trim()) && (
-                  <div className="mt-3 grid grid-cols-2 gap-3">
-                      <div>
+                {(parcel['รายละเอียด'] || parcel['หมายเหตุ']) && (
+                  <div className={`mt-3 grid gap-3 ${parcel['รายละเอียด'] && parcel['หมายเหตุ'] ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    {parcel['รายละเอียด'] && (
                       <div className="rounded-2xl bg-slate-50 p-3">
                         <p className="text-[10px] font-black text-slate-400">สิ่งที่ส่ง</p>
-                        <p className="mt-1 truncate text-sm font-semibold text-slate-800">{parcel['รายละเอียด'] || '-'}</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800 break-words whitespace-pre-wrap">{parcel['รายละเอียด']}</p>
                       </div>
+                    )}
+                    {parcel['หมายเหตุ'] && (
+                      <div className="rounded-2xl bg-orange-50/70 p-3">
+                        <p className="text-[10px] font-black text-orange-600">หมายเหตุ</p>
+                        <p className="mt-1 text-sm font-semibold text-slate-800 break-words whitespace-pre-wrap">{translateSystemNote(parcel['หมายเหตุ'])}</p>
                       </div>
-                    <div className="rounded-2xl bg-orange-50/70 p-3">
-                      <p className="text-[10px] font-black text-orange-600">หมายเหตุ</p>
-                      <p className="mt-1 truncate text-sm font-semibold text-slate-800">{parcel['หมายเหตุ']?.replace(/\[.*?\]/g, '').trim() || '-'}</p>
-                    </div>
+                    )}
                   </div>
                 )}
 

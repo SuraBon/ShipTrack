@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { UI_COPY } from '@/lib/uiCopy';
+import { translateSystemNote } from '@/lib/translationUtils';
 import {
   AlertTriangle,
   Camera,
@@ -265,16 +266,25 @@ const StaleBadge = ({ parcel }: { parcel: Parcel }) => {
 };
 
 const ParcelInfoStrip = ({ parcel }: { parcel: Parcel }) => {
-  const note = getCleanNote(parcel);
+  const note = translateSystemNote(getCleanNote(parcel));
+  const [isExpanded, setIsExpanded] = useState(false);
   return (
     <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
         <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">{UI_COPY.parcel.itemDetail}</p>
-        <p className="mt-0.5 truncate text-xs font-bold text-primary">{parcel['รายละเอียด'] || '-'}</p>
+        <p className="mt-0.5 truncate text-xs font-bold text-primary" title={parcel['รายละเอียด']}>{parcel['รายละเอียด'] || '-'}</p>
       </div>
-      <div className="rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10">
-        <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">หมายเหตุ</p>
-        <p className="mt-0.5 truncate text-xs font-bold text-primary">{note || '-'}</p>
+      <div 
+        onClick={() => note && setIsExpanded(!isExpanded)}
+        className={`rounded-xl bg-surface-container-lowest px-3 py-2 ring-1 ring-outline-variant/10 transition-colors ${note ? 'cursor-pointer hover:bg-slate-50' : ''}`}
+      >
+        <div className="flex items-center justify-between">
+          <p className="text-[9px] font-black uppercase tracking-wider text-on-surface-variant/45">หมายเหตุ</p>
+          {note.length > 25 && (
+            <span className="text-[8px] text-blue-500 font-bold uppercase">{isExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
+          )}
+        </div>
+        <p className={`mt-0.5 text-xs font-bold text-primary ${isExpanded ? 'break-words' : 'truncate'}`}>{note || '-'}</p>
       </div>
     </div>
   );
@@ -614,6 +624,8 @@ const MessengerDeliveryCard = ({
   canConfirmDelivery: boolean;
 }) => {
   const note = getCleanNote(parcel);
+  const [isNoteExpanded, setIsNoteExpanded] = useState(false);
+  const translatedNote = translateSystemNote(note);
   const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
   const isAssignedElsewhere = Boolean(assignment && !canConfirmDelivery && !isDone);
   const proofImageUrl = getTimelineEvents(parcel).find(event => event.imageUrl)?.imageUrl;
@@ -715,12 +727,20 @@ const MessengerDeliveryCard = ({
                     </div>
                   </div>
 
-                  <div className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-orange-50/70 px-2.5 py-2 ${note ? '' : 'opacity-40'}`}>
+                  <div 
+                    onClick={() => note && setIsNoteExpanded(!isNoteExpanded)}
+                    className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
+                  >
                     <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500">sticky_note_2</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
-                      <p className="mt-1 min-w-0 truncate text-xs font-semibold leading-5 text-slate-800">
-                        {note || '-'}
+                      <div className="flex items-center justify-between">
+                        <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
+                        {translatedNote.length > 25 && (
+                          <span className="text-[8px] text-orange-600 font-bold uppercase">{isNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
+                        )}
+                      </div>
+                      <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isNoteExpanded ? 'break-words' : 'truncate'}`}>
+                        {translatedNote || '-'}
                       </p>
                     </div>
                   </div>
@@ -790,6 +810,8 @@ const AdminParcelManagementCard = ({
   assignment: DeliveryAssignment | null;
 }) => {
   const note = getCleanNote(parcel);
+  const [isAdminNoteExpanded, setIsAdminNoteExpanded] = useState(false);
+  const translatedNote = translateSystemNote(note);
   const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
   const isInTransit = parcel['สถานะ'] === 'กำลังจัดส่ง';
   const statusLabel = isDone ? 'ส่งแล้ว' : isInTransit ? 'กำลังส่ง' : 'รอดำเนินการ';
@@ -849,12 +871,20 @@ const AdminParcelManagementCard = ({
                   </div>
                 </div>
 
-                <div className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-orange-50/70 px-2.5 py-2 ${note ? '' : 'opacity-40'}`}>
+                <div 
+                  onClick={() => note && setIsAdminNoteExpanded(!isAdminNoteExpanded)}
+                  className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
+                >
                   <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500">sticky_note_2</span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
-                    <p className="mt-1 min-w-0 truncate text-xs font-semibold leading-5 text-slate-800">
-                      {note || '-'}
+                    <div className="flex items-center justify-between">
+                      <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
+                      {translatedNote.length > 25 && (
+                        <span className="text-[8px] text-orange-600 font-bold uppercase">{isAdminNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
+                      )}
+                    </div>
+                    <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isAdminNoteExpanded ? 'break-words' : 'truncate'}`}>
+                      {translatedNote || '-'}
                     </p>
                   </div>
                 </div>
@@ -913,89 +943,122 @@ const AdminParcelManagementTable = ({
   onDelete: (parcel: Parcel) => void;
   onReleaseDelivery: (parcel: Parcel) => void;
   releasingDeliveryId: string | null;
-}) => (
-  <div className="hidden overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm md:block">
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[980px] text-left">
-        <thead>
-          <tr className="border-b border-gray-100 bg-gray-50">
-            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Tracking</th>
-            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">เส้นทาง</th>
-            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ผู้รับ</th>
-            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">สถานะ</th>
-            <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ล่าสุด</th>
-            <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-widest text-muted-foreground">จัดการ</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-outline-variant/10">
-          {parcels.map(parcel => {
-            const assignment = getActiveDeliveryAssignment(parcel);
-            const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
-            const isReleasing = releasingDeliveryId === parcel.TrackingID;
-            return (
-              <tr key={parcel.TrackingID} className={`${isParcelStale(parcel) ? 'bg-amber-50/30' : ''} transition-colors hover:bg-surface-container-lowest/70`}>
-                <td className="px-4 py-3 align-top">
-                  <code className="block max-w-[150px] break-all font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
-                  <p className="mt-1 text-[11px] text-muted-foreground">{formatThaiDateTime(parcel['วันที่สร้าง'])}</p>
-                </td>
-                <td className="px-4 py-3 align-top">
-                  <div className="max-w-[220px] space-y-1 text-xs">
-                    <p className="truncate font-semibold text-slate-800">{parcel['สาขาผู้ส่ง'] || '-'}</p>
-                    <p className="truncate text-muted-foreground">→ {parcel['สาขาผู้รับ'] || '-'}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3 align-top">
-                  <div className="max-w-[190px]">
-                    <p className="truncate text-sm font-semibold text-foreground">{parcel['ผู้รับ'] || '-'}</p>
-                    <p className="mt-1 truncate text-xs text-muted-foreground">{parcel['รายละเอียด'] || getCleanNote(parcel) || '-'}</p>
-                  </div>
-                </td>
-                <td className="px-4 py-3 align-top">
-                  <div className="space-y-2">
-                    <StatusBadge status={parcel['สถานะ']} />
-                    {isParcelStale(parcel) && (
-                      <span className="inline-flex rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-700">ค้างนาน</span>
-                    )}
-                    {assignment && !isDone && (
-                      <p className="max-w-[180px] truncate text-[11px] font-semibold text-blue-700">ผู้รับงาน: {assignment.assignedToName}</p>
-                    )}
-                  </div>
-                </td>
-                <td className="px-4 py-3 align-top">
-                  <p className="max-w-[240px] line-clamp-2 text-xs font-medium leading-relaxed text-slate-700">{getLatestTimelineSummary(parcel)}</p>
-                </td>
-                <td className="px-4 py-3 align-top">
-                  <div className="flex justify-end gap-1.5">
-                    <button type="button" onClick={() => onOpen(parcel)} className="app-secondary-button h-9 px-2.5 text-xs">
-                      <History className="h-3.5 w-3.5" aria-hidden="true" />
-                      รายละเอียด
-                    </button>
-                    {!isDone && (
-                      <button type="button" onClick={() => onConfirm(parcel)} className="app-primary-button h-9 px-2.5 text-xs">
-                        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        ยืนยันส่ง
+}) => {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const toggleExpand = (id: string) => {
+    const next = new Set(expandedIds);
+    if (next.has(id)) {
+      next.delete(id);
+    } else {
+      next.add(id);
+    }
+    setExpandedIds(next);
+  };
+
+  return (
+    <div className="hidden overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm md:block">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[980px] text-left">
+          <thead>
+            <tr className="border-b border-gray-100 bg-gray-50">
+              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Tracking</th>
+              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">เส้นทาง</th>
+              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ผู้รับ</th>
+              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">สถานะ</th>
+              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ล่าสุด</th>
+              <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-widest text-muted-foreground">จัดการ</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-outline-variant/10">
+            {parcels.map(parcel => {
+              const assignment = getActiveDeliveryAssignment(parcel);
+              const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
+              const isReleasing = releasingDeliveryId === parcel.TrackingID;
+              return (
+                <tr key={parcel.TrackingID} className={`${isParcelStale(parcel) ? 'bg-amber-50/30' : ''} transition-colors hover:bg-surface-container-lowest/70`}>
+                  <td className="px-4 py-3 align-top">
+                    <code className="block max-w-[150px] break-all font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
+                    <p className="mt-1 text-[11px] text-muted-foreground">{formatThaiDateTime(parcel['วันที่สร้าง'])}</p>
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <div className="max-w-[220px] space-y-1 text-xs">
+                      <p className="truncate font-semibold text-slate-800">{parcel['สาขาผู้ส่ง'] || '-'}</p>
+                      <p className="truncate text-muted-foreground">→ {parcel['สาขาผู้รับ'] || '-'}</p>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <div className="max-w-[190px]">
+                      <p className="truncate text-sm font-semibold text-foreground">{parcel['ผู้รับ'] || '-'}</p>
+                      {(() => {
+                        const textToShow = parcel['รายละเอียด'] || translateSystemNote(getCleanNote(parcel)) || '-';
+                        const isExpanded = expandedIds.has(parcel.TrackingID);
+                        const isLong = textToShow.length > 30;
+                        return (
+                          <div 
+                            onClick={() => isLong && toggleExpand(parcel.TrackingID)}
+                            className={`mt-1 text-xs text-muted-foreground transition-all ${isLong ? 'cursor-pointer hover:text-slate-800' : ''}`}
+                          >
+                            <p className={`${isExpanded ? 'break-words whitespace-pre-wrap leading-relaxed' : 'truncate'}`}>
+                              {textToShow}
+                            </p>
+                            {isLong && (
+                              <span className="text-[9px] font-bold text-primary/70 hover:text-primary mt-0.5 block leading-none">
+                                {isExpanded ? 'ย่อรายละเอียด' : 'ดูรายละเอียดเพิ่ม'}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <div className="space-y-2">
+                      <StatusBadge status={parcel['สถานะ']} />
+                      {isParcelStale(parcel) && (
+                        <span className="inline-flex rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-700">ค้างนาน</span>
+                      )}
+                      {assignment && !isDone && (
+                        <p className="max-w-[180px] truncate text-[11px] font-semibold text-blue-700">ผู้รับงาน: {assignment.assignedToName}</p>
+                      )}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <p className="max-w-[240px] line-clamp-2 text-xs font-medium leading-relaxed text-slate-700">{getLatestTimelineSummary(parcel)}</p>
+                  </td>
+                  <td className="px-4 py-3 align-top">
+                    <div className="flex justify-end gap-1.5">
+                      <button type="button" onClick={() => onOpen(parcel)} className="app-secondary-button h-9 px-2.5 text-xs">
+                        <History className="h-3.5 w-3.5" aria-hidden="true" />
+                        รายละเอียด
                       </button>
-                    )}
-                    {assignment && !isDone && (
-                      <button type="button" onClick={() => onReleaseDelivery(parcel)} disabled={isReleasing} className="app-secondary-button h-9 px-2.5 text-xs text-amber-700">
-                        {isReleasing ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                        คืนงาน
+                      {!isDone && (
+                        <button type="button" onClick={() => onConfirm(parcel)} className="app-primary-button h-9 px-2.5 text-xs">
+                          <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          ยืนยันส่ง
                       </button>
-                    )}
-                    <button type="button" onClick={() => onDelete(parcel)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-red-50 px-2.5 text-xs font-semibold text-red-600 shadow-sm transition-colors hover:bg-red-100">
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                      ลบ
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+                      )}
+                      {assignment && !isDone && (
+                        <button type="button" onClick={() => onReleaseDelivery(parcel)} disabled={isReleasing} className="app-secondary-button h-9 px-2.5 text-xs text-amber-700">
+                          {isReleasing ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />}
+                          คืนงาน
+                        </button>
+                      )}
+                      <button type="button" onClick={() => onDelete(parcel)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-red-50 px-2.5 text-xs font-semibold text-red-600 shadow-sm transition-colors hover:bg-red-100">
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                        ลบ
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default function Dashboard({ isConfigured }: DashboardProps) {
   const { user } = useAuth();
@@ -1687,6 +1750,49 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               })}
             </div>
           </div>
+        ) : hasFilters ? (
+          <div className="space-y-4 pb-4 animate-in fade-in duration-300">
+            <MessengerViewBanner
+              icon="search"
+              title="รายการที่ค้นพบ"
+              subtitle="ผลการค้นหาตามตัวกรองที่เลือกไว้"
+              count={adminTotalCount}
+              tone="blue"
+            />
+            {paginatedParcels.length ? (
+              <>
+              <div className="grid grid-cols-1 gap-3 md:hidden">
+                {paginatedParcels.map(parcel => (
+                  <AdminParcelManagementCard
+                    key={parcel.TrackingID}
+                    parcel={parcel}
+                    assignment={getActiveDeliveryAssignment(parcel)}
+                    onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                    onConfirm={() => openConfirmFlow(parcel.TrackingID)}
+                    onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                    onReleaseDelivery={() => handleReleaseDelivery(parcel)}
+                    isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
+                  />
+                ))}
+              </div>
+              <AdminParcelManagementTable
+                parcels={paginatedParcels}
+                onOpen={(parcel) => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
+                onConfirm={(parcel) => openConfirmFlow(parcel.TrackingID)}
+                onDelete={(parcel) => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
+                onReleaseDelivery={handleReleaseDelivery}
+                releasingDeliveryId={releasingDeliveryId}
+              />
+              </>
+            ) : (
+              <EmptyState
+                icon="search_off"
+                title="ไม่พบรายการตรงตามที่ค้นหา"
+                description="ลองตรวจสอบการสะกดคำ หรือเปลี่ยนตัวกรอง"
+                tone="default"
+              />
+            )}
+          </div>
         ) : (
           <div className="space-y-4 pb-4">
             {adminNeedsAttentionParcels.length > 0 && (
@@ -1845,20 +1951,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       >
         <DialogContent
           showCloseButton={false}
-          className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-3xl border-none bg-transparent p-0 shadow-none"
+          className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white p-0 shadow-2xl"
         >
           <DialogTitle className="sr-only">ยืนยันการส่ง</DialogTitle>
-          <div className="modal-scroll relative max-h-[92vh] overflow-y-auto p-4 sm:p-6">
-            {!isConfirmPreparingCamera && (
-              <button
-                type="button"
-                onClick={() => setIsConfirmFlowOpen(false)}
-                className="absolute right-6 top-6 z-20 grid h-11 w-11 shrink-0 place-items-center rounded-2xl bg-primary text-white shadow-lg shadow-primary/20 transition-all hover:bg-primary/90 active:scale-95"
-                aria-label="ปิดหน้ายืนยันส่ง"
-              >
-                <span className="material-symbols-outlined text-2xl">close</span>
-              </button>
-            )}
+          <div className="modal-scroll relative max-h-[92vh] overflow-y-auto p-0">
             <Suspense fallback={<LazyPanelFallback label="กำลังโหลดหน้ายืนยันส่ง..." />}>
               <ConfirmReceipt
                 key={confirmTrackingId ?? 'confirm-flow'}
@@ -1868,6 +1964,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 autoOpenCamera
                 embedded
                 onPreparingCameraChange={setIsConfirmPreparingCamera}
+                onClose={() => setIsConfirmFlowOpen(false)}
                 onComplete={() => {
                   setIsConfirmFlowOpen(false);
                   setConfirmTrackingId(null);

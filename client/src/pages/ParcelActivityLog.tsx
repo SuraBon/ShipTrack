@@ -3,6 +3,7 @@ import { FileClock, FilterX, Loader2, MapPin, RefreshCw, Search } from 'lucide-r
 import { toast } from 'sonner';
 import { getParcelActivityLogs, type ParcelActivityLogRow } from '@/lib/parcelService';
 import { useDebounce } from '@/hooks/useDebounce';
+import { translateSystemNote } from '@/lib/translationUtils';
 
 const PAGE_SIZE = 25;
 const EVENT_TYPES = ['', 'CREATED', 'START_DELIVERY', 'PICKUP', 'FORWARD', 'PROXY', 'DELIVERED', 'RELEASE_DELIVERY'];
@@ -54,7 +55,9 @@ function ActivityCard({ activity }: { activity: ParcelActivityLogRow }) {
         {(activity.note || activity.deliveryMismatchReason) && (
           <div className="rounded-xl bg-amber-50 p-3">
             <p className="text-[11px] font-semibold text-amber-700">หมายเหตุ</p>
-            <p className="mt-1 break-words text-xs font-medium text-amber-950">{activity.deliveryMismatchReason || activity.note}</p>
+            <p className="mt-1 break-words text-xs font-medium text-amber-950">
+              {translateSystemNote(activity.deliveryMismatchReason || activity.note)}
+            </p>
           </div>
         )}
       </div>

@@ -3,6 +3,7 @@ import { ClipboardList, FilterX, Loader2, RefreshCw, Search, ShieldCheck } from 
 import { toast } from 'sonner';
 import { getAuditLogs, type AuditLogRow } from '@/lib/parcelService';
 import { useDebounce } from '@/hooks/useDebounce';
+import { AUDIT_ACTION_LABELS, translateAuditDetails } from '@/lib/translationUtils';
 
 const PAGE_SIZE = 25;
 
@@ -29,7 +30,7 @@ function AuditLogCard({ log }: { log: AuditLogRow }) {
     <div className="app-compact-card space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="break-words font-mono text-sm font-semibold text-foreground">{log.action || '-'}</p>
+          <p className="break-words text-sm font-semibold text-foreground">{AUDIT_ACTION_LABELS[log.action] || log.action || '-'}</p>
           <p className="mt-1 text-xs text-muted-foreground">{log.timestamp || '-'}</p>
         </div>
         <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
@@ -38,12 +39,12 @@ function AuditLogCard({ log }: { log: AuditLogRow }) {
       </div>
       <div className="grid gap-2 text-sm sm:grid-cols-[0.8fr_1.2fr]">
         <div className="min-w-0 rounded-xl bg-gray-50 p-3">
-          <p className="text-[11px] font-semibold text-muted-foreground">Target</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">เป้าหมาย</p>
           <p className="mt-1 break-all font-mono text-xs font-semibold text-foreground">{log.targetId || '-'}</p>
         </div>
         <div className="min-w-0 rounded-xl bg-gray-50 p-3">
-          <p className="text-[11px] font-semibold text-muted-foreground">Details</p>
-          <p className="mt-1 break-words text-xs font-medium text-foreground">{log.details || '-'}</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">รายละเอียด</p>
+            <p className="mt-1 break-words text-xs font-medium text-foreground">{translateAuditDetails(log.details) || '-'}</p>
         </div>
       </div>
     </div>
@@ -127,13 +128,13 @@ export default function AuditLog() {
       <div className="app-toolbar grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหา action, target, details..." className="app-input w-full pl-10" />
+          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาการกระทำ เป้าหมาย หรือรายละเอียด..." className="app-input w-full pl-10" />
         </div>
         <select value={action} onChange={event => setAction(event.target.value)} className="app-input w-full">
-          {ACTION_OPTIONS.map(option => <option key={option || 'ALL'} value={option}>{option || 'ทุก action'}</option>)}
+          {ACTION_OPTIONS.map(option => <option key={option || 'ALL'} value={option}>{option ? (AUDIT_ACTION_LABELS[option] || option) : 'ทุกการกระทำ'}</option>)}
         </select>
-        <input value={actorId} onChange={event => setActorId(event.target.value)} placeholder="Actor ID" className="app-input w-full" />
-        <input value={targetId} onChange={event => setTargetId(event.target.value)} placeholder="Target ID" className="app-input w-full" />
+        <input value={actorId} onChange={event => setActorId(event.target.value)} placeholder="รหัสผู้กระทำ" className="app-input w-full" />
+        <input value={targetId} onChange={event => setTargetId(event.target.value)} placeholder="รหัสเป้าหมาย" className="app-input w-full" />
         {hasFilters && (
           <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600">
             <FilterX className="h-4 w-4" aria-hidden="true" />

@@ -483,7 +483,7 @@ export default function ConfirmReceipt({
 
       {/* Step 2: Photo Evidence */}
       {currentStep === 2 && (
-        <div className="overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white shadow-xl animate-in slide-in-from-right-4 duration-500">
+        <div className={`overflow-hidden animate-in slide-in-from-right-4 duration-500 ${embedded ? '' : 'rounded-[1.75rem] border border-gray-100 bg-white shadow-xl'}`}>
           <div className="relative bg-slate-950 px-5 py-5 text-white sm:px-6">
             <button
               type="button"
@@ -647,7 +647,7 @@ export default function ConfirmReceipt({
 
       {/* Step 3: Final Details & Confirm */}
       {currentStep === 3 && (
-        <div className="overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white shadow-xl animate-in slide-in-from-right-4 duration-500">
+        <div className={`overflow-hidden animate-in slide-in-from-right-4 duration-500 ${embedded ? '' : 'rounded-[1.75rem] border border-gray-100 bg-white shadow-xl'}`}>
           <div className="bg-slate-950 p-5 text-center text-white sm:p-6">
             <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
               <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>fact_check</span>
