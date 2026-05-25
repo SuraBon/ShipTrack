@@ -349,15 +349,23 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
 
       {/* ── Edit Profile Dialog ── */}
       <Dialog open={isProfileOpen} onOpenChange={setIsProfileOpen}>
-        <DialogContent className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md flex-col overflow-hidden rounded-xl border border-outline-variant bg-white p-0 shadow-xl sm:max-h-[calc(100dvh-2rem)]">
-          <DialogHeader className="relative border-b border-outline-variant/60 bg-white px-5 py-4">
+        <DialogContent showCloseButton={false} className="flex max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md flex-col overflow-hidden rounded-[1.5rem] border border-gray-100 bg-white p-0 shadow-xl sm:max-h-[calc(100dvh-2rem)]">
+          <DialogHeader className="relative bg-slate-950 px-5 py-5 text-white">
+            <button
+              type="button"
+              onClick={() => setIsProfileOpen(false)}
+              className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="ปิดแก้ไขโปรไฟล์"
+            >
+              <X className="h-5 w-5" aria-hidden="true" />
+            </button>
             <div className="flex items-center gap-3 pr-8">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-surface-container text-primary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-white">
                 <Settings className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-semibold text-primary">แก้ไขโปรไฟล์</DialogTitle>
-                <DialogDescription className="mt-1 text-xs text-on-surface-variant">
+                <DialogTitle className="text-lg font-black text-white">แก้ไขโปรไฟล์</DialogTitle>
+                <DialogDescription className="mt-1 text-xs font-semibold text-slate-300">
                   แก้ไขชื่อ แผนก/สาขา หรือรหัสผ่านของคุณ
                 </DialogDescription>
               </div>

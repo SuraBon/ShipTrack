@@ -58,6 +58,23 @@ describe('parseParcelTimeline', () => {
     });
   });
 
+  it('uses parcel-level proof image aliases for created structured events', () => {
+    const parcel = createParcel({
+      imageUrl: 'https://example.com/create-proof.jpg',
+      events: [{
+        id: 'EVT1',
+        trackingId: 'TRK1',
+        timestamp: '1 มกราคม 2569',
+        eventType: 'CREATED',
+        location: 'MS',
+        destLocation: 'มีนบุรี',
+        person: 'A',
+      }],
+    } as Partial<Parcel>);
+    const events = parseParcelTimeline(parcel);
+    expect(events[0].imageUrl).toBe('https://example.com/create-proof.jpg');
+  });
+
   it('uses redacted guest parcel coordinates when structured events are hidden', () => {
     const parcel = createParcel({
       'สถานะ': 'ส่งสำเร็จ',

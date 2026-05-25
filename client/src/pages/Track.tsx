@@ -16,6 +16,7 @@ import { UI_COPY } from '@/lib/uiCopy';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
   clearCreatedParcelHistory,
+  getCreatedParcelProofPhoto,
   getCreatedParcelHistory,
   removeCreatedParcelHistoryItem,
   updateCreatedParcelHistoryFromParcel,
@@ -23,6 +24,12 @@ import {
 } from '@/lib/createdParcelHistory';
 
 const TRACK_RESULTS_BATCH_SIZE = 12;
+
+const hydrateLocalProofPhoto = (parcel: Parcel): Parcel => {
+  if (parcel['รูปยืนยัน']) return parcel;
+  const proofPhotoUrl = getCreatedParcelProofPhoto(parcel.TrackingID);
+  return proofPhotoUrl ? { ...parcel, 'รูปยืนยัน': proofPhotoUrl } : parcel;
+};
 
 export default function Track({ embedded = false }: { embedded?: boolean }) {
   const [trackingId, setTrackingId] = useState('');
@@ -83,8 +90,9 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     try {
       const res = await getParcel(id);
       if (res.success && res.parcel) {
-        updateCreatedParcelHistoryFromParcel(res.parcel);
-        setParcel(res.parcel); setSearchResults([]); addToRecent(res.parcel.TrackingID);
+        const hydratedParcel = hydrateLocalProofPhoto(res.parcel);
+        updateCreatedParcelHistoryFromParcel(hydratedParcel);
+        setParcel(hydratedParcel); setSearchResults([]); addToRecent(hydratedParcel.TrackingID);
         setNotFoundQuery(null);
         toast.success('พบรายการส่ง');
       } else {
@@ -99,11 +107,12 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         }
         const results = await searchParcels(id);
         if (results?.length) {
+          const hydratedResults = results.map(hydrateLocalProofPhoto);
           if (results.length === 1) {
-            updateCreatedParcelHistoryFromParcel(results[0]);
-            setParcel(results[0]); setSearchResults([]); addToRecent(results[0].TrackingID);
+            updateCreatedParcelHistoryFromParcel(hydratedResults[0]);
+            setParcel(hydratedResults[0]); setSearchResults([]); addToRecent(hydratedResults[0].TrackingID);
           }
-          else { setSearchResults(results); setParcel(null); }
+          else { setSearchResults(hydratedResults); setParcel(null); }
           setNotFoundQuery(null);
           toast.success(`พบข้อมูล ${results.length} รายการ`);
         } else {

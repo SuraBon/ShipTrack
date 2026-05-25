@@ -9,6 +9,7 @@ import { deleteParcel, releaseDelivery, startDelivery } from '@/lib/parcelServic
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import StatusBadge from '@/components/StatusBadge';
+import ImagePopup from '@/components/ImagePopup';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 import { parseParcelTimeline } from '@/lib/timeline';
@@ -163,22 +164,22 @@ const LazyPanelFallback = ({ label = 'กำลังโหลด...' }: { label
 );
 
 const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; compact?: boolean }) => (
-  <div className={`rounded-xl bg-slate-50 ${compact ? 'p-2.5' : 'p-3'}`}>
-    <div className="space-y-2">
-      <div className="flex min-w-0 items-start gap-3">
+  <div className={`rounded-2xl bg-slate-50 ${compact ? 'p-2.5' : 'p-3'}`}>
+    <div className="space-y-2.5">
+      <div className="flex min-w-0 items-start gap-2.5 px-0.5">
         <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.14)]" />
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-black leading-none text-slate-400">รับจาก</p>
-          <p className="mt-1 min-w-0 truncate text-xs font-semibold text-slate-600">
+          <p className="mt-1 min-w-0 truncate text-[13px] font-bold leading-snug text-slate-700">
             {parcel['สาขาผู้ส่ง'] || '-'} <span className="font-medium text-slate-500">({parcel['ผู้ส่ง'] || '-'})</span>
           </p>
         </div>
       </div>
-      <div className="flex min-w-0 items-start gap-3 rounded-lg bg-red-50/70 px-2.5 py-2">
+      <div className="flex min-w-0 items-start gap-2.5 rounded-xl bg-red-50/70 px-3 py-2.5">
         <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(248,113,113,0.14)]" />
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-black leading-none text-red-500">ต้องไปส่ง</p>
-          <p className="mt-1 min-w-0 truncate text-sm font-black text-slate-800">
+          <p className="mt-1 min-w-0 truncate text-[15px] font-black leading-snug text-slate-900">
             {parcel['สาขาผู้รับ'] || '-'} <span className="font-semibold text-slate-600">({parcel['ผู้รับ'] || '-'})</span>
           </p>
         </div>
@@ -615,6 +616,7 @@ const MessengerDeliveryCard = ({
   const note = getCleanNote(parcel);
   const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
   const isAssignedElsewhere = Boolean(assignment && !canConfirmDelivery && !isDone);
+  const proofImageUrl = getTimelineEvents(parcel).find(event => event.imageUrl)?.imageUrl;
   const actionLabel = canStartDelivery
     ? (isStartingDelivery ? 'กำลังรับงาน' : 'รับงาน')
     : canConfirmDelivery
@@ -654,8 +656,8 @@ const MessengerDeliveryCard = ({
     : 'เพิ่งเมื่อสักครู่';
 
   return (
-    <article className={`flex h-full flex-col overflow-hidden rounded-2xl border transition-all duration-200 hover:shadow-md ${cardStyles}`}>
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2">
+    <article className={`flex h-full flex-col overflow-hidden rounded-[1.25rem] border transition-all duration-200 hover:shadow-md ${cardStyles}`}>
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-3.5 py-2">
         <code className="min-w-0 truncate font-mono text-[10px] font-black tracking-wider text-slate-400">
           {parcel.TrackingID}
         </code>
@@ -664,16 +666,16 @@ const MessengerDeliveryCard = ({
         </span>
       </div>
 
-      <div className="flex flex-1 flex-col justify-between p-4">
-        <div className="space-y-4">
+      <div className="flex flex-1 flex-col justify-between p-3.5">
+        <div className="space-y-3">
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${accentClass}`}>
-                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>{iconName}</span>
+              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${accentClass}`}>
+                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>{iconName}</span>
               </span>
               <div className="min-w-0">
                 <p className="text-[10px] leading-none text-slate-400">ผู้รับ</p>
-                <h3 className="mt-1 truncate text-sm font-semibold leading-tight text-slate-800">
+                <h3 className="mt-1 truncate text-base font-black leading-tight text-slate-900">
                   {parcel['ผู้รับ'] || '-'}
                 </h3>
               </div>
@@ -686,7 +688,7 @@ const MessengerDeliveryCard = ({
                 loading={canStartDelivery ? isStartingDelivery : false}
                 variant="blue"
                 compact
-                className="h-9 flex-none rounded-lg bg-blue-600 px-4 text-xs font-semibold shadow-md shadow-blue-100 hover:bg-blue-700"
+                className="h-10 flex-none rounded-xl bg-blue-600 px-4 text-xs font-black shadow-md shadow-blue-100 hover:bg-blue-700"
               >
                 {actionLabel}
               </DashboardActionButton>
@@ -703,7 +705,7 @@ const MessengerDeliveryCard = ({
             <div className="space-y-2">
               {(parcel['รายละเอียด'] || note) && (
                 <div className="grid grid-cols-2 gap-2">
-                  <div className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-slate-50 px-2.5 py-2 ${parcel['รายละเอียด'] ? '' : 'opacity-40'}`}>
+                  <div className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-slate-50 px-2.5 py-2 ${parcel['รายละเอียด'] ? '' : 'opacity-40'}`}>
                     <Package className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-bold leading-none text-slate-500">สิ่งที่ส่ง</p>
@@ -713,7 +715,7 @@ const MessengerDeliveryCard = ({
                     </div>
                   </div>
 
-                  <div className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-orange-50/70 px-2.5 py-2 ${note ? '' : 'opacity-40'}`}>
+                  <div className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-orange-50/70 px-2.5 py-2 ${note ? '' : 'opacity-40'}`}>
                     <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500">sticky_note_2</span>
                     <div className="min-w-0 flex-1">
                       <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
@@ -729,12 +731,20 @@ const MessengerDeliveryCard = ({
           )}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-50 pt-3">
+        <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-50 pt-3">
           <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
             <span className="material-symbols-outlined text-[14px]">schedule</span>
             <span className="truncate">{dateLabel}</span>
           </div>
           <div className="flex items-center gap-2">
+            {proofImageUrl && (
+              <ImagePopup
+                url={proofImageUrl}
+                title="รูปหลักฐาน"
+                triggerVariant="icon"
+                className="h-9 w-9 rounded-xl bg-slate-50 text-slate-600 ring-1 ring-slate-100 hover:bg-blue-50 hover:text-blue-700"
+              />
+            )}
             {canReleaseDelivery && (
               <DashboardActionButton
                 icon="undo"

@@ -12,6 +12,7 @@ export interface CreatedParcelHistoryItem {
   receiverName: string;
   receiverBranch: string;
   status?: ParcelStatus;
+  proofPhotoUrl?: string;
 }
 
 function createFallbackId(): string {
@@ -48,6 +49,12 @@ export function getCreatedParcelHistory(): CreatedParcelHistoryItem[] {
         typeof item.receiverName === 'string' &&
         typeof item.receiverBranch === 'string',
       )
+      .map(item => ({
+        ...item,
+        proofPhotoUrl: typeof item.proofPhotoUrl === 'string' && item.proofPhotoUrl.trim()
+          ? item.proofPhotoUrl
+          : undefined,
+      }))
       .slice(0, MAX_HISTORY_ITEMS);
   } catch {
     localStorage.removeItem(CREATED_PARCELS_KEY);
@@ -89,8 +96,15 @@ export function updateCreatedParcelHistoryFromParcel(parcel: Parcel): CreatedPar
     senderBranch: parcel['สาขาผู้ส่ง'] || next[index].senderBranch,
     receiverName: parcel['ผู้รับ'] || next[index].receiverName,
     receiverBranch: parcel['สาขาผู้รับ'] || next[index].receiverBranch,
+    proofPhotoUrl: parcel['รูปยืนยัน'] || next[index].proofPhotoUrl,
   };
   localStorage.setItem(CREATED_PARCELS_KEY, JSON.stringify(next));
   window.dispatchEvent(new Event('doc-track-created-parcels-updated'));
   return next;
+}
+
+export function getCreatedParcelProofPhoto(trackingID: string): string | undefined {
+  return getCreatedParcelHistory()
+    .find(item => item.trackingID === trackingID)
+    ?.proofPhotoUrl;
 }

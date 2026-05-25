@@ -573,24 +573,33 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       {/* Success Dialog */}
       <Dialog open={isResultOpen} onOpenChange={setIsResultOpen}>
         <DialogContent 
-            className="w-[calc(100vw-1rem)] max-w-md max-h-[92vh] overflow-hidden rounded-lg border border-border bg-background p-0 shadow-lg"
+            showCloseButton={false}
+            className="w-[calc(100vw-1rem)] max-w-md max-h-[92vh] overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white p-0 shadow-xl"
           >
           <div className="max-h-[92vh] overflow-y-auto">
-          <div className="relative w-full border-b border-border bg-muted/45 px-5 py-6 text-center sm:p-7">
-            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg border border-border bg-background text-primary sm:size-16">
+          <div className="relative w-full bg-slate-950 px-5 py-6 text-center text-white sm:p-7">
+            <button
+              type="button"
+              onClick={() => setIsResultOpen(false)}
+              className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="ปิดผลการสร้างรายการ"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white sm:size-16">
               <span className="material-symbols-outlined text-3xl sm:text-4xl">check_circle</span>
             </div>
-            <DialogTitle className="text-xl font-semibold text-foreground sm:text-2xl">สร้างรายการสำเร็จ</DialogTitle>
-            <p className="mt-1 text-sm text-muted-foreground">สร้างหมายเลขติดตามเรียบร้อยแล้ว</p>
+            <DialogTitle className="text-xl font-black text-white sm:text-2xl">สร้างรายการสำเร็จ</DialogTitle>
+            <p className="mt-1 text-sm font-semibold text-slate-300">สร้างหมายเลขติดตามเรียบร้อยแล้ว</p>
           </div>
 
           <div className="w-full p-4 sm:p-6 space-y-5">
-            <div className="flex min-w-0 flex-col items-center gap-5 rounded-lg border border-border bg-card p-4 shadow-sm sm:p-6">
+            <div className="flex min-w-0 flex-col items-center gap-5 rounded-2xl border border-gray-100 bg-slate-50 p-4 shadow-sm sm:p-6">
               <div className="flex w-full min-w-0 flex-col items-center gap-1">
-                <span className="text-xs font-semibold text-muted-foreground">หมายเลขติดตาม</span>
-                <code className="block max-w-full break-all text-center font-mono text-[clamp(1.25rem,7vw,1.875rem)] font-semibold leading-tight text-foreground">{createdTrackingId}</code>
+                <span className="text-xs font-black text-slate-400">หมายเลขติดตาม</span>
+                <code className="block max-w-full break-all text-center font-mono text-[clamp(1.25rem,7vw,1.875rem)] font-black leading-tight text-slate-950">{createdTrackingId}</code>
               </div>
-              <div className="rounded-lg border border-border bg-muted p-3">
+              <div className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
                 {qrDataUrl ? (
                   <img
                     src={qrDataUrl}
@@ -609,7 +618,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             <div className="flex flex-col gap-3 sm:flex-row">
               <button
                 onClick={handleCopyTrackingId}
-                className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg border border-border bg-muted text-sm font-semibold text-foreground transition-colors hover:bg-muted/80"
+                className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
               >
                 <span className="material-symbols-outlined text-xl">content_copy</span>
                 คัดลอกหมายเลข
@@ -672,7 +681,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                     };
                   }
                 }}
-                className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-lg bg-primary text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-lg shadow-slate-200 transition-colors hover:bg-slate-900"
               >
                 <span className="material-symbols-outlined text-xl">print</span>
                 พิมพ์ใบปะหน้า

@@ -91,23 +91,24 @@ export default function ParcelTimelineModal({
       <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
         <DialogContent
           showCloseButton={false}
-          className="w-[calc(100vw-1rem)] max-w-3xl overflow-hidden rounded-3xl border-none bg-transparent p-0 shadow-2xl"
+          className="w-[calc(100vw-1rem)] max-w-3xl overflow-hidden rounded-[1.5rem] border border-gray-100 bg-white p-0 shadow-xl"
         >
-          <DialogTitle className="sr-only">แผนที่การจัดส่ง</DialogTitle>
-          <div className="bg-transparent p-2 sm:p-3">
-            <div className="relative">
-              <div className="pointer-events-none absolute bottom-12 left-3 z-[500] inline-flex items-center gap-2 rounded-2xl bg-primary/90 px-3 py-2 text-white shadow-lg backdrop-blur-sm sm:bottom-auto sm:left-4 sm:top-4">
-                <span className="material-symbols-outlined text-lg text-secondary">map</span>
-                <span className="text-sm font-black">แผนที่การจัดส่ง</span>
-              </div>
+          <div className="flex max-h-[92vh] flex-col">
+            <div className="relative bg-slate-950 px-5 py-5 text-white">
               <button
                 type="button"
                 onClick={() => setIsMapOpen(false)}
-                className="absolute right-3 top-3 z-[500] grid h-11 w-11 place-items-center rounded-2xl bg-white text-primary shadow-lg shadow-black/20 transition-all hover:bg-secondary active:scale-95"
+                className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                 aria-label="ปิดแผนที่"
               >
-                <span className="material-symbols-outlined text-2xl font-black">close</span>
+                <span className="material-symbols-outlined text-2xl">close</span>
               </button>
+              <DialogTitle className="pr-12 font-display text-xl font-black leading-tight text-white">
+                แผนที่การจัดส่ง
+              </DialogTitle>
+              <p className="mt-1 break-all font-mono text-sm font-black tracking-wide text-blue-200">{selectedParcel.TrackingID}</p>
+            </div>
+            <div className="bg-white p-4">
               <Suspense fallback={<MapFallback />}>
                 <TrackingMap
                   events={selectedTimelineEvents}

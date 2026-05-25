@@ -472,10 +472,25 @@ export default function UserManagement() {
       </div>
 
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
-        <DialogContent className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-xl border bg-white p-0">
-          <DialogHeader className="border-b border-outline-variant/20 px-5 py-4">
-            <DialogTitle className="text-lg font-semibold text-primary">แก้ไขผู้ใช้</DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground">แก้ชื่อ แผนก/สาขา สิทธิ์ หรือเปลี่ยนรหัสผ่าน</DialogDescription>
+        <DialogContent showCloseButton={false} className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-[1.5rem] border border-gray-100 bg-white p-0 shadow-xl">
+          <DialogHeader className="relative bg-slate-950 px-5 py-5 text-white">
+            <button
+              type="button"
+              onClick={() => setEditingUser(null)}
+              className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="ปิดแก้ไขผู้ใช้"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div className="flex items-center gap-3 pr-12">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-white">
+                <Users className="h-5 w-5" aria-hidden="true" />
+              </div>
+              <div>
+                <DialogTitle className="text-lg font-black text-white">แก้ไขผู้ใช้</DialogTitle>
+                <DialogDescription className="text-xs font-semibold text-slate-300">แก้ชื่อ แผนก/สาขา สิทธิ์ หรือเปลี่ยนรหัสผ่าน</DialogDescription>
+              </div>
+            </div>
           </DialogHeader>
           <form onSubmit={handleSaveUser} className="space-y-4 px-5 py-4">
             <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">รหัสพนักงาน</label><input value={editingUser?.employeeId ?? ''} disabled className="app-input w-full opacity-70" /></div>

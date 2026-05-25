@@ -133,6 +133,7 @@ export function ParcelStoreProvider({ children }: { children: ReactNode }) {
             receiverName,
             receiverBranch,
             status: 'รอจัดส่ง',
+            proofPhotoUrl: photoUrl,
           });
         }
         if (user) await loadParcels();

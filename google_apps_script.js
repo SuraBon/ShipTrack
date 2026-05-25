@@ -491,6 +491,7 @@ function redactParcelForGuest(parcel) {
     "ผู้รับ",
     "สาขาผู้รับ",
     "สถานะ",
+    "รูปยืนยัน",
     "วันที่รับ",
     "Latitude",
     "Longitude",

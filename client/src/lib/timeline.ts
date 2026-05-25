@@ -8,6 +8,24 @@ import type { TimelineEvent } from '@/types/timeline';
 export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
   const events: TimelineEvent[] = [];
   let idCounter = 1;
+  const parcelRecord = parcel as Parcel & Record<string, unknown>;
+  const getProofImage = (...values: unknown[]) => {
+    const aliases = [
+      ...values,
+      parcel['รูปยืนยัน'],
+      parcelRecord['รูปหลักฐาน'],
+      parcelRecord['รูปภาพ'],
+      parcelRecord['photoUrl'],
+      parcelRecord['photoURL'],
+      parcelRecord['PhotoUrl'],
+      parcelRecord['PhotoURL'],
+      parcelRecord['proofPhotoUrl'],
+      parcelRecord['proofPhoto'],
+      parcelRecord['imageUrl'],
+      parcelRecord['imageURL'],
+    ];
+    return aliases.find((value): value is string => typeof value === 'string' && value.trim().length > 0)?.trim();
+  };
 
   // Extract GPS coordinates from the parcel record
   const parcelLat = typeof parcel['Latitude'] === 'number' ? parcel['Latitude'] : undefined;
@@ -39,7 +57,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           timestamp: evt.timestamp,
           location: evt.location,
           destLocation: evt.destLocation,
-          imageUrl: evt.photoUrl || parcel['รูปยืนยัน'],
+          imageUrl: getProofImage(evt.photoUrl),
           latitude: evt.latitude,
           longitude: evt.longitude,
         });
@@ -52,7 +70,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           timestamp: evt.timestamp,
           location: evt.location,
           destLocation: evt.destLocation,
-          imageUrl: evt.photoUrl,
+          imageUrl: getProofImage(evt.photoUrl),
           latitude: evt.latitude,
           longitude: evt.longitude,
         });
@@ -98,7 +116,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           description: appendDeliveryConfirmation(`รับแทนโดย: ${evt.person || '-'}`, evt),
           timestamp: evt.timestamp,
           location: evt.location,
-          imageUrl: evt.photoUrl,
+          imageUrl: getProofImage(evt.photoUrl),
           latitude: evt.latitude,
           longitude: evt.longitude,
           deliveryMatchStatus: evt.deliveryMatchStatus,
@@ -112,7 +130,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           description: appendDeliveryConfirmation('ส่งถึงปลายทางเรียบร้อย', evt),
           timestamp: evt.timestamp,
           location: evt.location,
-          imageUrl: evt.photoUrl,
+          imageUrl: getProofImage(evt.photoUrl),
           latitude: evt.latitude,
           longitude: evt.longitude,
           deliveryMatchStatus: evt.deliveryMatchStatus,
@@ -150,7 +168,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
     timestamp: parcel['วันที่สร้าง'],
     location: parcel['สาขาผู้ส่ง'],
     destLocation: parcel['สาขาผู้รับ'],
-    imageUrl: parcel['รูปยืนยัน'],
+    imageUrl: getProofImage(),
     latitude: creationLat,
     longitude: creationLng,
   });
@@ -163,7 +181,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
       description: 'ส่งถึงปลายทางเรียบร้อย',
       timestamp: parcel['วันที่รับ'] ?? '',
       location: parcel['สาขาผู้รับ'],
-      imageUrl: parcel['รูปยืนยัน'] ?? undefined,
+      imageUrl: getProofImage(),
       latitude: parcelLat,
       longitude: parcelLng,
     });
