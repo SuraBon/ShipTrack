@@ -114,6 +114,7 @@ export default function ConfirmReceipt({
   const [trackingId, setTrackingId] = useState('');
   const [photoUrl, setPhotoUrl] = useState('');
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [note, setNote] = useState('');
 
   const { position, status: geoStatus, errorMessage: geoError, requestLocation, reset: resetGeo } = useGeolocation();
@@ -141,7 +142,7 @@ export default function ConfirmReceipt({
   const gpsQuality = getGpsQuality(effectiveGeoStatus, position);
   const hasLowAccuracyGps = gpsQuality === 'low_accuracy';
   const needsGpsOverrideReason = shouldRequireGpsOverrideReason(effectiveGeoStatus);
-  const canProceedFromPhoto = Boolean(photoPreview) && (
+  const canProceedFromPhoto = Boolean(photoPreview) && !isProcessingImage && (
     effectiveGeoStatus === 'success' ||
     (needsGpsOverrideReason && gpsOverrideReason.trim().length > 0)
   );
@@ -268,6 +269,7 @@ export default function ConfirmReceipt({
   };
 
   const processImageFile = async (file: File) => {
+    setIsProcessingImage(true);
     try {
       const image = await processProofImageFile(file);
       setPhotoPreview(image.dataUrl);
@@ -275,6 +277,8 @@ export default function ConfirmReceipt({
       toast.success('แนบรูปหลักฐานแล้ว');
     } catch (err) {
       toast.error(getErrorMessage(err, 'เกิดข้อผิดพลาดในการประมวลผลรูปภาพ'));
+    } finally {
+      setIsProcessingImage(false);
     }
   };
 
@@ -498,34 +502,54 @@ export default function ConfirmReceipt({
           <div className="space-y-4 p-4 sm:p-5">
             {checkedParcel && <ParcelJobSummary parcel={checkedParcel} />}
 
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
             {!photoPreview ? (
-              <div
+              <button
+                type="button"
+                disabled={isProcessingImage}
                 onClick={() => fileInputRef.current?.click()}
-                className="group relative cursor-pointer overflow-hidden rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center transition-all hover:border-primary/40 hover:bg-gray-100 sm:p-10"
+                className="group relative overflow-hidden rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center transition-all hover:border-primary/40 hover:bg-gray-100 sm:p-10 w-full disabled:opacity-75 disabled:pointer-events-none"
               >
-                {/* hidden file input — capture="environment" เปิดกล้องหลังโดยตรงบน mobile */}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                />
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200 text-slate-900 transition-all group-hover:scale-105 group-hover:bg-slate-300">
-                  <span className="material-symbols-outlined text-3xl transition-colors">photo_camera</span>
-                </div>
-                <p className="font-display text-lg font-black text-slate-950">แตะเพื่อถ่ายรูป</p>
-                <p className="mt-1 text-xs font-semibold text-on-surface-variant/60">ระบบจะบีบอัดรูปให้อัตโนมัติ</p>
-              </div>
+                {isProcessingImage ? (
+                  <>
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200 text-slate-900 transition-all">
+                      <span className="material-symbols-outlined text-3xl animate-spin">progress_activity</span>
+                    </div>
+                    <p className="font-display text-lg font-black text-slate-950">กำลังบีบอัดรูปภาพ...</p>
+                    <p className="mt-1 text-xs font-semibold text-on-surface-variant/60">กรุณารอสักครู่ขณะประมวลผลรูปภาพ</p>
+                  </>
+                ) : (
+                  <>
+                    <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200 text-slate-900 transition-all group-hover:scale-105 group-hover:bg-slate-300">
+                      <span className="material-symbols-outlined text-3xl transition-colors">photo_camera</span>
+                    </div>
+                    <p className="font-display text-lg font-black text-slate-950">แตะเพื่อถ่ายรูป</p>
+                    <p className="mt-1 text-xs font-semibold text-on-surface-variant/60">ระบบจะบีบอัดรูปให้อัตโนมัติ</p>
+                  </>
+                )}
+              </button>
             ) : (
-              <div className="relative h-64 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 sm:h-80">
+              <div className="relative h-64 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 sm:h-80 w-full">
                 <img src={photoPreview} alt="หลักฐานการจัดส่ง" className="w-full h-full object-contain animate-in fade-in zoom-in-95 duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
+                {isProcessingImage && (
+                  <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white gap-2">
+                    <span className="material-symbols-outlined text-3xl animate-spin">progress_activity</span>
+                    <span className="text-xs font-semibold">กำลังประมวลผล...</span>
+                  </div>
+                )}
                 <button
                   type="button"
+                  disabled={isProcessingImage}
                   onClick={() => fileInputRef.current?.click()}
-                  className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95"
+                  className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
                 >
                   <span className="material-symbols-outlined text-lg">photo_camera</span>
                   ถ่ายใหม่
@@ -566,14 +590,17 @@ export default function ConfirmReceipt({
                   </div>
                 </div>
 
-                {/* GPS Loading Bypass Button */}
-                {effectiveGeoStatus === 'loading' && (
+                {/* GPS Retry Button */}
+                {effectiveGeoStatus !== 'loading' && (
                   <button
                     type="button"
-                    onClick={() => setIsGpsBypassed(true)}
+                    onClick={() => {
+                      setIsGpsBypassed(false);
+                      requestLocation();
+                    }}
                     className="w-full sm:w-auto shrink-0 font-display text-xs font-black text-primary hover:text-primary/95 border border-primary/20 hover:bg-primary/5 px-3 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer"
                   >
-                    ข้ามการค้นหาตำแหน่ง
+                    ลองดึงตำแหน่งใหม่
                   </button>
                 )}
               </div>

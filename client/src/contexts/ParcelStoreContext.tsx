@@ -107,6 +107,14 @@ export function ParcelStoreProvider({ children }: { children: ReactNode }) {
     }
   }, []); // ✅ No deps — uses refs to avoid stale closures
 
+  useEffect(() => {
+    const handleSyncComplete = () => {
+      void loadParcels(undefined, true);
+    };
+    window.addEventListener('offline-sync-complete', handleSyncComplete);
+    return () => window.removeEventListener('offline-sync-complete', handleSyncComplete);
+  }, [loadParcels]);
+
   const loadMoreParcels = useCallback(async () => {
     if (!hasMore || loading) return;
     await loadParcels(currentStatus, false);

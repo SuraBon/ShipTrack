@@ -24,6 +24,10 @@ import { normalizeRole, type AppRole } from './roles';
 import { getDeviceId } from './createdParcelHistory';
 import { getErrorMessage, getServerErrorMessage, isAuthErrorMessage } from './apiErrorHelper';
 import { createIdempotencyKey } from './idempotency';
+import { enqueueOfflineAction, getOfflineQueue, removeOfflineAction } from './offlineQueue';
+import { toast } from 'sonner';
+
+let isSyncing = false;
 
 // ── Status normalizer ────────────────────────────────────────────────────────
 function normalizeParcelStatus(parcel: Parcel): Parcel {
@@ -159,6 +163,12 @@ async function callAPI<T>(
     throw new Error('กรุณาตั้งค่า Google Apps Script URL ก่อน');
   }
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    const p = payload as any;
+    const isQueueable = !isSyncing && p && p.action && ['confirmReceipt', 'startDelivery', 'releaseDelivery'].includes(p.action);
+    if (isQueueable) {
+      enqueueOfflineAction(p.action, p);
+      return { success: true, queued: true } as any;
+    }
     throw new Error('ไม่มีการเชื่อมต่ออินเทอร์เน็ต กรุณาตรวจสอบสัญญาณแล้วลองใหม่');
   }
 
@@ -236,6 +246,14 @@ async function callAPI<T>(
     return data as T;
   }
 
+  const p = payload as any;
+  const isQueueable = !isSyncing && p && p.action && ['confirmReceipt', 'startDelivery', 'releaseDelivery'].includes(p.action);
+  const isNetworkError = lastError.message.includes('เชื่อมต่อ') || lastError.message.includes('เวลา');
+  if (isQueueable && isNetworkError) {
+    enqueueOfflineAction(p.action, p);
+    return { success: true, queued: true } as any;
+  }
+
   throw lastError;
 }
 
@@ -260,7 +278,7 @@ export async function createParcel(
     idempotencyKey: createIdempotencyKey('createParcel'),
   };
   try {
-    const res = await callAPI<Record<string, unknown>>(payload, {}, NO_RETRY);
+    const res = await callAPI<Record<string, unknown>>(payload);
     return {
       success: Boolean(res.success),
       trackingID: (res.trackingID ?? res.trackingId) as string | undefined,
@@ -335,7 +353,7 @@ export async function confirmReceipt(
     idempotencyKey: createIdempotencyKey('confirmReceipt'),
   };
   try {
-    return await callAPI<ConfirmReceiptResponse>(payload, {}, NO_RETRY);
+    return await callAPI<ConfirmReceiptResponse>(payload);
   } catch (err) {
     const message = getErrorMessage(err);
     return { success: false, error: message };
@@ -355,7 +373,7 @@ export async function startDelivery(
     idempotencyKey: createIdempotencyKey('startDelivery'),
   };
   try {
-    return await callAPI<StartDeliveryResponse>(payload, {}, NO_RETRY);
+    return await callAPI<StartDeliveryResponse>(payload);
   } catch (err) {
     const message = getErrorMessage(err);
     return { success: false, error: message };
@@ -369,7 +387,7 @@ export async function releaseDelivery(trackingID: string): Promise<ReleaseDelive
     idempotencyKey: createIdempotencyKey('releaseDelivery'),
   };
   try {
-    return await callAPI<ReleaseDeliveryResponse>(payload, {}, NO_RETRY);
+    return await callAPI<ReleaseDeliveryResponse>(payload);
   } catch (err) {
     const message = getErrorMessage(err);
     return { success: false, error: message };
@@ -724,4 +742,77 @@ export async function updateProfile(
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
   }
+}
+
+export async function syncOfflineQueue(): Promise<void> {
+  if (isSyncing) return;
+  const queue = getOfflineQueue();
+  if (queue.length === 0) return;
+
+  isSyncing = true;
+  toast.info(`กำลังอัปโหลดข้อมูลออฟไลน์ที่ค้างอยู่ ${queue.length} รายการ...`);
+
+  let successCount = 0;
+  for (const item of queue) {
+    try {
+      let res: any;
+      if (item.action === 'confirmReceipt') {
+        res = await confirmReceipt(
+          item.payload.trackingID,
+          item.payload.photoUrl,
+          item.payload.note,
+          item.payload.latitude,
+          item.payload.longitude,
+          item.payload.eventType,
+          item.payload.location,
+          item.payload.destLocation,
+          item.payload.person,
+          item.payload.deliveryMatchStatus,
+          item.payload.deliveryMismatchReason,
+          item.payload.pin
+        );
+      } else if (item.action === 'startDelivery') {
+        res = await startDelivery(
+          item.payload.trackingID,
+          item.payload.latitude,
+          item.payload.longitude
+        );
+      } else if (item.action === 'releaseDelivery') {
+        res = await releaseDelivery(item.payload.trackingID);
+      }
+
+      if (res && res.success) {
+        removeOfflineAction(item.id);
+        successCount++;
+      } else {
+        const errorMsg = res?.error || '';
+        if (errorMsg.includes('เชื่อมต่อ') || errorMsg.includes('เวลา')) {
+          toast.warning('การเชื่อมต่อขัดข้องชั่วคราว ระบบจะซิงค์ข้อมูลออฟไลน์ใหม่เมื่อสัญญาณเสถียร');
+          break;
+        } else {
+          // If logical error, drop it to avoid blocking the queue permanently
+          removeOfflineAction(item.id);
+        }
+      }
+    } catch {
+      break;
+    }
+  }
+
+  if (successCount > 0) {
+    toast.success(`อัปโหลดข้อมูลออฟไลน์สำเร็จ ${successCount} รายการ`);
+    window.dispatchEvent(new Event('offline-sync-complete'));
+  }
+  isSyncing = false;
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    void syncOfflineQueue();
+  });
+  window.addEventListener('load', () => {
+    if (navigator.onLine) {
+      void syncOfflineQueue();
+    }
+  });
 }

@@ -85,15 +85,22 @@ function getYearSpreadsheetName(year) {
   return YEAR_SPREADSHEET_PREFIX + " " + year;
 }
 
+var yearSpreadsheetMapCache = null;
 function getStoredYearSpreadsheetMap() {
+  if (yearSpreadsheetMapCache !== null) {
+    return yearSpreadsheetMapCache;
+  }
   try {
-    return JSON.parse(PropertiesService.getScriptProperties().getProperty(YEAR_SPREADSHEETS_PROPERTY) || "{}");
+    var val = PropertiesService.getScriptProperties().getProperty(YEAR_SPREADSHEETS_PROPERTY);
+    yearSpreadsheetMapCache = JSON.parse(val || "{}");
+    return yearSpreadsheetMapCache;
   } catch (e) {
     return {};
   }
 }
 
 function setStoredYearSpreadsheetMap(map) {
+  yearSpreadsheetMapCache = map || {};
   PropertiesService.getScriptProperties().setProperty(YEAR_SPREADSHEETS_PROPERTY, JSON.stringify(map || {}));
 }
 
@@ -287,26 +294,48 @@ function getParcelSheet(date, createIfMissing) {
   let sheet = ss.getSheetByName(sheetName);
   if (!sheet && createIfMissing !== false) {
     sheet = ss.insertSheet(sheetName);
+    try {
+      CacheService.getScriptCache().remove("sheets_list_" + ss.getId());
+    } catch (e) { }
   }
   if (sheet) ensureParcelSheetSchema(sheet);
   return sheet;
 }
 
+function getSpreadsheetSheetNames(spreadsheet) {
+  const cache = CacheService.getScriptCache();
+  const key = "sheets_list_" + spreadsheet.getId();
+  const cached = cache.get(key);
+  if (cached) {
+    try {
+      return JSON.parse(cached);
+    } catch (e) { }
+  }
+  const names = spreadsheet.getSheets().map(function (sheet) { return sheet.getName(); });
+  try {
+    cache.put(key, JSON.stringify(names), 3600); // Cache for 1 hour
+  } catch (e) { }
+  return names;
+}
+
 function getParcelSheetsForRead() {
   const result = [];
   getYearSpreadsheetsForRead().forEach(function (entry) {
-    const sheets = entry.spreadsheet.getSheets()
-      .filter(function (sheet) {
-        return sheet.getName() === LEGACY_PARCEL_SHEET_NAME || sheet.getName().indexOf(PARCEL_SHEET_PREFIX) === 0;
-      })
-      .sort(function (a, b) {
-        if (a.getName() === LEGACY_PARCEL_SHEET_NAME) return 1;
-        if (b.getName() === LEGACY_PARCEL_SHEET_NAME) return -1;
-        return b.getName().localeCompare(a.getName());
-      });
-    sheets.forEach(function (sheet) {
-      ensureParcelSheetSchema(sheet);
-      result.push({ year: entry.year, spreadsheet: entry.spreadsheet, sheet: sheet });
+    const sheetNames = getSpreadsheetSheetNames(entry.spreadsheet);
+    const parcelSheetNames = sheetNames.filter(function (name) {
+      return name === LEGACY_PARCEL_SHEET_NAME || name.indexOf(PARCEL_SHEET_PREFIX) === 0;
+    });
+    parcelSheetNames.sort(function (a, b) {
+      if (a === LEGACY_PARCEL_SHEET_NAME) return 1;
+      if (b === LEGACY_PARCEL_SHEET_NAME) return -1;
+      return b.localeCompare(a);
+    });
+    parcelSheetNames.forEach(function (name) {
+      const sheet = entry.spreadsheet.getSheetByName(name);
+      if (sheet) {
+        ensureParcelSheetSchema(sheet);
+        result.push({ year: entry.year, spreadsheet: entry.spreadsheet, sheet: sheet });
+      }
     });
   });
   return result;
@@ -347,8 +376,13 @@ function getEventSheetForSpreadsheet(ss) {
   return eventSheet;
 }
 
+var apiKeyCache = null;
 function getApiKey() {
-  return PropertiesService.getScriptProperties().getProperty(API_KEY_PROPERTY) || SCRIPT_API_KEY || "";
+  if (apiKeyCache !== null) {
+    return apiKeyCache;
+  }
+  apiKeyCache = PropertiesService.getScriptProperties().getProperty(API_KEY_PROPERTY) || SCRIPT_API_KEY || "";
+  return apiKeyCache;
 }
 
 function getInitialAdminPin() {
@@ -768,10 +802,11 @@ function doPost(e) {
             return createJsonResponse({ success: false, error: "Session replaced" });
           }
           // Role/name/branch always come from sheet — stale tokens cannot keep old privileges
+          // Set user details. Use distinct property names to prevent overwriting request parameters (like branch/name when creating/updating branches or users).
           payload.employeeId = userRecord.employeeId;
           payload.role = userRecord.role;
-          payload.branch = userRecord.branch;
-          payload.name = userRecord.name;
+          payload.operatorBranch = userRecord.branch;
+          payload.operatorName = userRecord.name;
         } else {
           return createJsonResponse({ success: false, error: "Invalid token signature" });
         }
@@ -983,6 +1018,71 @@ function getParcelEventsMap() {
   return eventsByTrackingId;
 }
 
+function getEventsForTrackingIds(trackingIds) {
+  if (!trackingIds || trackingIds.length === 0) return {};
+  const eventsByTrackingId = {};
+  
+  const trackingIdsByYear = {};
+  trackingIds.forEach(function (id) {
+    const parsed = parseTrackingDate(id);
+    const year = parsed ? parsed.year : getYearFromDate(new Date());
+    const yearStr = String(year);
+    if (!trackingIdsByYear[yearStr]) {
+      trackingIdsByYear[yearStr] = [];
+    }
+    trackingIdsByYear[yearStr].push(String(id).trim());
+  });
+  
+  const master = getSpreadsheet();
+  const masterId = master.getId();
+  const hasLegacyParcelSheets = master.getSheets().some(function (sheet) {
+    const name = sheet.getName();
+    return name === LEGACY_PARCEL_SHEET_NAME || name.indexOf(PARCEL_SHEET_PREFIX) === 0;
+  });
+  
+  Object.keys(trackingIdsByYear).forEach(function (yearStr) {
+    const ids = trackingIdsByYear[yearStr];
+    const ss = getYearSpreadsheet(Number(yearStr), false);
+    if (ss) {
+      const eventSheet = ss.getSheetByName("ParcelEvents");
+      if (eventSheet) {
+        const data = eventSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const trackingId = String(row[1]).trim();
+          if (ids.indexOf(trackingId) !== -1) {
+            const evt = parseEventRow(row);
+            if (!eventsByTrackingId[trackingId]) {
+              eventsByTrackingId[trackingId] = [];
+            }
+            eventsByTrackingId[trackingId].push(evt);
+          }
+        }
+      }
+    }
+    
+    if (hasLegacyParcelSheets && (!ss || ss.getId() !== masterId)) {
+      const legacyEventSheet = master.getSheetByName("ParcelEvents");
+      if (legacyEventSheet) {
+        const data = legacyEventSheet.getDataRange().getValues();
+        for (let i = 1; i < data.length; i++) {
+          const row = data[i];
+          const trackingId = String(row[1]).trim();
+          if (ids.indexOf(trackingId) !== -1) {
+            const evt = parseEventRow(row);
+            if (!eventsByTrackingId[trackingId]) {
+              eventsByTrackingId[trackingId] = [];
+            }
+            eventsByTrackingId[trackingId].push(evt);
+          }
+        }
+      }
+    }
+  });
+  
+  return eventsByTrackingId;
+}
+
 function parseAssignedToId(note) {
   const prefix = "assignedToId=";
   const value = String(note || "").trim();
@@ -1040,7 +1140,8 @@ function getActiveDeliveryAssignmentFromEvents(events) {
     } else if (
       evt.eventType === "RELEASE_DELIVERY" ||
       evt.eventType === "DELIVERED" ||
-      evt.eventType === "PROXY"
+      evt.eventType === "PROXY" ||
+      evt.eventType === "FORWARD"
     ) {
       active = null;
     }
@@ -1202,7 +1303,8 @@ function handleGetParcels(payload) {
     }
   });
 
-  const eventsMap = getParcelEventsMap();
+  const trackingIds = parcels.map(function (p) { return p.TrackingID; });
+  const eventsMap = getEventsForTrackingIds(trackingIds);
   for (let p of parcels) {
     p.events = eventsMap[p.TrackingID] || [];
   }
@@ -1376,7 +1478,8 @@ function handleConfirmReceipt(payload) {
         activeAssignment &&
         activeAssignment.assignedToId &&
         activeAssignment.assignedToId !== normalizeEmployeeId(payload.employeeId) &&
-        normalizeRole(payload.role) !== "ADMIN"
+        normalizeRole(payload.role) !== "ADMIN" &&
+        payload.eventType !== "FORWARD"
       ) {
         return createJsonResponse({
           success: false,
@@ -1591,7 +1694,7 @@ function handleStartDelivery(payload) {
       if (eventSheet) {
         const eventId = "EVT" + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMddHHmmssSSS") + Math.floor(Math.random() * 1000);
         const eventTimeStr = formatThaiDateForSheet(new Date());
-        const assignedToName = escapeSheetValue(payload.name || payload.employeeId || "");
+        const assignedToName = escapeSheetValue(payload.operatorName || payload.name || payload.employeeId || "");
         eventSheet.appendRow([
           eventId,
           payload.trackingID,
@@ -1631,7 +1734,7 @@ function handleStartDelivery(payload) {
       return createJsonResponse({
         success: true,
         assignedToId: currentEmployeeId,
-        assignedToName: payload.name || payload.employeeId || "",
+        assignedToName: payload.operatorName || payload.name || payload.employeeId || "",
         autoPickedUp: autoPickedUp
       });
     }
@@ -1709,7 +1812,7 @@ function handleReleaseDelivery(payload) {
           "RELEASE_DELIVERY",
           escapeSheetValue(row[3] || ""),
           escapeSheetValue(row[5] || ""),
-          escapeSheetValue(payload.name || payload.employeeId || ""),
+          escapeSheetValue(payload.operatorName || payload.name || payload.employeeId || ""),
           "",
           "",
           "",
@@ -1804,9 +1907,10 @@ function handleSearchParcels(payload) {
     }
   }
 
-  if (!isGuest) {
+  if (!isGuest && parcels.length > 0) {
     // Attach events only for authenticated users. Public search should not expose proof images or GPS trails.
-    const eventsMap = getParcelEventsMap();
+    const trackingIds = parcels.map(function (p) { return p.TrackingID; });
+    const eventsMap = getEventsForTrackingIds(trackingIds);
     for (let p of parcels) {
       p.events = eventsMap[p.TrackingID] || [];
     }
@@ -2090,20 +2194,9 @@ function handleGetUsers(payload) {
   const sheet = getUsersSheet();
   const data = sheet.getDataRange().getValues();
   const users = [];
-  const headers = data[0];
 
   for (let i = 1; i < data.length; i++) {
-    const row = data[i];
-    users.push({
-      employeeId: String(row[0]),
-      name: String(row[1]),
-      branch: String(row[2]),
-      role: normalizeRole(row[3] || "GUEST"),
-      hasPin: !!String(row[4]).trim(),
-      createdAt: formatSheetDateValue(row[5]),
-      status: String(row[6] || "ACTIVE").trim().toUpperCase() || "ACTIVE",
-      updatedAt: formatSheetDateValue(row[7])
-    });
+    users.push(buildUserRowResponse(data[i]));
   }
   return createJsonResponse({ success: true, users: users });
 }
@@ -2340,7 +2433,7 @@ function handleDeleteBranch(payload) {
   if (normalizeRole(payload.role) !== 'ADMIN') {
     return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะผู้ดูแลระบบ)" });
   }
-  const name = String(payload.name || "").trim();
+  const name = escapeSheetValue(payload.name || "");
   if (!name) return createJsonResponse({ success: false, error: "กรุณาระบุแผนก/สาขา" });
 
   const sheet = getBranchesSheet();

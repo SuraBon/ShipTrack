@@ -5,7 +5,7 @@
  * Supports an "อื่นๆ" option that reveals a custom text input.
  */
 
-import { useState, useRef, useEffect, useCallback, useId } from 'react';
+import { useState, useRef, useEffect, useCallback, useId, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, ChevronDown, Pencil } from 'lucide-react';
 
@@ -39,9 +39,11 @@ export default function NativeSelect({
   const inputId = useId();
   const [open, setOpen] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
+  const [filterText, setFilterText] = useState('');
   const btnRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const customInputRef = useRef<HTMLInputElement>(null);
+  const filterInputRef = useRef<HTMLInputElement>(null);
 
   const isCustom = value !== '' && value !== OTHER_VALUE && !options.includes(value);
   const showCustomInput = value === OTHER_VALUE || isCustom;
@@ -83,6 +85,15 @@ export default function NativeSelect({
     };
   }, [open, updateRect]);
 
+  // Focus search input when dropdown opens, and reset filter on close
+  useEffect(() => {
+    if (open) {
+      setTimeout(() => filterInputRef.current?.focus(), 50);
+    } else {
+      setFilterText('');
+    }
+  }, [open]);
+
   // Focus custom input when it appears
   useEffect(() => {
     if (showCustomInput) {
@@ -106,8 +117,15 @@ export default function NativeSelect({
       }
     : { display: 'none' };
 
+  // Filter options based on filterText
+  const filteredOptions = useMemo(() => {
+    const query = filterText.trim().toLowerCase();
+    if (!query) return options;
+    return options.filter(opt => opt.toLowerCase().includes(query));
+  }, [options, filterText]);
+
   const allOptions = [
-    ...options,
+    ...filteredOptions,
     ...(allowOther ? [OTHER_VALUE] : []),
   ];
 
@@ -147,6 +165,36 @@ export default function NativeSelect({
           style={listStyle}
           className="rounded-2xl border border-outline-variant/20 bg-white shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150"
         >
+          {/* Search box */}
+          <div className="border-b border-outline-variant/10 p-2 bg-slate-50">
+            <div className="relative">
+              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant/45">
+                search
+              </span>
+              <input
+                ref={filterInputRef}
+                type="text"
+                placeholder="ค้นหา..."
+                value={filterText}
+                onChange={e => setFilterText(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.stopPropagation();
+                  }
+                }}
+                className="w-full h-8 rounded-lg border border-outline-variant/30 bg-white pl-8 pr-7 text-xs outline-none focus:border-primary transition-all font-display"
+              />
+              {filterText && (
+                <button
+                  type="button"
+                  onClick={() => setFilterText('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-lg text-on-surface-variant/40 hover:bg-slate-200"
+                >
+                  <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+              )}
+            </div>
+          </div>
           <div className="max-h-60 overflow-y-auto py-1.5">
             {allOptions.map(opt => {
               const isOther = opt === OTHER_VALUE;
@@ -183,6 +231,9 @@ export default function NativeSelect({
                 </button>
               );
             })}
+            {filteredOptions.length === 0 && (
+              <p className="px-4 py-3 text-xs font-semibold text-muted-foreground text-center font-display">ไม่พบข้อมูล</p>
+            )}
           </div>
         </div>,
         document.body

@@ -46,6 +46,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
   const [isResultOpen, setIsResultOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [proofPhotoUrl, setProofPhotoUrl] = useState('');
   const [proofPhotoPreview, setProofPhotoPreview] = useState<string | null>(null);
 
@@ -81,6 +82,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
   };
 
   const processProofImage = async (file: File) => {
+    setIsProcessingImage(true);
     try {
       const image = await processProofImageFile(file);
       setProofPhotoPreview(image.dataUrl);
@@ -88,6 +90,8 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       toast.success('แนบรูปหลักฐานแล้ว');
     } catch (err) {
       toast.error(getErrorMessage(err, 'เกิดข้อผิดพลาดในการประมวลผลรูปภาพ'));
+    } finally {
+      setIsProcessingImage(false);
     }
   };
 
@@ -363,23 +367,42 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
               {!proofPhotoPreview ? (
                 <button
                   type="button"
+                  disabled={isProcessingImage}
                   onClick={() => proofInputRef.current?.click()}
-                  className="flex min-h-[138px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-center transition-colors hover:bg-gray-100 active:scale-[0.99]"
+                  className="flex min-h-[138px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-center transition-colors hover:bg-gray-100 active:scale-[0.99] disabled:opacity-75 disabled:pointer-events-none"
                 >
-                  <span className="grid size-11 place-items-center rounded-lg bg-background text-foreground shadow-xs">
-                    <span className="material-symbols-outlined text-2xl">add_a_photo</span>
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">ถ่ายหรือแนบรูปสิ่งที่ส่ง</span>
-                  <span className="text-xs text-muted-foreground">ใช้ยืนยันของที่พนักงานส่งต้องรับไปส่ง</span>
+                  {isProcessingImage ? (
+                    <>
+                      <span className="grid size-11 place-items-center rounded-lg bg-background text-foreground shadow-xs">
+                        <span className="material-symbols-outlined text-2xl animate-spin">progress_activity</span>
+                      </span>
+                      <span className="text-sm font-semibold text-foreground">กำลังบีบอัดและประมวลผลรูปภาพ...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="grid size-11 place-items-center rounded-lg bg-background text-foreground shadow-xs">
+                        <span className="material-symbols-outlined text-2xl">add_a_photo</span>
+                      </span>
+                      <span className="text-sm font-semibold text-foreground">ถ่ายหรือแนบรูปสิ่งที่ส่ง</span>
+                      <span className="text-xs text-muted-foreground">ใช้ยืนยันของที่พนักงานส่งต้องรับไปส่ง</span>
+                    </>
+                  )}
                 </button>
               ) : (
-                <div className="overflow-hidden rounded-xl border border-gray-100 bg-card shadow-sm">
+                <div className="overflow-hidden rounded-xl border border-gray-100 bg-card shadow-sm relative">
                   <div className="relative aspect-[4/3] bg-surface-container-low">
                     <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" className="h-full w-full object-cover" />
+                    {isProcessingImage && (
+                      <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white gap-2">
+                        <span className="material-symbols-outlined text-3xl animate-spin">progress_activity</span>
+                        <span className="text-xs font-semibold">กำลังประมวลผล...</span>
+                      </div>
+                    )}
                     <button
                       type="button"
+                      disabled={isProcessingImage}
                       onClick={clearProofPhoto}
-                      className="absolute right-2 top-2 grid size-9 place-items-center rounded-lg bg-background text-foreground shadow-md transition-colors hover:bg-destructive hover:text-destructive-foreground active:scale-95"
+                      className="absolute right-2 top-2 grid size-9 place-items-center rounded-lg bg-background text-foreground shadow-md transition-colors hover:bg-destructive hover:text-destructive-foreground active:scale-95 disabled:opacity-50"
                       aria-label="ลบรูปสิ่งที่ส่ง"
                     >
                       <span className="material-symbols-outlined text-xl">close</span>
@@ -387,8 +410,9 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   </div>
                   <button
                     type="button"
+                    disabled={isProcessingImage}
                     onClick={() => proofInputRef.current?.click()}
-                    className="flex h-11 w-full items-center justify-center gap-2 bg-muted text-sm font-semibold text-foreground transition-colors hover:bg-muted/80"
+                    className="flex h-11 w-full items-center justify-center gap-2 bg-muted text-sm font-semibold text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
                   >
                     <span className="material-symbols-outlined text-lg">photo_camera</span>
                     เปลี่ยนรูป
@@ -454,13 +478,13 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
           <div className="mx-auto flex max-w-[390px] md:max-w-none md:justify-end">
           <button
             type="submit"
-            disabled={isLoading}
-            className="app-primary-button h-12 w-full md:w-auto md:px-6"
+            disabled={isLoading || isProcessingImage}
+            className="app-primary-button h-12 w-full md:w-auto md:px-6 disabled:opacity-55 disabled:cursor-not-allowed"
           >
-            <span className={`material-symbols-outlined ${isLoading ? 'animate-spin' : ''}`}>
-              {isLoading ? 'progress_activity' : 'add_circle'}
+            <span className={`material-symbols-outlined ${isLoading || isProcessingImage ? 'animate-spin' : ''}`}>
+              {isLoading || isProcessingImage ? 'progress_activity' : 'add_circle'}
             </span>
-            {isLoading ? 'กำลังสร้างรายการ...' : UI_COPY.action.create}
+            {isProcessingImage ? 'กำลังประมวลผลรูปภาพ...' : isLoading ? 'กำลังสร้างรายการ...' : UI_COPY.action.create}
           </button>
           </div>
         </div>
