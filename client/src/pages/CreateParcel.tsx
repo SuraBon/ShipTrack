@@ -468,89 +468,76 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
 
       {/* Confirmation Modal */}
       <Dialog open={isConfirmOpen} onOpenChange={setIsConfirmOpen}>
-        <DialogContent className="w-[calc(100vw-1rem)] max-w-xl max-h-[92vh] overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-xl">
+        <DialogContent className="w-[calc(100vw-1rem)] max-w-lg max-h-[92vh] overflow-hidden rounded-2xl border border-slate-200 bg-white p-0 shadow-xl">
           <div className="flex max-h-[92vh] flex-col">
             {/* Header */}
-            <div className="border-b border-gray-100 bg-white px-5 py-4 sm:px-6">
-              <div className="relative flex items-center gap-4">
-                <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white shadow-sm">
-                  <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>fact_check</span>
-                </div>
-                <div className="min-w-0 text-left">
-                  <DialogTitle className="text-xl font-semibold leading-tight text-foreground sm:text-2xl">ตรวจสอบก่อนส่งรายการ</DialogTitle>
-                  <p className="mt-0.5 text-xs text-muted-foreground">เช็กต้นทาง ปลายทาง และรูปก่อนสร้างรายการ</p>
-                </div>
+            <div className="bg-slate-950 px-5 py-5 text-white sm:px-6">
+              <div className="min-w-0 text-left">
+                <DialogTitle className="font-display text-xl font-black leading-tight sm:text-2xl">สรุปรายการส่ง</DialogTitle>
+                <p className="mt-1 text-xs font-semibold text-slate-300">ตรวจต้นทาง ปลายทาง และหลักฐานก่อนสร้างรายการ</p>
               </div>
             </div>
 
-            <div className="modal-scroll flex-1 overflow-y-auto bg-gray-50 p-4 sm:p-5">
+            <div className="modal-scroll flex-1 overflow-y-auto bg-white p-4 sm:p-5">
               <div className="space-y-3">
                 {/* Route summary */}
-                <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                  <div className="relative space-y-4">
-                    <div className="absolute bottom-10 left-[21px] top-10 w-px bg-gray-200" />
+                <div className="rounded-2xl bg-slate-50 px-4 py-4">
+                  <div className="relative space-y-6">
+                    <div className="absolute bottom-6 left-[9px] top-6 w-px bg-slate-200" />
                     <div className="relative flex min-w-0 gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                        <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>person_pin_circle</span>
-                      </div>
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">ผู้ส่งต้นทาง</p>
-                        <p className="truncate font-display text-lg font-black leading-tight text-primary">{formData.senderName}</p>
-                        <p className="truncate text-xs font-semibold text-on-surface-variant/70">{resolveSelectValue(formData.senderBranch)}</p>
+                      <span className="mt-1 size-[18px] shrink-0 rounded-full border-[5px] border-blue-100 bg-blue-500 shadow-sm" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-base font-black leading-tight text-slate-900">{formData.senderName}</p>
+                        <p className="mt-0.5 truncate text-sm font-semibold text-blue-900/70">{resolveSelectValue(formData.senderBranch)}</p>
                       </div>
                     </div>
 
                     <div className="relative flex min-w-0 gap-3">
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-orange-50 text-orange-600">
-                        <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
-                      </div>
-                      <div className="min-w-0 flex-1 pt-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/50">ปลายทางจัดส่ง</p>
-                        <p className="truncate font-display text-lg font-black leading-tight text-primary">{formData.receiverName}</p>
-                        <p className="truncate text-xs font-semibold text-on-surface-variant/70">{resolveSelectValue(formData.receiverBranch)}</p>
+                      <span className="mt-1 size-[18px] shrink-0 rounded-full border-[5px] border-red-100 bg-red-400 shadow-sm" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-display text-base font-black leading-tight text-slate-900">{formData.receiverName}</p>
+                        <p className="mt-0.5 truncate text-sm font-semibold text-blue-900/70">{resolveSelectValue(formData.receiverBranch)}</p>
                       </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Parcel Details */}
-                <div className="grid grid-cols-1 gap-3">
-                  <div className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
-                    <div className="mb-2 flex items-center gap-2 text-slate-700">
-                      <span className="material-symbols-outlined text-lg">description</span>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">รายละเอียดสิ่งที่ส่ง</p>
-                    </div>
-                    <p className="break-words text-base font-bold text-slate-900">{formData.description || '-'}</p>
-                  </div>
+                <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-4">
+                  <span className="material-symbols-outlined mt-0.5 text-3xl text-slate-400">inventory_2</span>
+                  <p className="min-w-0 break-words text-base font-semibold text-slate-800">
+                    <span className="font-black text-slate-950">สิ่งที่ส่ง:</span> {formData.description || '-'}
+                  </p>
                 </div>
 
-                {position && (
-                  <div className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-                    <span className="material-symbols-outlined text-base">my_location</span>
-                    บันทึกตำแหน่งจุดรับแล้ว
-                  </div>
-                )}
-
                 {/* Note */}
-                {formData.note && (
-                  <div className="rounded-2xl border border-orange-100 bg-orange-50 p-4">
-                    <div className="mb-1 flex items-center gap-2 text-orange-600">
-                      <span className="material-symbols-outlined text-lg">edit_note</span>
-                      <p className="text-[10px] font-black uppercase tracking-widest">หมายเหตุปลายทาง</p>
-                    </div>
-                    <p className="break-words text-sm font-medium leading-relaxed text-on-surface">{formData.note}</p>
-                  </div>
-                )}
+                <div className="flex items-start gap-3 rounded-2xl bg-orange-50 px-4 py-4">
+                  <span className="material-symbols-outlined mt-0.5 text-3xl text-orange-500">sticky_note_2</span>
+                  <p className="min-w-0 break-words text-base font-semibold leading-relaxed text-slate-800">
+                    <span className="font-black text-orange-600">หมายเหตุ:</span> {formData.note || '-'}
+                  </p>
+                </div>
 
-                {proofPhotoPreview && (
-                  <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
-                    <div className="flex items-center gap-2 border-b border-gray-100 px-4 py-3 text-slate-700">
-                      <span className="material-symbols-outlined text-lg">photo_camera</span>
-                      <p className="text-[10px] font-black uppercase tracking-widest text-on-surface-variant/55">รูปสิ่งที่ส่ง</p>
-                    </div>
-                    <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" className="max-h-56 w-full object-contain bg-surface-container-low" />
+                <div className={`flex items-center gap-3 rounded-2xl px-4 py-4 ${position ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-50 text-slate-500'}`}>
+                  <span className="material-symbols-outlined text-3xl">{position ? 'my_location' : 'location_searching'}</span>
+                  <span className="min-w-0 text-base font-black">{position ? 'บันทึกตำแหน่งจุดรับแล้ว' : 'รอตำแหน่งจุดรับ'}</span>
+                </div>
+
+                <div className={`overflow-hidden rounded-2xl ${proofPhotoPreview ? 'bg-blue-50 text-blue-800' : 'bg-slate-50 text-slate-500'}`}>
+                  <div className="flex items-center gap-3 px-4 py-4">
+                    <span className="material-symbols-outlined text-3xl">{proofPhotoPreview ? 'image' : 'add_photo_alternate'}</span>
+                    <span className="min-w-0 text-base font-black">{proofPhotoPreview ? 'แนบรูปสิ่งที่ส่งแล้ว' : 'ยังไม่ได้แนบรูปสิ่งที่ส่ง'}</span>
                   </div>
-                )}
+                  {proofPhotoPreview && (
+                    <div className="border-t border-blue-100 bg-white p-2">
+                      <img
+                        src={proofPhotoPreview}
+                        alt="รูปสิ่งที่ส่ง"
+                        className="max-h-[48vh] w-full rounded-xl bg-slate-50 object-contain"
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
