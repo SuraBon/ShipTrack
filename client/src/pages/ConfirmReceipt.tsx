@@ -53,35 +53,35 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
 
 function ParcelJobSummary({ parcel }: { parcel: Parcel }) {
   return (
-    <div className="rounded-2xl border border-primary/15 bg-primary/[0.03] p-3 text-left">
+    <div className="rounded-2xl border border-gray-200 bg-slate-50 p-3 text-left">
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-[10px] font-black uppercase tracking-wider text-on-surface-variant/55">งานส่งนี้</p>
-          <p className="truncate font-display text-base font-black leading-tight text-primary">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
+          <p className="text-[10px] font-black text-slate-400">งานส่งนี้</p>
+          <p className="truncate font-display text-base font-black leading-tight text-slate-950">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
         </div>
-        <code className="shrink-0 rounded-lg bg-white px-2 py-1 font-mono text-[11px] font-black text-primary shadow-sm ring-1 ring-outline-variant/10">
+        <code className="shrink-0 rounded-lg bg-white px-2 py-1 font-mono text-[11px] font-black text-slate-800 shadow-sm ring-1 ring-gray-200">
           {parcel.TrackingID}
         </code>
       </div>
       <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
-        <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-outline-variant/10">
-          <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/50">
-            <span className="material-symbols-outlined text-[13px]">package_2</span>
+        <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-gray-100">
+          <div className="mb-1 flex items-center gap-1 text-[9px] font-black text-slate-400">
+            <span className="material-symbols-outlined text-[13px]">inventory_2</span>
             ต้นทาง
           </div>
-          <p className="truncate text-sm font-black leading-tight text-primary">{parcel['สาขาผู้ส่ง'] || '-'}</p>
-          <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">{parcel['ผู้ส่ง'] || '-'}</p>
+          <p className="truncate text-sm font-black leading-tight text-slate-950">{parcel['สาขาผู้ส่ง'] || '-'}</p>
+          <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">{parcel['ผู้ส่ง'] || '-'}</p>
         </div>
-        <div className="grid w-8 place-items-center text-primary">
+        <div className="grid w-8 place-items-center text-slate-900">
           <span className="material-symbols-outlined text-xl">arrow_forward</span>
         </div>
-        <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-outline-variant/10">
-          <div className="mb-1 flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-on-surface-variant/50">
+        <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-gray-100">
+          <div className="mb-1 flex items-center gap-1 text-[9px] font-black text-slate-400">
             <span className="material-symbols-outlined text-[13px]">flag</span>
             ปลายทาง
           </div>
-          <p className="truncate text-sm font-black leading-tight text-primary">{parcel['สาขาผู้รับ'] || '-'}</p>
-          <p className="mt-0.5 truncate text-[11px] font-semibold text-on-surface-variant/60">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
+          <p className="truncate text-sm font-black leading-tight text-slate-950">{parcel['สาขาผู้รับ'] || '-'}</p>
+          <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
         </div>
       </div>
     </div>
@@ -479,13 +479,21 @@ export default function ConfirmReceipt({
 
       {/* Step 2: Photo Evidence */}
       {currentStep === 2 && (
-        <div className="app-panel overflow-hidden animate-in slide-in-from-right-4 duration-500">
-          <div className="app-panel-header p-4 text-center sm:p-5">
-            <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>photo_camera</span>
+        <div className="overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white shadow-xl animate-in slide-in-from-right-4 duration-500">
+          <div className="relative bg-slate-950 px-5 py-5 text-white sm:px-6">
+            <button
+              type="button"
+              onClick={() => setCurrentStep(1)}
+              className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              aria-label="ย้อนกลับ"
+            >
+              <span className="material-symbols-outlined text-2xl">close</span>
+            </button>
+            <div className="pr-12">
+              <h2 className="font-display text-2xl font-black leading-tight text-white">ถ่ายรูปหลักฐาน</h2>
+              <p className="mt-2 font-mono text-sm font-black tracking-wide text-blue-200">{checkedParcel?.TrackingID}</p>
+              <p className="mt-2 text-xs font-semibold text-slate-300">ถ่ายรูปสิ่งที่ส่งหรือหลักฐานการจัดส่ง</p>
             </div>
-            <h2 className="font-display text-lg font-black text-primary">ถ่ายรูปหลักฐาน</h2>
-            <p className="mt-0.5 text-xs font-semibold text-on-surface-variant/60">ถ่ายรูปสิ่งที่ส่งหรือหลักฐานการจัดส่ง</p>
           </div>
           <div className="space-y-4 p-4 sm:p-5">
             {checkedParcel && <ParcelJobSummary parcel={checkedParcel} />}
@@ -493,7 +501,7 @@ export default function ConfirmReceipt({
             {!photoPreview ? (
               <div
                 onClick={() => fileInputRef.current?.click()}
-                className="group relative cursor-pointer overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center transition-all hover:border-primary/40 hover:bg-gray-100 sm:p-6"
+                className="group relative cursor-pointer overflow-hidden rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center transition-all hover:border-primary/40 hover:bg-gray-100 sm:p-10"
               >
                 {/* hidden file input — capture="environment" เปิดกล้องหลังโดยตรงบน mobile */}
                 <input
@@ -504,10 +512,10 @@ export default function ConfirmReceipt({
                   onChange={handleFileSelect}
                   className="hidden"
                 />
-                <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 transition-all group-hover:scale-105 group-hover:bg-primary/15">
-                  <span className="material-symbols-outlined text-3xl text-primary transition-colors">photo_camera</span>
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200 text-slate-900 transition-all group-hover:scale-105 group-hover:bg-slate-300">
+                  <span className="material-symbols-outlined text-3xl transition-colors">photo_camera</span>
                 </div>
-                <p className="font-display text-base font-black text-primary">แตะเพื่อถ่ายรูป</p>
+                <p className="font-display text-lg font-black text-slate-950">แตะเพื่อถ่ายรูป</p>
                 <p className="mt-1 text-xs font-semibold text-on-surface-variant/60">ระบบจะบีบอัดรูปให้อัตโนมัติ</p>
               </div>
             ) : (
@@ -612,43 +620,43 @@ export default function ConfirmReceipt({
 
       {/* Step 3: Final Details & Confirm */}
       {currentStep === 3 && (
-        <div className="overflow-hidden rounded-3xl border border-outline-variant bg-white shadow-xl animate-in slide-in-from-right-4 duration-500">
-          <div className="border-b border-outline-variant/10 bg-surface-container-low/30 p-4 text-center sm:p-5">
-            <div className="mx-auto mb-2 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+        <div className="overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white shadow-xl animate-in slide-in-from-right-4 duration-500">
+          <div className="bg-slate-950 p-5 text-center text-white sm:p-6">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-white">
               <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>fact_check</span>
             </div>
-            <h2 className="font-display text-lg font-black text-primary">เช็กปลายทางก่อนบันทึก</h2>
-            <p className="mt-0.5 text-xs font-semibold text-on-surface-variant/60">ตรวจต้นทาง ปลายทาง และผู้รับก่อนยืนยัน</p>
+            <h2 className="font-display text-xl font-black text-white">เช็กปลายทางก่อนบันทึก</h2>
+            <p className="mt-1 text-xs font-semibold text-slate-300">ตรวจต้นทาง ปลายทาง และผู้รับก่อนยืนยัน</p>
           </div>
           <div className="space-y-4 p-4 sm:p-5">
             {checkedParcel && <ParcelJobSummary parcel={checkedParcel} />}
 
-            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-outline-variant bg-surface-container-lowest p-3 text-sm sm:grid-cols-2">
-              <div className="flex items-center gap-2.5 text-on-surface-variant">
-                <span className="material-symbols-outlined text-lg text-primary">barcode_scanner</span>
+            <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-sm sm:grid-cols-2">
+              <div className="flex items-center gap-2.5 text-slate-600">
+                <span className="material-symbols-outlined text-lg text-slate-800">barcode_scanner</span>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 leading-none">หมายเลขติดตาม</span>
-                  <span className="font-mono text-sm font-black leading-tight text-primary">{trackingId}</span>
+                  <span className="text-[10px] font-bold leading-none text-slate-400">หมายเลขติดตาม</span>
+                  <span className="font-mono text-sm font-black leading-tight text-slate-950">{trackingId}</span>
                 </div>
               </div>
-              <div className="flex items-center gap-2.5 text-on-surface-variant">
-                <span className="material-symbols-outlined text-lg text-primary">person</span>
+              <div className="flex items-center gap-2.5 text-slate-600">
+                <span className="material-symbols-outlined text-lg text-slate-800">person</span>
                 <div className="flex flex-col">
-                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-60 leading-none">ผู้รับ</span>
-                  <span className="text-sm font-black leading-tight text-primary">{checkedParcel?.['ผู้รับ']}</span>
+                  <span className="text-[10px] font-bold leading-none text-slate-400">ผู้รับ</span>
+                  <span className="text-sm font-black leading-tight text-slate-950">{checkedParcel?.['ผู้รับ']}</span>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-primary/15 bg-primary/5 p-3">
+            <div className="rounded-2xl border border-gray-200 bg-slate-50 p-3">
               <div className="flex items-start gap-2.5">
-                <span className="material-symbols-outlined mt-0.5 text-lg text-primary">flag</span>
+                <span className="material-symbols-outlined mt-0.5 text-lg text-slate-700">flag</span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant/60">ปลายทางที่ระบุไว้</p>
-                  <p className="break-words font-display text-base font-black leading-snug text-primary">
+                  <p className="text-[10px] font-bold text-slate-400">ปลายทางที่ระบุไว้</p>
+                  <p className="break-words font-display text-base font-black leading-snug text-slate-950">
                     {checkedParcel?.['สาขาผู้รับ'] || '-'}
                   </p>
-                  <p className="mt-1 text-xs leading-snug text-on-surface-variant/70">
+                  <p className="mt-1 text-xs leading-snug text-slate-500">
                     ตำแหน่งด้านล่างเป็นหลักฐานตอนกดส่ง ไม่ได้ใช้ตัดสินอัตโนมัติว่าตรงปลายทาง
                   </p>
                 </div>
@@ -821,45 +829,37 @@ export default function ConfirmReceipt({
 
       {/* Confirmation Modal */}
       <Dialog open={isConfirmDialogOpen} onOpenChange={setIsConfirmDialogOpen}>
-        <DialogContent showCloseButton={false} className="w-[calc(100vw-1rem)] max-w-[92vw] sm:max-w-2xl max-h-[90vh] rounded-3xl p-0 border-none shadow-2xl bg-white overflow-hidden flex flex-col">
+        <DialogContent showCloseButton={false} className="w-[calc(100vw-1rem)] max-w-[92vw] sm:max-w-2xl max-h-[90vh] rounded-[1.75rem] p-0 border border-gray-100 shadow-2xl bg-white overflow-hidden flex flex-col">
           {/* Header */}
-          <div className={`px-6 pt-6 pb-5 flex items-center gap-4 ${
-            isForwarding ? 'bg-gradient-to-br from-secondary/15 to-secondary/5' :
-            isProxy ? 'bg-gradient-to-br from-blue-500/15 to-blue-500/5' :
-            'bg-gradient-to-br from-green-500/15 to-green-500/5'
-          }`}>
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm ${
-              isForwarding ? 'bg-secondary text-white' :
-              isProxy ? 'bg-blue-600 text-white' :
-              'bg-green-600 text-white'
-            }`}>
+          <div className="relative flex items-center gap-4 bg-slate-950 px-6 py-6 text-white">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white shadow-sm">
               <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
                 {isForwarding ? 'fork_right' : isProxy ? 'account_circle' : 'check_circle'}
               </span>
             </div>
             <div className="flex-1">
-              <DialogTitle className="text-lg font-black font-display text-primary leading-tight">
+              <DialogTitle className="font-display text-xl font-black leading-tight text-white">
                 {isForwarding ? 'ยืนยันส่งต่อไปจุดถัดไป' : isProxy ? 'ยืนยันว่ามีผู้รับแทน' : 'ยืนยันว่าส่งถึงผู้รับแล้ว'}
               </DialogTitle>
-              <p className="text-xs text-on-surface-variant mt-0.5">กรุณาตรวจสอบข้อมูลก่อนยืนยัน</p>
+              <p className="mt-1 text-xs font-semibold text-slate-300">กรุณาตรวจสอบข้อมูลก่อนยืนยัน</p>
             </div>
             <button
               onClick={() => setIsConfirmDialogOpen(false)}
-              className="p-2 rounded-xl text-on-surface-variant/50 hover:bg-black/5 transition-colors shrink-0"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
             >
-              <span className="material-symbols-outlined text-xl">close</span>
+              <span className="material-symbols-outlined text-2xl">close</span>
             </button>
           </div>
 
           {/* Body — scrollable */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+          <div className="flex-1 overflow-y-auto bg-white px-5 py-5 space-y-4 sm:px-6">
             {/* Tracking ID row */}
-            <div className="flex flex-col gap-2 bg-surface-container-lowest rounded-2xl px-4 py-3 border border-outline-variant/20 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2 text-on-surface-variant">
+            <div className="flex flex-col gap-2 rounded-2xl border border-gray-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2 text-slate-500">
                 <span className="material-symbols-outlined text-base">barcode_scanner</span>
-                <span className="text-xs font-bold uppercase tracking-wider">หมายเลขติดตาม</span>
+                <span className="text-xs font-bold">หมายเลขติดตาม</span>
               </div>
-              <code className="min-w-0 break-all font-mono font-black text-primary text-base tracking-wider">{trackingId}</code>
+              <code className="min-w-0 break-all font-mono text-base font-black tracking-wider text-slate-900">{trackingId}</code>
             </div>
 
             {/* Forwarding details */}
@@ -903,7 +903,7 @@ export default function ConfirmReceipt({
               <div className="bg-green-50 rounded-2xl px-4 py-3 border border-green-100 flex items-center gap-3">
                 <span className="material-symbols-outlined text-green-600 text-xl">verified_user</span>
                 <div>
-                  <p className="text-[10px] text-green-600/70 font-bold uppercase tracking-wider">ผู้รับ</p>
+                  <p className="text-[10px] text-green-600/70 font-bold">ผู้รับ</p>
                   <p className="font-bold text-green-900 text-sm">{checkedParcel?.['ผู้รับ'] || '-'}</p>
                 </div>
               </div>
@@ -934,7 +934,7 @@ export default function ConfirmReceipt({
 
             {/* Photo preview */}
             {photoPreview && (
-              <div className="relative h-48 sm:h-56 rounded-2xl overflow-hidden border border-outline-variant/20 bg-surface-container-lowest group cursor-pointer transition-all hover:border-primary/50" onClick={() => {
+              <div className="group relative h-52 overflow-hidden rounded-2xl border border-gray-100 bg-slate-50 shadow-sm transition-all hover:border-slate-300 sm:h-64" onClick={() => {
                 // If user wants to see popup, we can open it in a new window or just rely on object-contain
                 const w = window.open();
                 if(w) w.document.write(`<body style="margin:0;background:#000;display:flex;align-items:center;justify-content:center;height:100vh;"><img src="${photoPreview}" style="max-width:100%;max-height:100%;object-fit:contain;" /></body>`);
@@ -956,13 +956,13 @@ export default function ConfirmReceipt({
 
             {/* GPS Map Preview */}
             {position && (
-              <div className="bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/20">
-                <div className="px-4 py-2 bg-surface-container-low/50 border-b border-outline-variant/20 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-on-surface-variant">
+              <div className="overflow-hidden rounded-2xl border border-gray-100 bg-slate-50 shadow-sm">
+                <div className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-2">
+                  <div className="flex items-center gap-2 text-slate-600">
                     <span className="material-symbols-outlined text-sm text-green-600">my_location</span>
-                    <span className="text-[10px] font-bold uppercase tracking-wider">ตำแหน่ง GPS ที่บันทึก</span>
+                    <span className="text-[10px] font-bold">ตำแหน่ง GPS ที่บันทึก</span>
                   </div>
-                  <span className="text-[10px] font-mono text-on-surface-variant/60">
+                  <span className="text-[10px] font-mono text-slate-400">
                     {position.latitude.toFixed(6)}, {position.longitude.toFixed(6)}
                   </span>
                 </div>
@@ -1018,17 +1018,17 @@ export default function ConfirmReceipt({
           </div>
 
           {/* Footer — sticky */}
-          <div className="shrink-0 px-6 pb-6 pt-3 border-t border-outline-variant/10 flex gap-3">
+          <div className="flex shrink-0 gap-3 border-t border-gray-100 bg-white px-5 pb-5 pt-3 sm:px-6">
             <button
               onClick={() => setIsConfirmDialogOpen(false)}
-              className="flex-1 h-12 rounded-2xl font-display font-bold border-2 border-outline-variant text-on-surface-variant hover:bg-surface-container transition-colors"
+              className="h-12 flex-1 rounded-xl border border-gray-200 bg-white font-display font-bold text-slate-600 transition-colors hover:bg-slate-50"
             >
               แก้ไข
             </button>
             <button
               onClick={executeConfirm}
               disabled={isLoading}
-              className="flex-[2] flex items-center justify-center gap-2 h-12 bg-primary text-white rounded-2xl font-display font-bold shadow-lg shadow-primary/20 hover:opacity-90 active:scale-95 transition-all disabled:opacity-50"
+              className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-xl bg-slate-950 font-display font-bold text-white shadow-lg shadow-slate-200 transition-all hover:bg-slate-900 active:scale-95 disabled:opacity-50"
             >
               {isLoading ? (
                 <span className="material-symbols-outlined animate-spin">progress_activity</span>

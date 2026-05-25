@@ -233,7 +233,13 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
     const frame = requestAnimationFrame(() => {
       mapRef.current?.invalidateSize();
     });
-    return () => cancelAnimationFrame(frame);
+    const timer = window.setTimeout(() => {
+      mapRef.current?.invalidateSize();
+    }, 250);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+    };
   }, [isMapReady]);
 
   const hasGpsMarkers = pathEntries.some(e => e.isGps);
@@ -259,7 +265,7 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
         </div>
       )}
       <MapView
-        className={`${mapClassName} w-full flex-1`}
+        className={`${mapClassName} w-full shrink-0`}
         initialCenter={DEFAULT_CENTER}
         initialZoom={7}
         onMapReady={handleMapReady}

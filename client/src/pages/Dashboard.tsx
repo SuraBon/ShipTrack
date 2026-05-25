@@ -686,15 +686,15 @@ const MessengerDeliveryCard = ({
                 loading={canStartDelivery ? isStartingDelivery : false}
                 variant="blue"
                 compact
-                className="h-9 flex-none rounded-lg bg-gradient-to-br from-blue-500 to-blue-700 px-4 text-xs font-semibold shadow-md shadow-blue-100 hover:from-blue-600 hover:to-blue-800"
+                className="h-9 flex-none rounded-lg bg-blue-600 px-4 text-xs font-semibold shadow-md shadow-blue-100 hover:bg-blue-700"
               >
                 {actionLabel}
               </DashboardActionButton>
             )}
           </div>
 
-          {assignment && !isDone && (
-            <AssignmentBadge assignment={assignment} isMine={!isAssignedElsewhere} />
+          {assignment && !isDone && isAssignedElsewhere && (
+            <AssignmentBadge assignment={assignment} />
           )}
 
           <MessengerRouteSummary parcel={parcel} />

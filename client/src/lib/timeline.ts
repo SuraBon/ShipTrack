@@ -39,7 +39,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           timestamp: evt.timestamp,
           location: evt.location,
           destLocation: evt.destLocation,
-          imageUrl: evt.photoUrl,
+          imageUrl: evt.photoUrl || parcel['รูปยืนยัน'],
           latitude: evt.latitude,
           longitude: evt.longitude,
         });

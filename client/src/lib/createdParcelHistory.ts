@@ -65,6 +65,18 @@ export function saveCreatedParcelHistory(item: CreatedParcelHistoryItem): Create
   return next;
 }
 
+export function removeCreatedParcelHistoryItem(trackingID: string): CreatedParcelHistoryItem[] {
+  const next = getCreatedParcelHistory().filter(item => item.trackingID !== trackingID);
+  localStorage.setItem(CREATED_PARCELS_KEY, JSON.stringify(next));
+  window.dispatchEvent(new Event('doc-track-created-parcels-updated'));
+  return next;
+}
+
+export function clearCreatedParcelHistory(): void {
+  localStorage.removeItem(CREATED_PARCELS_KEY);
+  window.dispatchEvent(new Event('doc-track-created-parcels-updated'));
+}
+
 export function updateCreatedParcelHistoryFromParcel(parcel: Parcel): CreatedParcelHistoryItem[] {
   const existing = getCreatedParcelHistory();
   const index = existing.findIndex(item => item.trackingID === parcel.TrackingID);

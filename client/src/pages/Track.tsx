@@ -5,7 +5,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import StatusBadge from '@/components/StatusBadge';
 import Timeline from '@/components/Timeline';
-import ImagePopup from '@/components/ImagePopup';
 import { toast } from 'sonner';
 import type { Parcel } from '@/types/parcel';
 import { getParcel, searchParcels } from '@/lib/parcelService';
@@ -14,8 +13,11 @@ import TrackingMap from '@/components/TrackingMap';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
 import { UI_COPY } from '@/lib/uiCopy';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import {
+  clearCreatedParcelHistory,
   getCreatedParcelHistory,
+  removeCreatedParcelHistoryItem,
   updateCreatedParcelHistoryFromParcel,
   type CreatedParcelHistoryItem,
 } from '@/lib/createdParcelHistory';
@@ -30,6 +32,8 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
   const [visibleSearchResultCount, setVisibleSearchResultCount] = useState(TRACK_RESULTS_BATCH_SIZE);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [createdHistory, setCreatedHistory] = useState<CreatedParcelHistoryItem[]>([]);
+  const [notFoundQuery, setNotFoundQuery] = useState<string | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -73,6 +77,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     if (!id) { toast.error('กรุณากรอกหมายเลขติดตาม ชื่อผู้รับ หรือสถานที่ปลายทาง'); return; }
     // ✅ FIX: sync input display with what we're actually searching
     if (searchId && searchId !== trackingId) setTrackingId(searchId);
+    setNotFoundQuery(null);
     setVisibleSearchResultCount(TRACK_RESULTS_BATCH_SIZE);
     setIsLoading(true);
     try {
@@ -80,6 +85,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       if (res.success && res.parcel) {
         updateCreatedParcelHistoryFromParcel(res.parcel);
         setParcel(res.parcel); setSearchResults([]); addToRecent(res.parcel.TrackingID);
+        setNotFoundQuery(null);
         toast.success('พบรายการส่ง');
       } else {
         const directTrackingLookup = isValidTrackingId(id);
@@ -87,6 +93,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         if (directTrackingLookup && res.error && !lookupMiss) {
           setParcel(null);
           setSearchResults([]);
+          setNotFoundQuery(null);
           toast.error(res.error);
           return;
         }
@@ -97,12 +104,13 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             setParcel(results[0]); setSearchResults([]); addToRecent(results[0].TrackingID);
           }
           else { setSearchResults(results); setParcel(null); }
+          setNotFoundQuery(null);
           toast.success(`พบข้อมูล ${results.length} รายการ`);
         } else {
-          setParcel(null); setSearchResults([]); toast.error(res.error && directTrackingLookup ? res.error : 'ไม่พบรายการส่ง');
+          setParcel(null); setSearchResults([]); setNotFoundQuery(id); toast.error(res.error && directTrackingLookup ? res.error : 'ไม่พบรายการส่ง');
         }
       }
-    } catch { toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ'); }
+    } catch { setNotFoundQuery(null); toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ'); }
     finally { setIsLoading(false); }
   };
 
@@ -209,33 +217,84 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       </div>
 
       {createdHistory.length > 0 && !embedded && (
-        <section className="app-panel p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <h2 className="text-sm font-semibold text-foreground">รายการที่สร้างจากเครื่องนี้</h2>
-              <p className="text-xs text-muted-foreground">บันทึกในเครื่องนี้ กดเพื่อดึงสถานะล่าสุดจากระบบ</p>
+        <section className="app-card overflow-hidden">
+          <div className="app-panel-header">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  <span className="material-symbols-outlined text-base">history</span>
+                </div>
+                <div className="min-w-0">
+                  <h2 className="app-section-title">ประวัติที่ฉันสร้างในเครื่องนี้</h2>
+                  <p className="truncate text-xs text-muted-foreground">เก็บไว้ในเครื่องนี้เท่านั้น กดรายการเพื่อดูสถานะล่าสุด</p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="rounded-md bg-white px-2.5 py-1 text-[11px] font-semibold text-foreground shadow-xs ring-1 ring-gray-100">{createdHistory.length}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    clearCreatedParcelHistory();
+                    toast.success('ล้างประวัติในเครื่องนี้แล้ว');
+                  }}
+                  className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-white hover:text-destructive"
+                >
+                  ล้าง
+                </button>
+              </div>
             </div>
-            <span className="rounded-md bg-muted px-2.5 py-1 text-[11px] font-semibold text-foreground">{createdHistory.length}</span>
           </div>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {createdHistory.slice(0, 6).map(item => (
-              <button
+          <div className="grid gap-3 p-4 sm:grid-cols-2 sm:p-5 xl:grid-cols-3">
+            {createdHistory.slice(0, 9).map(item => (
+              <div
                 key={item.trackingID}
-                type="button"
-                onClick={() => { setTrackingId(item.trackingID); handleSearch(undefined, item.trackingID); }}
-                  className="rounded-xl border border-gray-100 bg-gray-50 p-4 text-left transition-all hover:border-primary/35 hover:bg-white"
+                className="group rounded-xl border border-gray-100 bg-gray-50 p-3 transition-all hover:border-primary/35 hover:bg-white"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">{item.trackingID}</code>
-                  {item.status && <StatusBadge status={item.status} />}
+                  <button
+                    type="button"
+                    onClick={() => { setTrackingId(item.trackingID); handleSearch(undefined, item.trackingID); }}
+                    className="min-w-0 text-left"
+                  >
+                    <code className="block min-w-0 break-all rounded-md bg-white px-2.5 py-1 font-mono text-xs font-semibold text-foreground shadow-xs ring-1 ring-gray-100">{item.trackingID}</code>
+                  </button>
+                  <div className="flex shrink-0 items-center gap-1">
+                    {item.status && <StatusBadge status={item.status} />}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        removeCreatedParcelHistoryItem(item.trackingID);
+                        toast.success('ลบออกจากประวัติในเครื่องนี้แล้ว');
+                      }}
+                      className="grid size-7 place-items-center rounded-md text-muted-foreground opacity-100 transition-colors hover:bg-destructive/10 hover:text-destructive sm:opacity-0 sm:group-hover:opacity-100"
+                      aria-label="ลบประวัติรายการนี้"
+                      title="ลบออกจากประวัติ"
+                    >
+                      <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                  </div>
                 </div>
-                <div className="mt-3 flex items-center gap-1.5 text-sm">
-                  <span className="truncate font-medium text-foreground">{item.senderName}</span>
-                  <span className="material-symbols-outlined shrink-0 text-sm text-muted-foreground">arrow_forward</span>
-                  <span className="truncate font-medium text-foreground">{item.receiverName}</span>
-                </div>
-                <p className="mt-1 text-xs text-muted-foreground">{formatThaiDateTime(item.createdAt)}</p>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => { setTrackingId(item.trackingID); handleSearch(undefined, item.trackingID); }}
+                  className="mt-3 block w-full text-left"
+                >
+                  <div className="grid gap-2">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="size-2 shrink-0 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.14)]" />
+                      <span className="min-w-0 truncate text-xs font-semibold text-slate-600">{item.senderBranch || item.senderName}</span>
+                    </div>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="size-2 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(248,113,113,0.14)]" />
+                      <span className="min-w-0 truncate text-sm font-black text-slate-800">{item.receiverBranch || item.receiverName}</span>
+                    </div>
+                  </div>
+                  <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
+                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    {formatThaiDateTime(item.createdAt)}
+                  </p>
+                </button>
+              </div>
             ))}
           </div>
         </section>
@@ -290,146 +349,135 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         </div>
       )}
 
-      {/* Parcel detail */}
-      {parcel && (
-        <div className="space-y-5 animate-in zoom-in-95 duration-400">
-          <button onClick={() => setParcel(null)}
-            className="flex items-center gap-1.5 text-sm text-on-surface-variant hover:text-primary font-semibold transition-colors">
-            <span className="material-symbols-outlined text-base">arrow_back</span>ค้นหาใหม่
-          </button>
-
-          <div className="app-panel overflow-hidden">
-            {/* Card header */}
-            <div className="app-panel-header sm:p-5">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <h2 className="min-w-0 break-all font-mono text-xl font-semibold leading-tight text-foreground sm:text-2xl">{parcel.TrackingID}</h2>
-                    <button
-                      onClick={() => { navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอก ${parcel.TrackingID}`); }}
-                      className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-background hover:text-foreground">
-                      <span className="material-symbols-outlined text-base">content_copy</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                    <span className="material-symbols-outlined text-sm">description</span>
-                    {parcel['รายละเอียด'] || 'ไม่มีรายละเอียดสิ่งที่ส่ง'}
-                  </div>
-                </div>
-                <div className="rounded-lg border border-border bg-background px-3 py-2">
-                  <StatusBadge status={parcel['สถานะ']} />
-                </div>
-              </div>
-            </div>
-
-            {/* Card body */}
-            <div className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 gap-5 md:grid-cols-[minmax(0,0.9fr)_minmax(340px,1.1fr)] lg:gap-6">
-                {/* Info column */}
-                <div className="space-y-5">
-                  {/* Sender / Receiver */}
-                  <div className="space-y-4 rounded-xl border border-gray-100 bg-gray-50 p-4">
-                    <p className="text-xs font-semibold text-muted-foreground">จากไหน ไปให้ใคร</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      {[
-                        { label: 'ผู้ส่ง', name: parcel['ผู้ส่ง'], branch: parcel['สาขาผู้ส่ง'], icon: 'person', color: 'text-primary' },
-                        { label: 'ปลายทาง', name: parcel['ผู้รับ'], branch: parcel['สาขาผู้รับ'], icon: 'flag', color: 'text-secondary' },
-                      ].map(({ label, name, branch, icon, color }) => (
-                        <div key={label} className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-xl bg-surface-container flex items-center justify-center shrink-0 mt-0.5">
-                            <span className={`material-symbols-outlined text-base ${color}`} style={{ fontVariationSettings: "'FILL' 1" }}>{icon}</span>
-                          </div>
-                          <div>
-                            <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider">{label}</p>
-                            <p className="font-bold text-primary text-sm leading-tight mt-0.5">{name}</p>
-                            <p className="text-[11px] text-on-surface-variant/50 mt-0.5">{branch}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="grid grid-cols-2 gap-4 border-t border-gray-100 pt-3">
-                      <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider">รายละเอียดสิ่งที่ส่ง</p>
-                        <p className="font-bold text-primary text-sm mt-0.5">{parcel['รายละเอียด'] || '-'}</p>
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider">สถานะ</p>
-                        <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse shrink-0" />
-                          <p className="font-bold text-primary text-sm">{parcel['สถานะ']}</p>
-                        </div>
-                      </div>
+      {/* Parcel detail popup */}
+      <Dialog open={!!parcel} onOpenChange={(open) => { if (!open) { setParcel(null); setIsMapOpen(false); } }}>
+        {parcel && (
+          <DialogContent showCloseButton={false} className="w-[calc(100vw-1rem)] max-w-xl max-h-[92vh] overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white p-0 shadow-xl">
+            <div className="flex max-h-[92vh] flex-col">
+              <div className="relative bg-slate-950 px-6 py-6 text-white">
+                <button
+                  type="button"
+                  onClick={() => setParcel(null)}
+                  className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  aria-label="ปิดผลการติดตามสถานะ"
+                >
+                  <span className="material-symbols-outlined text-2xl">close</span>
+                </button>
+                <div className="pr-12">
+                  <div className="min-w-0">
+                    <DialogTitle className="font-display text-2xl font-black leading-tight text-white">
+                      ลำดับการจัดส่ง
+                    </DialogTitle>
+                    <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
+                      <p className="min-w-0 break-all font-mono text-sm font-black tracking-wide text-blue-200">{parcel.TrackingID}</p>
+                      <button
+                        onClick={() => { navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอก ${parcel.TrackingID}`); }}
+                        className="grid size-7 place-items-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                        aria-label="คัดลอกหมายเลขติดตาม"
+                      >
+                        <span className="material-symbols-outlined text-base">content_copy</span>
+                      </button>
                     </div>
                   </div>
-
-                  {/* Notes */}
-                  {(parcel['รายละเอียด'] || (parcel['หมายเหตุ'] && parcel['หมายเหตุ'].replace(/\[.*?\]/g, '').trim())) && (
-                    <div className="space-y-3 rounded-xl border border-gray-100 bg-gray-50 p-4">
-                      {parcel['รายละเอียด'] && (
-                        <div>
-                          <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm">description</span>รายละเอียด
-                          </p>
-                          <p className="text-sm text-primary font-medium leading-relaxed">{parcel['รายละเอียด']}</p>
-                        </div>
-                      )}
-                      {parcel['หมายเหตุ'] && parcel['หมายเหตุ'].replace(/\[.*?\]/g, '').trim() && (
-                        <div>
-                          <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider mb-1 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-sm">notes</span>หมายเหตุปลายทาง
-                          </p>
-                          <p className="text-sm text-on-surface-variant italic">"{parcel['หมายเหตุ'].replace(/\[.*?\]/g, '').trim()}"</p>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Proof image */}
-                  {parcel['รูปยืนยัน'] && (
-                    <div className="space-y-2">
-                      <p className="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-wider flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">photo_library</span>{UI_COPY.parcel.proofPhoto}
-                      </p>
-                      <ImagePopup url={parcel['รูปยืนยัน']} className="w-full rounded-2xl border border-outline-variant/30 shadow-sm hover:shadow-md transition-all" />
-                    </div>
-                  )}
-                </div>
-
-                {/* Timeline + Map column */}
-                <div className="space-y-5">
-                  <div className="rounded-xl border border-gray-100 bg-gray-50 p-4 sm:p-5">
-                    <p className="mb-4 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
-                      <span className="material-symbols-outlined text-sm">route</span>{UI_COPY.parcel.routeHistory}
-                    </p>
-                    <Timeline events={timelineEvents} />
-                  </div>
-                  {hasLocationData ? (
-                    <div className="overflow-hidden rounded-xl border border-gray-100 shadow-sm">
-                      <TrackingMap events={timelineEvents} />
-                    </div>
-                  ) : (
-                    <div className="flex h-[260px] flex-col items-center justify-center rounded-lg border border-dashed border-border bg-muted/40 p-6 text-center shadow-sm">
-                      <span className="material-symbols-outlined mb-3 text-4xl text-muted-foreground">map_off</span>
-                      <p className="text-sm font-semibold text-foreground">ยังไม่มีตำแหน่งสำหรับแผนที่</p>
-                      <p className="mt-1 text-xs text-muted-foreground">แผนที่จะแสดงเมื่อมีตำแหน่งจากการสร้างรายการหรือยืนยันส่ง</p>
-                    </div>
-                  )}
                 </div>
               </div>
+
+              <div className="modal-scroll flex-1 overflow-y-auto bg-white p-5 sm:p-6">
+                <div className="rounded-3xl border border-gray-100 bg-white p-4 shadow-md">
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3">
+                      <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
+                        <span className="material-symbols-outlined text-2xl">route</span>
+                      </div>
+                      <div>
+                        <p className="font-display text-base font-black text-slate-900">สถานะล่าสุด</p>
+                        <p className="text-xs font-semibold text-slate-400">เรียงจากล่าสุด</p>
+                      </div>
+                    </div>
+                    {hasLocationData && (
+                      <button
+                        type="button"
+                        onClick={() => setIsMapOpen(true)}
+                        className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition-all hover:bg-blue-50 hover:text-blue-700 active:scale-95"
+                      >
+                        <span className="material-symbols-outlined text-2xl">map</span>
+                        แผนที่
+                      </button>
+                    )}
+                  </div>
+
+                  <Timeline events={timelineEvents} compact />
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="rounded-2xl bg-slate-50 p-3">
+                    <p className="text-[10px] font-black text-slate-400">รับจาก</p>
+                    <p className="mt-1 truncate text-sm font-black text-slate-900">{parcel['สาขาผู้ส่ง'] || '-'}</p>
+                    <p className="truncate text-xs font-semibold text-slate-500">{parcel['ผู้ส่ง'] || '-'}</p>
+                  </div>
+                  <div className="rounded-2xl bg-red-50/70 p-3">
+                    <p className="text-[10px] font-black text-red-500">ปลายทาง</p>
+                    <p className="mt-1 truncate text-sm font-black text-slate-900">{parcel['สาขาผู้รับ'] || '-'}</p>
+                    <p className="truncate text-xs font-semibold text-slate-500">{parcel['ผู้รับ'] || '-'}</p>
+                  </div>
+                </div>
+
+                {(parcel['รายละเอียด'] || parcel['หมายเหตุ']?.replace(/\[.*?\]/g, '').trim()) && (
+                  <div className="mt-3 grid grid-cols-2 gap-3">
+                      <div>
+                      <div className="rounded-2xl bg-slate-50 p-3">
+                        <p className="text-[10px] font-black text-slate-400">สิ่งที่ส่ง</p>
+                        <p className="mt-1 truncate text-sm font-semibold text-slate-800">{parcel['รายละเอียด'] || '-'}</p>
+                      </div>
+                      </div>
+                    <div className="rounded-2xl bg-orange-50/70 p-3">
+                      <p className="text-[10px] font-black text-orange-600">หมายเหตุ</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-slate-800">{parcel['หมายเหตุ']?.replace(/\[.*?\]/g, '').trim() || '-'}</p>
+                    </div>
+                  </div>
+                )}
+
             </div>
-          </div>
-        </div>
-      )}
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
+
+      <Dialog open={isMapOpen && !!parcel} onOpenChange={setIsMapOpen}>
+        {parcel && (
+          <DialogContent showCloseButton={false} className="w-[calc(100vw-1rem)] max-w-5xl max-h-[92vh] overflow-hidden rounded-[1.5rem] border border-gray-100 bg-white p-0 shadow-xl">
+            <div className="flex max-h-[92vh] flex-col">
+              <div className="relative bg-slate-950 px-5 py-5 text-white">
+                <button
+                  type="button"
+                  onClick={() => setIsMapOpen(false)}
+                  className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  aria-label="ปิดแผนที่"
+                >
+                  <span className="material-symbols-outlined text-2xl">close</span>
+                </button>
+                <DialogTitle className="pr-12 font-display text-xl font-black leading-tight text-white">
+                  แผนที่การจัดส่ง
+                </DialogTitle>
+                <p className="mt-1 break-all font-mono text-sm font-black tracking-wide text-blue-200">{parcel.TrackingID}</p>
+              </div>
+              <div className="bg-white p-4">
+                <TrackingMap events={timelineEvents} mapClassName="h-[68vh] max-h-[640px] min-h-[360px]" />
+              </div>
+            </div>
+          </DialogContent>
+        )}
+      </Dialog>
 
       {/* Empty state */}
-      {!parcel && !searchResults.length && trackingId && !isLoading && (
+      {!parcel && !searchResults.length && notFoundQuery && !isLoading && (
         <div className="app-card border-dashed p-8 text-center animate-in fade-in zoom-in-95 duration-400 sm:p-10">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg bg-muted">
             <span className="material-symbols-outlined text-3xl text-muted-foreground">search_off</span>
           </div>
           <h3 className="text-lg font-semibold text-foreground">ไม่พบรายการส่ง</h3>
           <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">ไม่พบรายการที่ค้นหา กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
-          <button onClick={() => setTrackingId('')} className="mt-4 text-sm font-semibold text-primary hover:underline">
+          <button onClick={() => { setTrackingId(''); setNotFoundQuery(null); }} className="mt-4 text-sm font-semibold text-primary hover:underline">
             ล้างและค้นหาใหม่
           </button>
         </div>

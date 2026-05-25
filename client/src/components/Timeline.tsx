@@ -120,7 +120,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                       ? 'border-blue-100 bg-blue-50/45'
                       : 'border-transparent bg-transparent'
                   }`}>
-                    <div className="flex min-w-0 items-start gap-2">
+                    <div className="flex min-w-0 items-start justify-between gap-3">
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <p className={`text-xs font-semibold leading-tight ${isLatest ? 'text-blue-700' : 'text-gray-700'}`}>
@@ -137,7 +137,12 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                         )}
                       </div>
                       {event.imageUrl && (
-                        <ImagePopup url={event.imageUrl} title="รูปหลักฐาน" triggerVariant="icon" />
+                        <ImagePopup
+                          url={event.imageUrl}
+                          title="รูปหลักฐาน"
+                          triggerVariant="icon"
+                          className="h-10 w-10 rounded-xl bg-white text-slate-900 shadow-sm ring-1 ring-blue-100 hover:bg-blue-50 hover:text-blue-700"
+                        />
                       )}
                     </div>
 
@@ -289,12 +294,12 @@ export default function Timeline({ events, className = '', compact = false }: Ti
 
                   {/* Proof Image */}
                   {event.imageUrl && (
-                    <div className={`${compact ? 'p-0.5 rounded-xl' : 'p-1 rounded-2xl'} bg-surface-container-low inline-block border border-outline-variant/30 overflow-hidden group/img transition-transform hover:scale-[1.02]`}>
-                      <div className="relative">
-                        <ImagePopup url={event.imageUrl} className="rounded-xl overflow-hidden" />
-                        <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none" />
-                      </div>
-                    </div>
+                    <ImagePopup
+                      url={event.imageUrl}
+                      title="รูปหลักฐาน"
+                      triggerVariant="icon"
+                      className="h-10 w-10 rounded-xl bg-surface-container-low text-primary shadow-sm ring-1 ring-outline-variant/30 hover:bg-surface-container"
+                    />
                   )}
                 </div>
               </div>
