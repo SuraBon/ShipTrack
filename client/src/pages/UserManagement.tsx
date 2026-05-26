@@ -26,9 +26,9 @@ type PendingUserAction = {
 } | null;
 
 const ROLE_CONFIG: Record<AppRole, { label: string; icon: React.ReactNode }> = {
-  ADMIN: { label: 'ผู้ดูแลระบบ', icon: <ShieldCheck className="h-3.5 w-3.5" /> },
-  MESSENGER: { label: 'พนักงานส่ง', icon: <Truck className="h-3.5 w-3.5" /> },
-  GUEST: { label: 'ไม่มีสิทธิ์พนักงาน', icon: <UserX className="h-3.5 w-3.5" /> },
+  ADMIN: { label: 'ผู้ดูแลระบบ', icon: <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> },
+  MESSENGER: { label: 'พนักงานส่ง', icon: <Truck className="h-3.5 w-3.5" aria-hidden="true" /> },
+  GUEST: { label: 'ไม่มีสิทธิ์พนักงาน', icon: <UserX className="h-3.5 w-3.5" aria-hidden="true" /> },
 };
 
 function StatusBadge({ status }: { status?: UserRow['status'] }) {
@@ -256,7 +256,7 @@ export default function UserManagement() {
     return (
       <div className={`flex flex-wrap ${compact ? 'gap-2' : 'justify-end gap-1.5'}`}>
         <button type="button" onClick={() => openEditUser(u)} className="app-secondary-button h-9 px-3 text-xs">
-          <Edit3 className="h-3.5 w-3.5" /> แก้ไข
+          <Edit3 className="h-3.5 w-3.5" aria-hidden="true" /> แก้ไข
         </button>
         {!isSelf && (
           <>
@@ -266,7 +266,7 @@ export default function UserManagement() {
               disabled={busy || u.status === 'DISABLED'}
               className="app-secondary-button h-9 px-3 text-xs"
             >
-              {busy && pendingUserAction?.type === 'disable' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Ban className="h-3.5 w-3.5" />}
+              {busy && pendingUserAction?.type === 'disable' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Ban className="h-3.5 w-3.5" aria-hidden="true" />}
               ปิดบัญชี
             </button>
             <button
@@ -275,7 +275,7 @@ export default function UserManagement() {
               disabled={busy}
               className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
             >
-              {busy && pendingUserAction?.type === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+              {busy && pendingUserAction?.type === 'delete' ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
               ลบ
             </button>
           </>
@@ -297,7 +297,7 @@ export default function UserManagement() {
           </div>
         </div>
         <button onClick={fetchUsers} disabled={loading} className="app-secondary-button h-10 px-3">
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           รีเฟรช
         </button>
       </div>
@@ -316,17 +316,17 @@ export default function UserManagement() {
         </select>
         <input type="password" value={newUser.password} onChange={e => setNewUser(v => ({ ...v, password: e.target.value }))} disabled={creatingUser} placeholder="รหัสผ่านเริ่มต้น" className="app-input" />
         <button type="submit" disabled={creatingUser} className="app-primary-button">
-          {creatingUser ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {creatingUser ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
           สร้าง
         </button>
       </form>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         {[
-          { key: 'ALL' as const, label: 'ทั้งหมด', value: counts.total, icon: <Users className="h-4 w-4" /> },
-          { key: 'ADMIN' as const, label: 'ผู้ดูแลระบบ', value: counts.admin, icon: <ShieldCheck className="h-4 w-4" /> },
-          { key: 'MESSENGER' as const, label: 'พนักงานส่ง', value: counts.messenger, icon: <Truck className="h-4 w-4" /> },
-          { key: 'DISABLED' as const, label: 'ปิดใช้งาน', value: counts.disabled, icon: <UserX className="h-4 w-4" /> },
+          { key: 'ALL' as const, label: 'ทั้งหมด', value: counts.total, icon: <Users className="h-4 w-4" aria-hidden="true" /> },
+          { key: 'ADMIN' as const, label: 'ผู้ดูแลระบบ', value: counts.admin, icon: <ShieldCheck className="h-4 w-4" aria-hidden="true" /> },
+          { key: 'MESSENGER' as const, label: 'พนักงานส่ง', value: counts.messenger, icon: <Truck className="h-4 w-4" aria-hidden="true" /> },
+          { key: 'DISABLED' as const, label: 'ปิดใช้งาน', value: counts.disabled, icon: <UserX className="h-4 w-4" aria-hidden="true" /> },
         ].map(s => (
           <button
             key={s.label}
@@ -346,16 +346,16 @@ export default function UserManagement() {
       </div>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหาด้วยรหัสพนักงาน ชื่อ หรือสิทธิ์..." className="app-input w-full pl-10" />
       </div>
 
       <div className="app-panel overflow-hidden">
         <div className="sm:hidden">
           {loading ? (
-            <div className="grid place-items-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" />กำลังโหลด...</div>
+            <div className="grid place-items-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />กำลังโหลด...</div>
           ) : filtered.length === 0 ? (
-            <div className="grid place-items-center gap-2 py-16 text-center text-sm text-muted-foreground"><Users className="h-10 w-10 opacity-30" />ไม่พบผู้ใช้</div>
+            <div className="grid place-items-center gap-2 py-16 text-center text-sm text-muted-foreground"><Users className="h-10 w-10 opacity-30" aria-hidden="true" />ไม่พบผู้ใช้</div>
           ) : (
             <>
               <div className="divide-y divide-outline-variant/10">
@@ -406,9 +406,9 @@ export default function UserManagement() {
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {loading ? (
-                <tr><td colSpan={5} className="py-16 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin" />กำลังโหลด...</td></tr>
+                <tr><td colSpan={5} className="py-16 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin" aria-hidden="true" />กำลังโหลด...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="py-16 text-center text-sm text-muted-foreground"><Users className="mx-auto mb-2 h-10 w-10 opacity-30" />ไม่พบผู้ใช้</td></tr>
+                <tr><td colSpan={5} className="py-16 text-center text-sm text-muted-foreground"><Users className="mx-auto mb-2 h-10 w-10 opacity-30" aria-hidden="true" />ไม่พบผู้ใช้</td></tr>
               ) : paginatedUsers.map(u => {
                 const isSelf = u.employeeId === currentUser?.employeeId;
                 return (
@@ -425,7 +425,7 @@ export default function UserManagement() {
                         <span className="text-sm font-bold text-on-surface">{u.name}</span>
                       </div>
                     </td>
-                    <td className="px-5 py-4">{updatingId === u.employeeId ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : <RoleDropdown value={u.role} onChange={(role) => handleRoleChange(u.employeeId, role)} disabled={isSelf} />}</td>
+                    <td className="px-5 py-4">{updatingId === u.employeeId ? <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" /> : <RoleDropdown value={u.role} onChange={(role) => handleRoleChange(u.employeeId, role)} disabled={isSelf} />}</td>
                     <td className="px-5 py-4"><StatusBadge status={u.status} /></td>
                     <td className="px-5 py-4">{renderActions(u)}</td>
                   </tr>
@@ -490,7 +490,7 @@ export default function UserManagement() {
             <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">รหัสผ่านใหม่ (ไม่กรอก = ไม่เปลี่ยน)</label><input type="password" value={editForm.password} onChange={event => setEditForm(v => ({ ...v, password: event.target.value }))} disabled={editSaving} className="app-input w-full" /></div>
             <div className="flex gap-2 border-t border-outline-variant/15 pt-4">
               <button type="button" onClick={() => setEditingUser(null)} disabled={editSaving} className="app-secondary-button h-11 flex-1">ยกเลิก</button>
-              <button type="submit" disabled={editSaving} className="app-primary-button h-11 flex-1">{editSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}บันทึก</button>
+              <button type="submit" disabled={editSaving} className="app-primary-button h-11 flex-1">{editSaving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}บันทึก</button>
             </div>
           </form>
         </DialogContent>
@@ -519,7 +519,7 @@ export default function UserManagement() {
               }}
               className="rounded-xl bg-red-600 text-white hover:bg-red-700"
             >
-              {deletingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : pendingUserAction?.type === 'delete' ? <Trash2 className="mr-2 h-4 w-4" /> : <Ban className="mr-2 h-4 w-4" />}
+              {deletingId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : pendingUserAction?.type === 'delete' ? <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" /> : <Ban className="mr-2 h-4 w-4" aria-hidden="true" />}
               {pendingUserAction?.type === 'delete' ? 'ลบถาวร' : 'ปิดบัญชี'}
             </AlertDialogAction>
           </AlertDialogFooter>

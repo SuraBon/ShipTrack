@@ -108,13 +108,13 @@ export default function BranchManagement() {
           />
         </div>
         <button type="submit" disabled={saving} className="app-primary-button self-end">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
           เพิ่ม
         </button>
       </form>
 
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
         <input
           value={search}
           onChange={event => setSearch(event.target.value)}
@@ -132,12 +132,12 @@ export default function BranchManagement() {
 
         {loading ? (
           <div className="grid place-items-center gap-2 py-16 text-sm text-muted-foreground">
-            <Loader2 className="h-6 w-6 animate-spin" />
+            <Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />
             กำลังโหลด...
           </div>
         ) : filtered.length === 0 ? (
           <div className="grid place-items-center gap-2 py-16 text-center text-sm text-muted-foreground">
-            <Building2 className="h-10 w-10 opacity-30" />
+            <Building2 className="h-10 w-10 opacity-30" aria-hidden="true" />
             ไม่พบแผนก/สาขา
           </div>
         ) : (
@@ -146,7 +146,7 @@ export default function BranchManagement() {
               {visibleMobileBranches.map(branch => (
                 <div key={branch} className="flex items-center gap-3 p-4">
                   <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-700">
-                    <Building2 className="h-4 w-4" />
+                    <Building2 className="h-4 w-4" aria-hidden="true" />
                   </div>
                   <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">{branch}</p>
                   <button
@@ -156,7 +156,7 @@ export default function BranchManagement() {
                     className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                     aria-label={`ลบ ${branch}`}
                   >
-                    {deletingName === branch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                    {deletingName === branch ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
                   </button>
                 </div>
               ))}
@@ -181,7 +181,7 @@ export default function BranchManagement() {
                           disabled={deletingName === branch}
                           className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                         >
-                          {deletingName === branch ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          {deletingName === branch ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="h-4 w-4" aria-hidden="true" />}
                           ลบ
                         </button>
                       </td>
@@ -224,7 +224,7 @@ export default function BranchManagement() {
               }}
               className="rounded-xl bg-red-600 text-white hover:bg-red-700"
             >
-              {deletingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+              {deletingName ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 className="mr-2 h-4 w-4" aria-hidden="true" />}
               ลบถาวร
             </AlertDialogAction>
           </AlertDialogFooter>

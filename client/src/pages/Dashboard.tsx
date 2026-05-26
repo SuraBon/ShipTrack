@@ -1558,7 +1558,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               title="รีเฟรช"
               aria-label="รีเฟรชรายการ"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-lg" aria-hidden="true">refresh</span>}
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <span className="material-symbols-outlined text-lg" aria-hidden="true">refresh</span>
+              )}
             </button>
           </div>
         </div>
@@ -1977,7 +1981,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 disabled={loading}
                 className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
               >
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>}
+                {loading ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                ) : (
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>
+                )}
                 โหลดข้อมูลเพิ่ม
               </button>
             )}

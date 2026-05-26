@@ -30,8 +30,8 @@ function Command({
 }
 
 function CommandDialog({
-  title = "Command Palette",
-  description = "Search for a command to run...",
+  title = "ชุดคำสั่ง",
+  description = "ค้นหาคำสั่งที่ต้องการใช้งาน",
   children,
   className,
   showCloseButton = true,
@@ -69,7 +69,7 @@ function CommandInput({
       data-slot="command-input-wrapper"
       className="flex h-9 items-center gap-2 border-b px-3"
     >
-      <SearchIcon className="size-4 shrink-0 opacity-50" />
+      <SearchIcon className="size-4 shrink-0 opacity-50" aria-hidden="true" />
       <CommandPrimitive.Input
         data-slot="command-input"
         className={cn(
