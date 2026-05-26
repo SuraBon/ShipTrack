@@ -15,8 +15,10 @@ export function useProofImage() {
       setPreviewUrl(image.dataUrl);
       setImageUrl(image.dataUrl);
       toast.success('แนบรูปหลักฐานแล้ว');
+      return true;
     } catch (err) {
       toast.error(getErrorMessage(err, 'เกิดข้อผิดพลาดในการประมวลผลรูปภาพ'));
+      return false;
     } finally {
       setIsProcessingImage(false);
     }

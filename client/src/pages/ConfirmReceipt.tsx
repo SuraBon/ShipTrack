@@ -19,7 +19,7 @@ import { buildGpsEvidenceNote, needsGpsOverrideReason as shouldRequireGpsOverrid
 import { buildDeliveryActionPayload, getCurrentBranchFromParcel, isParcelTrulyDelivered } from '@/lib/deliveryActionBuilder';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { stopRouteTracking } from '@/lib/routeTracking';
-import { ParcelJobSummary, StepIndicator } from '@/components/confirm-receipt/ConfirmReceiptShared';
+import { ParcelJobSummary } from '@/components/confirm-receipt/ConfirmReceiptShared';
 import { ConfirmReceiptReviewDialog } from '@/components/confirm-receipt/ConfirmReceiptReviewDialog';
 import { useProofImage } from '@/hooks/useProofImage';
 
@@ -255,9 +255,11 @@ export default function ConfirmReceipt({
     }
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) void processImageFile(file);
+    if (!file) return;
+    const processed = await processImageFile(file);
+    if (processed) setCurrentStep(3);
   };
 
   const executeConfirm = async () => {
@@ -405,8 +407,6 @@ export default function ConfirmReceipt({
           </p>
         </div>
       )}
-
-      <StepIndicator currentStep={currentStep} compact={embedded} />
 
       {isLoading && createPortal(
         <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-300">
@@ -710,6 +710,24 @@ export default function ConfirmReceipt({
                 </div>
               </div>
             </div>
+
+            {needsGpsOverrideReason && (
+              <div className="space-y-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-950">
+                <div className="flex items-start gap-2.5">
+                  <span className="material-symbols-outlined mt-0.5 text-lg" aria-hidden="true">location_off</span>
+                  <div>
+                    <p className="font-display text-sm font-black">ยืนยันโดยไม่มีตำแหน่ง GPS</p>
+                    <p className="text-xs font-semibold leading-snug opacity-75">กรุณาระบุเหตุผลก่อนกดยืนยันส่ง</p>
+                  </div>
+                </div>
+                <textarea
+                  placeholder="เช่น สัญญาณเน็ตล่ม, อยู่ในอาคารชั้นใต้ดิน, ลูกค้ามารับนอกพื้นที่..."
+                  value={gpsOverrideReason}
+                  onChange={(e) => setGpsOverrideReason(sanitizeTextInput(e.target.value, 300))}
+                  className="min-h-[72px] w-full resize-none rounded-2xl border border-amber-200 bg-white px-4 py-2.5 font-display text-sm outline-none transition-all focus:ring-1 focus:ring-amber-500"
+                />
+              </div>
+            )}
 
             <div className="space-y-4">
               <div className="rounded-2xl border border-green-200 bg-green-50 p-3 text-green-900">

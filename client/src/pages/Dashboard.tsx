@@ -75,7 +75,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [confirmTrackingId, setConfirmTrackingId] = useState<string | null>(null);
   const [isConfirmFlowOpen, setIsConfirmFlowOpen] = useState(false);
-  const [messengerView, setMessengerView] = useState<MessengerView>('waiting');
+  const [messengerView, setMessengerView] = useState<MessengerView>('mine');
   const [startingDeliveryId, setStartingDeliveryId] = useState<string | null>(null);
   const [releasingDeliveryId, setReleasingDeliveryId] = useState<string | null>(null);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
@@ -88,6 +88,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     done: MESSENGER_BATCH_SIZE,
   });
   const isFetchingRef = useRef(false);
+  const hasSetInitialView = useRef(false);
   const currentEmployeeId = String(user?.employeeId || '').trim().toUpperCase();
   const {
     stats,
@@ -145,28 +146,23 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     if (isMessengerDashboard && messengerGeoStatus === 'idle') requestMessengerLocation();
   }, [isMessengerDashboard, messengerGeoStatus, requestMessengerLocation]);
 
-  // Refresh once when returning to an old visible dashboard. Avoid polling Apps Script.
-  useEffect(() => {
-    if (!isConfigured) return;
-    const handleVisibilityChange = () => {
-      if (document.hidden) return;
-      if (!lastUpdatedAt || Date.now() - lastUpdatedAt > 2 * 60 * 1000) {
-        fetchData();
-      }
-    };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isConfigured, fetchData, lastUpdatedAt]);
 
-  // Auto-refresh every 60 seconds when the dashboard is active and document is visible
+
+  // Redirect messenger to waiting tab if there are no pending tasks on initial load
   useEffect(() => {
-    if (!isConfigured) return;
-    const intervalId = setInterval(() => {
-      if (document.hidden) return;
-      void fetchData();
-    }, 60 * 1000);
-    return () => clearInterval(intervalId);
-  }, [isConfigured, fetchData]);
+    if (!isConfigured || !isMessengerDashboard) return;
+    if (lastUpdatedAt && !hasSetInitialView.current && !loading) {
+      hasSetInitialView.current = true;
+      if (messengerMineParcels.length === 0) {
+        setMessengerView('waiting');
+      }
+    }
+  }, [isConfigured, isMessengerDashboard, lastUpdatedAt, loading, messengerMineParcels.length]);
+
+  // Reset initial view check if employee ID changes
+  useEffect(() => {
+    hasSetInitialView.current = false;
+  }, [currentEmployeeId]);
 
   // Reset page when filter changes
   useEffect(() => { setCurrentPage(1); }, [statusFilter, debouncedSearch, adminSort, pageSize]);
@@ -460,10 +456,14 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             )}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div className="hidden h-8 items-center gap-1 rounded-lg border border-outline-variant/35 bg-white px-2 text-[11px] font-medium text-on-surface-variant sm:flex">
+            <div className={`flex items-center gap-1.5 rounded-xl border bg-white px-2.5 text-[11px] font-semibold text-slate-500 shadow-sm ${
+              isMessengerDashboard
+                ? 'h-11 md:h-12 border-gray-100 px-3 text-xs'
+                : 'h-8 rounded-lg border-outline-variant/35 text-[11px] px-2'
+            }`}>
               <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
               <span>
-                {loading ? 'กำลังอัปเดต...' : (lastUpdatedAt ? `อัปเดต ${new Date(lastUpdatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : 'รอข้อมูล')}
+                {loading ? 'กำลังอัปเดต...' : (lastUpdatedAt ? `อัปเดต ${new Date(lastUpdatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'รอข้อมูล')}
               </span>
             </div>
             <button
