@@ -2,14 +2,13 @@
  * Track Page
  */
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useRef } from 'react';
 import StatusBadge from '@/components/StatusBadge';
 import Timeline from '@/components/Timeline';
 import { toast } from 'sonner';
 import type { Parcel } from '@/types/parcel';
 import { getParcel, searchParcels } from '@/lib/parcelService';
 import { parseParcelTimeline } from '@/lib/timeline';
-import TrackingMap from '@/components/TrackingMap';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
 import { UI_COPY } from '@/lib/uiCopy';
@@ -26,6 +25,7 @@ import {
 } from '@/lib/createdParcelHistory';
 
 const TRACK_RESULTS_BATCH_SIZE = 12;
+const TrackingMap = lazy(() => import('@/components/TrackingMap'));
 
 const hydrateLocalProofPhoto = (parcel: Parcel): Parcel => {
   if (parcel['รูปยืนยัน']) return parcel;
@@ -598,7 +598,15 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 <p className="mt-1 break-all font-mono text-sm font-black tracking-wide text-blue-200">{parcel.TrackingID}</p>
               </div>
               <div className="bg-white p-4">
-                <TrackingMap events={timelineEvents} trackingID={parcel.TrackingID} routeSamples={parcel.routeSamples} mapClassName="h-[68vh] max-h-[640px] min-h-[360px]" />
+                <Suspense
+                  fallback={
+                    <div className="grid h-[68vh] max-h-[640px] min-h-[360px] place-items-center rounded-2xl bg-slate-50 text-sm font-semibold text-slate-500">
+                      กำลังโหลดแผนที่...
+                    </div>
+                  }
+                >
+                  <TrackingMap events={timelineEvents} trackingID={parcel.TrackingID} routeSamples={parcel.routeSamples} mapClassName="h-[68vh] max-h-[640px] min-h-[360px]" />
+                </Suspense>
               </div>
             </div>
           </DialogContent>

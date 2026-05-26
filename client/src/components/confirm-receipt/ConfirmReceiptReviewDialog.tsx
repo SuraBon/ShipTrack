@@ -1,10 +1,11 @@
-import L from 'leaflet';
+import { lazy, Suspense } from 'react';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
-import { MapView } from '@/components/Map';
 import { resolveSelectValue } from '@/components/NativeSelect';
 import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
 import type { GeoPosition } from '@/hooks/useGeolocation';
+
+const GpsPreviewMap = lazy(() => import('./GpsPreviewMap'));
 
 type ConfirmReceiptReviewDialogProps = {
   isConfirmDialogOpen: boolean;
@@ -199,30 +200,9 @@ export function ConfirmReceiptReviewDialog({
                 </span>
               </div>
               <div className="h-32 w-full relative pointer-events-none">
-                <MapView 
-                  className="w-full h-full" 
-                  initialCenter={{ lat: position.latitude, lng: position.longitude }} 
-                  initialZoom={16}
-                  onMapReady={(map) => {
-                    // disable interactions for simple preview
-                    map.dragging.disable();
-                    map.touchZoom.disable();
-                    map.doubleClickZoom.disable();
-                    map.scrollWheelZoom.disable();
-                    map.boxZoom.disable();
-                    map.keyboard.disable();
-                    const tappableMap = map as L.Map & { tap?: { disable: () => void } };
-                    tappableMap.tap?.disable();
-                    
-                    const icon = L.divIcon({
-                      className: 'custom-gps-marker',
-                      html: `<div style="width:16px;height:16px;background:#16a34a;border:3px solid white;border-radius:50%;box-shadow:0 0 10px rgba(0,0,0,0.3);"></div>`,
-                      iconSize: [16, 16],
-                      iconAnchor: [8, 8]
-                    });
-                    L.marker([position.latitude, position.longitude], { icon }).addTo(map);
-                  }}
-                />
+                <Suspense fallback={<div className="grid h-full w-full place-items-center bg-slate-100 text-xs font-semibold text-slate-500">กำลังโหลดแผนที่...</div>}>
+                  <GpsPreviewMap position={position} />
+                </Suspense>
                 <div className="absolute inset-0 shadow-[inset_0_0_20px_rgba(0,0,0,0.1)] z-[400] pointer-events-none" />
               </div>
             </div>

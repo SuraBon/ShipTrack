@@ -367,47 +367,6 @@
     background: rgba(9, 20, 38, 0.28);
   }
 
-  .logitrack-popup .leaflet-popup-content-wrapper {
-    border-radius: 16px;
-    box-shadow: 0 16px 34px rgba(9, 20, 38, 0.22);
-  }
-
-  .logitrack-popup .leaflet-popup-content {
-    margin: 12px 14px;
-  }
-
-  .logitrack-popup .leaflet-popup-tip {
-    box-shadow: 0 8px 18px rgba(9, 20, 38, 0.16);
-  }
-
-  .leaflet-container {
-    font-family: inherit;
-    background: #f8fafc;
-  }
-
-  .leaflet-control-zoom {
-    overflow: hidden;
-    border: 1px solid rgba(226, 232, 240, 0.95) !important;
-    border-radius: 12px !important;
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12) !important;
-  }
-
-  .leaflet-control-zoom a {
-    width: 34px !important;
-    height: 34px !important;
-    border: 0 !important;
-    color: #0f172a !important;
-    font: 700 18px/34px ui-sans-serif, system-ui, sans-serif !important;
-  }
-
-  .leaflet-control-attribution {
-    border-radius: 10px 0 0 0;
-    background: rgba(255, 255, 255, 0.78) !important;
-    color: #94a3b8 !important;
-    font-size: 9px !important;
-    backdrop-filter: blur(8px);
-  }
-
   @keyframes logitrack-pin-pulse {
     0% {
       opacity: 0.65;

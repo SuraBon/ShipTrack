@@ -15,7 +15,7 @@ const plugins = [
       "icon-512.png",
     ],
     workbox: {
-      globIgnores: ["**/fonts/**"],
+      globIgnores: ["**/fonts/**", "**/map-*.js", "**/map-*.css"],
     },
     manifest: {
       name: "ShipTrack — ระบบติดตามรายการส่ง",
