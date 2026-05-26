@@ -15,6 +15,7 @@ import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
 import { UI_COPY } from '@/lib/uiCopy';
 import { translateSystemNote } from '@/lib/translationUtils';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import {
   clearCreatedParcelHistory,
   getCreatedParcelProofPhoto,
@@ -250,7 +251,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
               className="app-primary-button h-12 sm:px-8">
               {isLoading ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
+                  <Spinner className="h-5 w-5" />
                   กำลังค้นหา...
                 </>
               ) : (
@@ -357,7 +358,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                   disabled={isRefreshingHistory}
                   className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-white hover:text-primary disabled:opacity-50 flex items-center gap-1"
                 >
-                  <span className={`material-symbols-outlined text-[14px] ${isRefreshingHistory ? 'animate-spin' : ''}`}>refresh</span>
+                  {isRefreshingHistory ? <Spinner className="h-3.5 w-3.5" /> : <span className="material-symbols-outlined text-[14px]">refresh</span>}
                   อัปเดตสถานะ
                 </button>
                 <button

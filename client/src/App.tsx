@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { toast } from "sonner";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Layout from "./components/Layout";
@@ -79,6 +80,30 @@ function App() {
   });
   const [isConfiguredState, setIsConfiguredState] = useState(isConfigured());
   const [, setConfigVersion] = useState(0);
+
+  useEffect(() => {
+    const handleUpdateAvailable = (event: Event) => {
+      const updateServiceWorker = (event as CustomEvent<{ updateServiceWorker?: (reloadPage?: boolean) => Promise<void> }>).detail?.updateServiceWorker;
+      toast.info("มีเวอร์ชันใหม่พร้อมใช้งาน", {
+        description: "กดอัปเดตเพื่อโหลดแอปล่าสุด",
+        duration: Infinity,
+        action: {
+          label: "อัปเดต",
+          onClick: () => void updateServiceWorker?.(true),
+        },
+      });
+    };
+    const handleOfflineReady = () => {
+      toast.success("พร้อมใช้งานแบบออฟไลน์แล้ว");
+    };
+
+    window.addEventListener("shiptrack:pwa-update", handleUpdateAvailable);
+    window.addEventListener("shiptrack:pwa-offline-ready", handleOfflineReady);
+    return () => {
+      window.removeEventListener("shiptrack:pwa-update", handleUpdateAvailable);
+      window.removeEventListener("shiptrack:pwa-offline-ready", handleOfflineReady);
+    };
+  }, []);
 
   useEffect(() => {
     const updateConfig = () => {

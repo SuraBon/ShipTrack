@@ -265,7 +265,7 @@ export default function Login() {
           >
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             {authDialog.status === 'loading' ? (
-              <span className="material-symbols-outlined animate-spin text-4xl text-primary">progress_activity</span>
+              <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden="true" />
             ) : authDialog.status === 'success' ? (
               <CheckCircle2 className="h-9 w-9 text-emerald-600" aria-hidden="true" />
             ) : (

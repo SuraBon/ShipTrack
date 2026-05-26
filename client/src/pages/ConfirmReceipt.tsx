@@ -8,6 +8,7 @@ import { useRef, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import L from 'leaflet';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import { useParcelStore } from '@/hooks/useParcelStore';
 import { getParcel } from '@/lib/parcelService';
 import { useBranches } from '@/hooks/useBranches';
@@ -402,7 +403,7 @@ export default function ConfirmReceipt({
       {isLoading && createPortal(
         <div className="fixed inset-0 bg-white/60 backdrop-blur-sm z-[100] flex flex-col items-center justify-center animate-in fade-in duration-300">
           <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-4">
-            <span className="material-symbols-outlined text-5xl text-primary animate-spin">progress_activity</span>
+            <Spinner className="h-12 w-12 text-primary" />
           </div>
           <p className="text-lg font-bold text-primary font-display">กำลังยืนยันส่ง...</p>
           <p className="text-on-surface-variant text-sm">กรุณารอสักครู่ ระบบกำลังประมวลผล</p>
@@ -413,7 +414,7 @@ export default function ConfirmReceipt({
       {isAutoPreparingCamera && currentStep === 1 && (
         <div className="app-panel p-8 text-center animate-in fade-in zoom-in-95 duration-300">
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <span className="material-symbols-outlined animate-spin text-4xl">progress_activity</span>
+            <Spinner className="h-10 w-10" />
           </div>
           <h2 className="font-display text-xl font-black text-primary">กำลังเปิดกล้อง...</h2>
           <p className="mt-1 text-sm font-semibold text-on-surface-variant/60">ระบบกำลังตรวจสอบรายการส่งและเตรียมถ่ายรูปหลักฐาน</p>
@@ -468,7 +469,7 @@ export default function ConfirmReceipt({
             >
               {isChecking ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                  <Spinner className="h-5 w-5" />
                   กำลังตรวจสอบ...
                 </>
               ) : (
@@ -521,7 +522,7 @@ export default function ConfirmReceipt({
                 {isProcessingImage ? (
                   <>
                     <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200 text-slate-900 transition-all">
-                      <span className="material-symbols-outlined text-3xl animate-spin">progress_activity</span>
+                      <Spinner className="h-7 w-7" />
                     </div>
                     <p className="font-display text-lg font-black text-slate-950">กำลังบีบอัดรูปภาพ...</p>
                     <p className="mt-1 text-xs font-semibold text-on-surface-variant/60">กรุณารอสักครู่ขณะประมวลผลรูปภาพ</p>
@@ -542,7 +543,7 @@ export default function ConfirmReceipt({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-transparent pointer-events-none" />
                 {isProcessingImage && (
                   <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white gap-2">
-                    <span className="material-symbols-outlined text-3xl animate-spin">progress_activity</span>
+                    <Spinner className="h-7 w-7" />
                     <span className="text-xs font-semibold">กำลังประมวลผล...</span>
                   </div>
                 )}
@@ -571,11 +572,13 @@ export default function ConfirmReceipt({
                     needsGpsOverrideReason ? 'bg-error/10 text-error' :
                     'bg-amber-500/10 text-amber-600'
                   }`}>
-                    <span className={`material-symbols-outlined text-xl ${effectiveGeoStatus === 'loading' ? 'animate-spin' : ''}`}>
-                      {effectiveGeoStatus === 'success' ? 'my_location' :
-                       effectiveGeoStatus === 'loading' ? 'progress_activity' :
-                       'location_off'}
-                    </span>
+                    {effectiveGeoStatus === 'loading' ? (
+                      <Spinner className="h-5 w-5" />
+                    ) : (
+                      <span className="material-symbols-outlined text-xl">
+                        {effectiveGeoStatus === 'success' ? 'my_location' : 'location_off'}
+                      </span>
+                    )}
                   </div>
                   <div className="space-y-0.5">
                     <p className="font-display text-sm font-black text-primary">
@@ -1073,7 +1076,7 @@ export default function ConfirmReceipt({
               className="flex h-12 flex-[2] items-center justify-center gap-2 rounded-xl bg-slate-950 font-display font-bold text-white shadow-lg shadow-slate-200 transition-all hover:bg-slate-900 active:scale-95 disabled:opacity-50"
             >
               {isLoading ? (
-                <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                <Spinner className="h-5 w-5" />
               ) : (
                 <>
                   ยืนยันรายการ

@@ -9,7 +9,17 @@ const plugins = [
   tailwindcss(),
   VitePWA({
     registerType: "autoUpdate",
-    includeAssets: ["favicon.svg", "icon-192.png", "icon-512.png", "fonts/material-symbols-outlined.ttf"],
+    includeAssets: [
+      "favicon.svg",
+      "icon-192.png",
+      "icon-512.png",
+      "fonts/material-symbols-outlined.ttf",
+      "fonts/noto-sans-thai-400.ttf",
+      "fonts/noto-sans-thai-500.ttf",
+      "fonts/noto-sans-thai-600.ttf",
+      "fonts/noto-sans-thai-700.ttf",
+      "fonts/noto-sans-thai-800.ttf",
+    ],
     manifest: {
       name: "ShipTrack — ระบบติดตามรายการส่ง",
       short_name: "ShipTrack",

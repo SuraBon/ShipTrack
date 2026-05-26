@@ -7,7 +7,20 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { registerSW } from "virtual:pwa-register";
 
 // Register Service Worker for PWA auto-updates
-registerSW({ immediate: true });
+let updateServiceWorker: ReturnType<typeof registerSW> | undefined;
+updateServiceWorker = registerSW({
+  immediate: true,
+  onNeedRefresh() {
+    window.dispatchEvent(
+      new CustomEvent("shiptrack:pwa-update", {
+        detail: { updateServiceWorker },
+      }),
+    );
+  },
+  onOfflineReady() {
+    window.dispatchEvent(new Event("shiptrack:pwa-offline-ready"));
+  },
+});
 
 createRoot(document.getElementById("root")!).render(
   <AuthProvider>

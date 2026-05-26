@@ -9,6 +9,7 @@ import { useParcelStore } from '@/hooks/useParcelStore';
 import { useBranches } from '@/hooks/useBranches';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Spinner } from '@/components/ui/spinner';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import NativeSelect, { resolveSelectValue } from '@/components/NativeSelect';
 import QRCode from 'qrcode';
@@ -251,11 +252,14 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 geoStatus === 'denied' || geoStatus === 'error' ? 'border-destructive/30 bg-destructive/5 text-destructive' :
                 'border-border bg-muted text-muted-foreground'
               }`}>
-                <span className={`material-symbols-outlined text-base ${geoStatus === 'loading' ? 'animate-spin' : ''}`}>
-                  {geoStatus === 'success' ? 'my_location' :
-                   geoStatus === 'loading' ? 'progress_activity' :
-                   geoStatus === 'denied' || geoStatus === 'error' ? 'location_disabled' : 'location_searching'}
-                </span>
+                {geoStatus === 'loading' ? (
+                  <Spinner className="h-4 w-4" />
+                ) : (
+                  <span className="material-symbols-outlined text-base">
+                    {geoStatus === 'success' ? 'my_location' :
+                     geoStatus === 'denied' || geoStatus === 'error' ? 'location_disabled' : 'location_searching'}
+                  </span>
+                )}
                 <span className="font-semibold">
                   {geoStatus === 'success' ? 'บันทึกตำแหน่งแล้ว' :
                    geoStatus === 'loading' ? 'กำลังอ่านตำแหน่ง' :
@@ -374,7 +378,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   {isProcessingImage ? (
                     <>
                       <span className="grid size-11 place-items-center rounded-lg bg-background text-foreground shadow-xs">
-                        <span className="material-symbols-outlined text-2xl animate-spin">progress_activity</span>
+                        <Spinner className="h-6 w-6" />
                       </span>
                       <span className="text-sm font-semibold text-foreground">กำลังบีบอัดและประมวลผลรูปภาพ...</span>
                     </>
@@ -394,7 +398,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                     <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" className="h-full w-full object-cover" />
                     {isProcessingImage && (
                       <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white gap-2">
-                        <span className="material-symbols-outlined text-3xl animate-spin">progress_activity</span>
+                        <Spinner className="h-7 w-7" />
                         <span className="text-xs font-semibold">กำลังประมวลผล...</span>
                       </div>
                     )}
@@ -481,9 +485,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             disabled={isLoading || isProcessingImage}
             className="app-primary-button h-12 w-full md:w-auto md:px-6 disabled:opacity-55 disabled:cursor-not-allowed"
           >
-            <span className={`material-symbols-outlined ${isLoading || isProcessingImage ? 'animate-spin' : ''}`}>
-              {isLoading || isProcessingImage ? 'progress_activity' : 'add_circle'}
-            </span>
+            {isLoading || isProcessingImage ? <Spinner className="h-5 w-5" /> : <span className="material-symbols-outlined">add_circle</span>}
             {isProcessingImage ? 'กำลังประมวลผลรูปภาพ...' : isLoading ? 'กำลังสร้างรายการ...' : UI_COPY.action.create}
           </button>
           </div>
@@ -580,7 +582,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   className="app-primary-button h-11 flex-[2] rounded-xl"
                 >
                   {isLoading ? (
-                    <span className="material-symbols-outlined animate-spin">progress_activity</span>
+                    <Spinner className="h-5 w-5" />
                   ) : (
                     <>
                   ยืนยันสร้างรายการ

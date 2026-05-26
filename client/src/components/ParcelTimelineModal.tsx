@@ -3,6 +3,7 @@ import {
 } from '@/components/ui/dialog';
 import { lazy, Suspense, useState } from 'react';
 import Timeline from '@/components/Timeline';
+import { Spinner } from '@/components/ui/spinner';
 import type { Parcel } from '@/types/parcel';
 import type { TimelineEvent } from '@/types/timeline';
 
@@ -11,7 +12,7 @@ const TrackingMap = lazy(() => import('@/components/TrackingMap'));
 const MapFallback = () => (
   <div className="grid h-[62vh] max-h-[560px] min-h-[340px] place-items-center rounded-2xl bg-white text-primary">
     <div className="flex flex-col items-center gap-3">
-      <span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span>
+      <Spinner className="h-7 w-7" />
       <p className="text-sm font-black">กำลังโหลดแผนที่...</p>
     </div>
   </div>

@@ -2,6 +2,46 @@
 @import "tw-animate-css";
 
 @font-face {
+  font-family: "Noto Sans Thai";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/noto-sans-thai-400.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Noto Sans Thai";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/fonts/noto-sans-thai-500.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Noto Sans Thai";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/noto-sans-thai-600.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Noto Sans Thai";
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("/fonts/noto-sans-thai-700.ttf") format("truetype");
+}
+
+@font-face {
+  font-family: "Noto Sans Thai";
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("/fonts/noto-sans-thai-800.ttf") format("truetype");
+}
+
+@font-face {
   font-family: "Material Symbols Outlined";
   font-style: normal;
   font-weight: 400;
@@ -84,10 +124,10 @@
   --color-outline-variant: #d4d4d8;
   --color-on-primary-fixed: #18181b;
 
-  --font-display: "Noto Sans Thai", "Inter", system-ui, sans-serif;
-  --font-headline: "Noto Sans Thai", "Inter", system-ui, sans-serif;
-  --font-body: "Noto Sans Thai", "Inter", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  --font-display: "Noto Sans Thai", system-ui, sans-serif;
+  --font-headline: "Noto Sans Thai", system-ui, sans-serif;
+  --font-body: "Noto Sans Thai", system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
 
 
 }

@@ -189,7 +189,7 @@ const TableSkeleton = () => (
 const LazyPanelFallback = ({ label = 'กำลังโหลด...' }: { label?: string }) => (
   <div className="grid min-h-[220px] place-items-center rounded-2xl bg-white/80 p-6 text-center">
     <div className="flex flex-col items-center gap-3 text-primary">
-      <span className="material-symbols-outlined animate-spin text-3xl">progress_activity</span>
+      <Loader2 className="h-7 w-7 animate-spin" aria-hidden="true" />
       <p className="text-sm font-black">{label}</p>
     </div>
   </div>
@@ -1557,7 +1557,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 : 'grid h-8 w-8 place-items-center rounded-lg border border-outline-variant/35 bg-white text-on-surface-variant shadow-sm transition-all hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'}
               title="รีเฟรช"
             >
-              <span className={`material-symbols-outlined text-lg ${loading ? 'animate-spin' : ''}`}>refresh</span>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-lg">refresh</span>}
             </button>
           </div>
         </div>
@@ -1976,7 +1976,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 disabled={loading}
                 className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
               >
-                {loading ? <span className="material-symbols-outlined animate-spin text-sm">progress_activity</span> : <span className="material-symbols-outlined text-sm">download</span>}
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-sm">download</span>}
                 โหลดข้อมูลเพิ่ม
               </button>
             )}
