@@ -1313,7 +1313,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     if (!selectedParcel) return false;
     return selectedTimelineEvents.some(
       event => typeof event.latitude === 'number' && typeof event.longitude === 'number'
-    );
+    ) || Boolean(selectedParcel.routeSamples?.some(sample => typeof sample.latitude === 'number' && typeof sample.longitude === 'number'));
   }, [selectedParcel, selectedTimelineEvents]);
 
   const clearFilters = () => { setSearchTerm(''); setStatusFilter(defaultStatusFilter); setCurrentPage(1); };

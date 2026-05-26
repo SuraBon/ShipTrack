@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
 import L from 'leaflet';
 import { MapView } from './Map';
 import type { TimelineEvent } from '@/types/timeline';
+import type { ParcelRouteSample } from '@/types/parcel';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import { useRouteSamples } from '@/hooks/useRouteSamples';
 
@@ -20,11 +21,24 @@ function escapeHtml(str: string): string {
 interface TrackingMapProps {
   events: TimelineEvent[];
   trackingID?: string;
+  routeSamples?: ParcelRouteSample[];
   className?: string;
   mapClassName?: string;
 }
 
-function TrackingMap({ events, trackingID, className = '', mapClassName = 'h-[250px] sm:h-[300px] md:h-[400px] max-h-[50vh]' }: TrackingMapProps) {
+function thinRouteSamples<T extends { latitude?: number; longitude?: number; timestamp: string }>(samples: T[], maxSamples = 300): T[] {
+  const valid = samples.filter(sample =>
+    typeof sample.latitude === 'number' &&
+    typeof sample.longitude === 'number' &&
+    Number.isFinite(sample.latitude) &&
+    Number.isFinite(sample.longitude),
+  );
+  if (valid.length <= maxSamples) return valid;
+  const step = Math.ceil(valid.length / maxSamples);
+  return valid.filter((_, index) => index === 0 || index === valid.length - 1 || index % step === 0);
+}
+
+function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = [], className = '', mapClassName = 'h-[250px] sm:h-[300px] md:h-[400px] max-h-[50vh]' }: TrackingMapProps) {
   const mapRef      = useRef<L.Map | null>(null);
   const markersRef  = useRef<L.Marker[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
@@ -57,10 +71,18 @@ function TrackingMap({ events, trackingID, className = '', mapClassName = 'h-[25
       }
     }
 
-    for (const sample of routeSamples.filter(sample => !sample.synced)) {
+    const remoteSamples = thinRouteSamples(syncedRouteSamples);
+    const localSamples = routeSamples.filter(sample => !sample.synced);
+    const localIds = new Set(localSamples.map(sample => sample.id));
+    const mapSamples = [
+      ...remoteSamples.filter(sample => !localIds.has(sample.id)),
+      ...localSamples,
+    ];
+
+    for (const sample of thinRouteSamples(mapSamples)) {
       entries.push({
-        lat: sample.latitude,
-        lng: sample.longitude,
+        lat: sample.latitude as number,
+        lng: sample.longitude as number,
         label: 'ตำแหน่งระหว่างส่ง',
         isGps: true,
         isLast: false,
@@ -107,7 +129,7 @@ function TrackingMap({ events, trackingID, className = '', mapClassName = 'h-[25
     );
 
     return { pathEntries: deduped, hasUnresolved };
-  }, [events, routeSamples]);
+  }, [events, routeSamples, syncedRouteSamples]);
 
   const hasRouteData = pathEntries.length > 0;
   const hasCreatedPoint = pathEntries.some(entry => entry.event.title === 'สร้างรายการส่ง');

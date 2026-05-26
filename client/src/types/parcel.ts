@@ -24,6 +24,20 @@ export interface Parcel {
   'OriginLatitude'?: number;
   'OriginLongitude'?: number;
   'events'?: ParcelEventRecord[];
+  routeSamples?: ParcelRouteSample[];
+}
+
+export interface ParcelRouteSample {
+  id: string;
+  trackingID: string;
+  timestamp: string;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
+  speed?: number | null;
+  heading?: number | null;
+  recordedBy?: string;
+  createdAt?: string;
 }
 
 export interface ParcelEventRecord {

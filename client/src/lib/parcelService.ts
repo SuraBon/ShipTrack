@@ -45,6 +45,7 @@ import { toast } from 'sonner';
 
 let isSyncing = false;
 let isRouteSyncing = false;
+const ROUTE_SYNC_BATCH_SIZE = 100;
 const QUEUEABLE_ACTIONS = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery'];
 
 // ── Status normalizer ────────────────────────────────────────────────────────
@@ -819,7 +820,7 @@ export async function syncRouteSamples(trackingID?: string): Promise<SyncRouteSa
       const res = await callAPI<SyncRouteSamplesResponse>({
         action: 'syncRouteSamples',
         trackingID: groupTrackingID,
-        samples: groupSamples,
+        samples: groupSamples.slice(0, ROUTE_SYNC_BATCH_SIZE),
         idempotencyKey: createIdempotencyKey('syncRouteSamples'),
       }, {}, NO_RETRY);
 
@@ -827,8 +828,8 @@ export async function syncRouteSamples(trackingID?: string): Promise<SyncRouteSa
         return { success: false, error: res.error || 'ซิงค์เส้นทางไม่สำเร็จ', savedCount, skippedCount };
       }
 
-      await markRouteSamplesSynced(groupSamples.map(sample => sample.id));
-      savedCount += res.savedCount ?? groupSamples.length;
+      await markRouteSamplesSynced(groupSamples.slice(0, ROUTE_SYNC_BATCH_SIZE).map(sample => sample.id));
+      savedCount += res.savedCount ?? Math.min(groupSamples.length, ROUTE_SYNC_BATCH_SIZE);
       skippedCount += res.skippedCount ?? 0;
     }
   } catch (err) {
@@ -842,8 +843,13 @@ export async function syncRouteSamples(trackingID?: string): Promise<SyncRouteSa
     isRouteSyncing = false;
   }
 
-  if (savedCount > 0 || skippedCount > 0) {
+  if (typeof window !== 'undefined' && (savedCount > 0 || skippedCount > 0)) {
     window.dispatchEvent(new Event('offline-sync-complete'));
+  }
+  if (typeof window !== 'undefined' && (await getUnsyncedRouteSamples(trackingID)).length > 0) {
+    window.setTimeout(() => {
+      void syncRouteSamples(trackingID);
+    }, 250);
   }
   return { success: true, savedCount, skippedCount };
 }

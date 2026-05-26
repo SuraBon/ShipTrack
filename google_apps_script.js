@@ -54,6 +54,18 @@ const EVENT_HEADERS = [
   "DeliveryMatchStatus",
   "DeliveryMismatchReason"
 ];
+const ROUTE_SAMPLE_HEADERS = [
+  "SampleID",
+  "TrackingID",
+  "Timestamp",
+  "Latitude",
+  "Longitude",
+  "Accuracy",
+  "Speed",
+  "Heading",
+  "RecordedBy",
+  "CreatedAt"
+];
 
 const USER_HEADERS = ["EmployeeID", "Name", "Role", "PIN", "CreatedAt", "Status", "UpdatedAt"];
 const BRANCH_HEADERS = ["Name", "CreatedAt", "CreatedBy"];
@@ -200,6 +212,10 @@ function ensureParcelSheetSchema(sheet) {
 
 function ensureEventSheetSchema(sheet) {
   ensureHeaderRow(sheet, EVENT_HEADERS, "#e0f2fe");
+}
+
+function ensureRouteSampleSheetSchema(sheet) {
+  ensureHeaderRow(sheet, ROUTE_SAMPLE_HEADERS, "#ede9fe");
 }
 
 function getYearSpreadsheet(year, createIfMissing) {
@@ -384,6 +400,15 @@ function getEventSheetForSpreadsheet(ss) {
   }
   ensureEventSheetSchema(eventSheet);
   return eventSheet;
+}
+
+function getRouteSampleSheetForSpreadsheet(ss) {
+  let sheet = ss.getSheetByName("RouteSamples");
+  if (!sheet) {
+    sheet = ss.insertSheet("RouteSamples");
+  }
+  ensureRouteSampleSheetSchema(sheet);
+  return sheet;
 }
 
 var apiKeyCache = null;
@@ -1170,6 +1195,57 @@ function getParcelEventsForSpreadsheet(ss, trackingID) {
   return events;
 }
 
+function parseRouteSampleRow(row) {
+  return {
+    id: String(row[0]),
+    trackingID: String(row[1]),
+    timestamp: formatSheetDateValue(row[2]),
+    latitude: row[3] !== "" ? Number(row[3]) : undefined,
+    longitude: row[4] !== "" ? Number(row[4]) : undefined,
+    accuracy: row[5] !== "" ? Number(row[5]) : undefined,
+    speed: row[6] !== "" ? Number(row[6]) : undefined,
+    heading: row[7] !== "" ? Number(row[7]) : undefined,
+    recordedBy: String(row[8] || ""),
+    createdAt: formatSheetDateValue(row[9])
+  };
+}
+
+function getRouteSamplesForSpreadsheet(ss, trackingID) {
+  const sheet = ss.getSheetByName("RouteSamples");
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  const samples = [];
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][1]).trim() === String(trackingID).trim()) {
+      samples.push(parseRouteSampleRow(data[i]));
+    }
+  }
+  return samples;
+}
+
+function getRouteSamplesForTrackingIds(trackingIds) {
+  if (!trackingIds || trackingIds.length === 0) return {};
+  const samplesByTrackingId = {};
+  const idSet = {};
+  trackingIds.forEach(function (id) {
+    idSet[String(id).trim()] = true;
+  });
+
+  getYearSpreadsheetsForRead().forEach(function (entry) {
+    const sheet = entry.spreadsheet.getSheetByName("RouteSamples");
+    if (!sheet) return;
+    const data = sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const trackingId = String(data[i][1]).trim();
+      if (!idSet[trackingId]) continue;
+      if (!samplesByTrackingId[trackingId]) samplesByTrackingId[trackingId] = [];
+      samplesByTrackingId[trackingId].push(parseRouteSampleRow(data[i]));
+    }
+  });
+
+  return samplesByTrackingId;
+}
+
 function getActiveDeliveryAssignmentFromEvents(events) {
   let active = null;
   for (let i = 0; i < events.length; i++) {
@@ -1350,8 +1426,10 @@ function handleGetParcels(payload) {
 
   const trackingIds = parcels.map(function (p) { return p.TrackingID; });
   const eventsMap = getEventsForTrackingIds(trackingIds);
+  const routeSamplesMap = getRouteSamplesForTrackingIds(trackingIds);
   for (let p of parcels) {
     p.events = eventsMap[p.TrackingID] || [];
+    p.routeSamples = routeSamplesMap[p.TrackingID] || [];
   }
 
   return createJsonResponse({
@@ -1395,6 +1473,7 @@ function handleGetParcel(payload) {
 
       const eventsMap = getParcelEventsMap();
       parcel.events = eventsMap[payload.trackingID] || [];
+      parcel.routeSamples = getRouteSamplesForSpreadsheet(storage.spreadsheet, payload.trackingID);
 
       return createJsonResponse({ success: true, parcel: parcel });
     }
@@ -1917,19 +1996,20 @@ function handleSyncRouteSamples(payload) {
     return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
   }
 
-  const eventSheet = getEventSheetForSpreadsheet(storage.spreadsheet);
-  if (!eventSheet) {
-    return createJsonResponse({ success: false, error: "Event sheet unavailable" });
+  const routeSheet = getRouteSampleSheetForSpreadsheet(storage.spreadsheet);
+  if (!routeSheet) {
+    return createJsonResponse({ success: false, error: "Route sample sheet unavailable" });
   }
 
   const existingIds = {};
-  const existingEvents = getParcelEventsForSpreadsheet(storage.spreadsheet, payload.trackingID);
-  for (let i = 0; i < existingEvents.length; i++) {
-    existingIds[String(existingEvents[i].id)] = true;
+  const existingSamples = getRouteSamplesForSpreadsheet(storage.spreadsheet, payload.trackingID);
+  for (let i = 0; i < existingSamples.length; i++) {
+    existingIds[String(existingSamples[i].id)] = true;
   }
 
   let savedCount = 0;
   let skippedCount = 0;
+  const rowsToAppend = [];
   const operatorName = escapeSheetValue(payload.operatorName || payload.name || payload.employeeId || "");
   for (let i = 0; i < samples.length; i++) {
     const sample = samples[i] || {};
@@ -1939,8 +2019,7 @@ function handleSyncRouteSamples(payload) {
       continue;
     }
 
-    const eventId = "ROUTE_" + sampleId;
-    if (existingIds[eventId]) {
+    if (existingIds[sampleId]) {
       skippedCount++;
       continue;
     }
@@ -1954,28 +2033,26 @@ function handleSyncRouteSamples(payload) {
 
     const rawDate = sample.timestamp ? new Date(String(sample.timestamp)) : new Date();
     const eventDate = isNaN(rawDate.getTime()) ? new Date() : rawDate;
-    const noteParts = ["routeSampleId=" + sampleId];
-    if (sample.accuracy !== undefined && sample.accuracy !== null && isFinite(Number(sample.accuracy))) noteParts.push("accuracy=" + Math.round(Number(sample.accuracy)));
-    if (sample.speed !== undefined && sample.speed !== null && isFinite(Number(sample.speed))) noteParts.push("speed=" + Number(sample.speed).toFixed(2));
-    if (sample.heading !== undefined && sample.heading !== null && isFinite(Number(sample.heading))) noteParts.push("heading=" + Math.round(Number(sample.heading)));
-
-    eventSheet.appendRow([
-      eventId,
+    rowsToAppend.push([
+      sampleId,
       payload.trackingID,
       formatThaiDateForSheet(eventDate),
-      "ROUTE_SAMPLE",
-      "GPS",
-      "",
-      operatorName,
-      "",
       latitude,
       longitude,
-      escapeSheetValue(noteParts.join(";")),
-      "",
-      ""
+      sample.accuracy !== undefined && sample.accuracy !== null && isFinite(Number(sample.accuracy)) ? Math.round(Number(sample.accuracy)) : "",
+      sample.speed !== undefined && sample.speed !== null && isFinite(Number(sample.speed)) ? Number(sample.speed).toFixed(2) : "",
+      sample.heading !== undefined && sample.heading !== null && isFinite(Number(sample.heading)) ? Math.round(Number(sample.heading)) : "",
+      operatorName,
+      formatThaiDateForSheet(new Date())
     ]);
-    existingIds[eventId] = true;
+    existingIds[sampleId] = true;
     savedCount++;
+  }
+
+  if (rowsToAppend.length > 0) {
+    routeSheet
+      .getRange(routeSheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length)
+      .setValues(rowsToAppend);
   }
 
   if (savedCount > 0) {
@@ -2064,8 +2141,10 @@ function handleSearchParcels(payload) {
     // Attach events only for authenticated users. Public search should not expose proof images or GPS trails.
     const trackingIds = parcels.map(function (p) { return p.TrackingID; });
     const eventsMap = getEventsForTrackingIds(trackingIds);
+    const routeSamplesMap = getRouteSamplesForTrackingIds(trackingIds);
     for (let p of parcels) {
       p.events = eventsMap[p.TrackingID] || [];
+      p.routeSamples = routeSamplesMap[p.TrackingID] || [];
     }
   }
 

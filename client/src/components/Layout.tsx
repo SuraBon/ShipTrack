@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useParcelStore } from '@/hooks/useParcelStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
+import { useRouteSyncStatus } from '@/hooks/useRouteSyncStatus';
 import type { Parcel } from '@/types/parcel';
 import { formatThaiDateTime, getDateTime } from '@/lib/dateUtils';
 import { normalizeRole, type AppRole } from '@/lib/roles';
@@ -67,6 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   const { parcels } = useParcelStore();
   const { user, logout, updateUserProfile } = useAuth();
   const offlineQueue = useOfflineQueue();
+  const { pendingRouteSampleCount, activeRouteCount } = useRouteSyncStatus();
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileNavCollapsed, setIsMobileNavCollapsed] = useState(false);
@@ -101,6 +103,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
 
   const unreadCount = recentParcels.filter(p => !seenIds.has(p.TrackingID)).length;
   const pendingOfflineCount = offlineQueue.filter(item => item.status === 'pending' || item.status === 'failed').length;
+  const pendingSyncCount = pendingOfflineCount + pendingRouteSampleCount;
 
   const markAllSeen = () => {
     const next = new Set([...Array.from(seenIds), ...recentParcels.map(p => p.TrackingID)]);
@@ -243,13 +246,22 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
             )}
 
             <div className="flex shrink-0 items-center gap-1">
-              {pendingOfflineCount > 0 && (
+              {pendingSyncCount > 0 && (
                 <div
-                  className="hidden items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-800 sm:inline-flex"
-                  title="มีรายการรอซิงค์"
+                  className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-bold text-amber-800 sm:px-2.5"
+                  title={pendingRouteSampleCount > 0 ? 'มีรายการและเส้นทางรอซิงค์' : 'มีรายการรอซิงค์'}
                 >
                   <span className="material-symbols-outlined text-sm" aria-hidden="true">sync_problem</span>
-                  รอซิงค์ {pendingOfflineCount}
+                  <span className="hidden sm:inline">รอซิงค์</span> {pendingSyncCount}
+                </div>
+              )}
+              {activeRouteCount > 0 && (
+                <div
+                  className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-800 sm:px-2.5"
+                  title="กำลังบันทึกเส้นทางส่ง"
+                >
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">near_me</span>
+                  <span className="hidden sm:inline">บันทึกเส้นทาง</span> {activeRouteCount}
                 </div>
               )}
               {user && (

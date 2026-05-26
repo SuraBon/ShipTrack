@@ -105,4 +105,21 @@ describe('routeTracking', () => {
     await expect(getUnsyncedRouteSamples('TRK4')).resolves.toEqual([]);
     await expect(getRouteSamples('TRK4')).resolves.toMatchObject([{ id: sample.id, synced: true }]);
   });
+
+  it('does not throw when route sample fallback storage is unavailable', async () => {
+    localStorageMock.setItem.mockImplementationOnce(() => {
+      throw new Error('quota');
+    });
+
+    expect(startRouteTracking('TRK5')).toBe(true);
+    expect(() => emitPosition(13.7563, 100.5018, 1_000)).not.toThrow();
+  });
+
+  it('returns false when geolocation watch cannot start', () => {
+    geolocationMock.watchPosition.mockImplementationOnce(() => {
+      throw new Error('permission');
+    });
+
+    expect(startRouteTracking('TRK6')).toBe(false);
+  });
 });

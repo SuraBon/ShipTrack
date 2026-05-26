@@ -11,19 +11,23 @@ export type { RouteSampleRecord } from './offlineDb';
 
 const ACTIVE_ROUTES_KEY = 'shiptrack_active_routes';
 const ROUTE_UPDATED_EVENT = 'shiptrack-route-samples-updated';
+const ROUTE_TRACKING_UPDATED_EVENT = 'shiptrack-route-tracking-updated';
 const MIN_SAMPLE_INTERVAL_MS = 15_000;
 const MIN_SAMPLE_DISTANCE_M = 25;
 const MAX_ACCEPTED_ACCURACY_M = 150;
+const MAX_STORED_ROUTE_SAMPLES = 2000;
 
 const activeWatchIds = new Map<string, number>();
 const lastSamples = new Map<string, RouteSampleRecord>();
 
 function dispatchRouteUpdated(trackingID: string): void {
+  if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(ROUTE_UPDATED_EVENT, { detail: { trackingID } }));
 }
 
 function readFallbackSamples(): RouteSampleRecord[] {
   try {
+    if (typeof localStorage === 'undefined') return [];
     const parsed = JSON.parse(localStorage.getItem('shiptrack_route_samples') ?? '[]');
     return Array.isArray(parsed) ? parsed.filter(isRouteSample) : [];
   } catch {
@@ -32,7 +36,12 @@ function readFallbackSamples(): RouteSampleRecord[] {
 }
 
 function saveFallbackSamples(samples: RouteSampleRecord[]): void {
-  localStorage.setItem('shiptrack_route_samples', JSON.stringify(samples));
+  try {
+    if (typeof localStorage === 'undefined') return;
+    localStorage.setItem('shiptrack_route_samples', JSON.stringify(samples.slice(-MAX_STORED_ROUTE_SAMPLES)));
+  } catch {
+    // Storage quota/private mode failure should not break the delivery flow.
+  }
 }
 
 function isRouteSample(value: any): value is RouteSampleRecord {
@@ -46,6 +55,7 @@ function isRouteSample(value: any): value is RouteSampleRecord {
 
 function getActiveRoutes(): string[] {
   try {
+    if (typeof localStorage === 'undefined') return [];
     const parsed = JSON.parse(localStorage.getItem(ACTIVE_ROUTES_KEY) ?? '[]');
     return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === 'string') : [];
   } catch {
@@ -54,10 +64,20 @@ function getActiveRoutes(): string[] {
 }
 
 function setActiveRoute(trackingID: string, active: boolean): void {
-  const current = new Set(getActiveRoutes());
-  if (active) current.add(trackingID);
-  else current.delete(trackingID);
-  localStorage.setItem(ACTIVE_ROUTES_KEY, JSON.stringify(Array.from(current)));
+  try {
+    if (typeof localStorage === 'undefined') return;
+    const current = new Set(getActiveRoutes());
+    if (active) current.add(trackingID);
+    else current.delete(trackingID);
+    localStorage.setItem(ACTIVE_ROUTES_KEY, JSON.stringify(Array.from(current)));
+    if (typeof window !== 'undefined') window.dispatchEvent(new Event(ROUTE_TRACKING_UPDATED_EVENT));
+  } catch {
+    // Route tracking can continue for the current tab even if active route persistence fails.
+  }
+}
+
+export function getActiveRouteIds(): string[] {
+  return getActiveRoutes();
 }
 
 function distanceMeters(a: RouteSampleRecord, b: RouteSampleRecord): number {
@@ -77,7 +97,7 @@ async function saveRouteSample(sample: RouteSampleRecord): Promise<void> {
     dispatchRouteUpdated(sample.trackingID);
     return;
   }
-  const next = [...readFallbackSamples(), sample].slice(-2000);
+  const next = [...readFallbackSamples(), sample].slice(-MAX_STORED_ROUTE_SAMPLES);
   saveFallbackSamples(next);
   dispatchRouteUpdated(sample.trackingID);
 }
@@ -94,34 +114,39 @@ export function startRouteTracking(trackingID: string): boolean {
   if (!trackingID || activeWatchIds.has(trackingID)) return false;
   if (typeof navigator === 'undefined' || !navigator.geolocation) return false;
 
-  const watchId = navigator.geolocation.watchPosition(
-    position => {
-      const { latitude, longitude, accuracy, speed, heading } = position.coords;
-      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
-      if (Number.isFinite(accuracy) && accuracy > MAX_ACCEPTED_ACCURACY_M) return;
+  let watchId: number;
+  try {
+    watchId = navigator.geolocation.watchPosition(
+      position => {
+        const { latitude, longitude, accuracy, speed, heading } = position.coords;
+        if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+        if (Number.isFinite(accuracy) && accuracy > MAX_ACCEPTED_ACCURACY_M) return;
 
-      const sample: RouteSampleRecord = {
-        id: `${trackingID}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-        trackingID,
-        latitude,
-        longitude,
-        accuracy,
-        speed,
-        heading,
-        timestamp: new Date(position.timestamp || Date.now()).toISOString(),
-        synced: false,
-      };
-      if (!shouldSaveSample(sample)) return;
-      lastSamples.set(trackingID, sample);
-      void saveRouteSample(sample);
-    },
-    () => undefined,
-    {
-      enableHighAccuracy: true,
-      maximumAge: 10_000,
-      timeout: 20_000,
-    },
-  );
+        const sample: RouteSampleRecord = {
+          id: `${trackingID}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+          trackingID,
+          latitude,
+          longitude,
+          accuracy,
+          speed,
+          heading,
+          timestamp: new Date(position.timestamp || Date.now()).toISOString(),
+          synced: false,
+        };
+        if (!shouldSaveSample(sample)) return;
+        lastSamples.set(trackingID, sample);
+        void saveRouteSample(sample);
+      },
+      () => undefined,
+      {
+        enableHighAccuracy: true,
+        maximumAge: 10_000,
+        timeout: 20_000,
+      },
+    );
+  } catch {
+    return false;
+  }
 
   activeWatchIds.set(trackingID, watchId);
   setActiveRoute(trackingID, true);
