@@ -38,7 +38,7 @@ function StepIndicator({ currentStep }: { currentStep: number }) {
                 : 'bg-surface-container text-on-surface-variant/40'
           }`}>
             {currentStep > step
-              ? <span className="material-symbols-outlined text-xl sm:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+              ? <span className="material-symbols-outlined text-xl sm:text-2xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">check_circle</span>
               : step}
           </div>
           {step < 3 && (
@@ -67,18 +67,18 @@ function ParcelJobSummary({ parcel }: { parcel: Parcel }) {
       <div className="grid grid-cols-[1fr_auto_1fr] items-stretch gap-2">
         <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-gray-100">
           <div className="mb-1 flex items-center gap-1 text-[9px] font-black text-slate-400">
-            <span className="material-symbols-outlined text-[13px]">inventory_2</span>
+            <span className="material-symbols-outlined text-[13px]" aria-hidden="true">inventory_2</span>
             ต้นทาง
           </div>
           <p className="truncate text-sm font-black leading-tight text-slate-950">{parcel['สาขาผู้ส่ง'] || '-'}</p>
           <p className="mt-0.5 truncate text-[11px] font-semibold text-slate-500">{parcel['ผู้ส่ง'] || '-'}</p>
         </div>
         <div className="grid w-8 place-items-center text-slate-900">
-          <span className="material-symbols-outlined text-xl">arrow_forward</span>
+          <span className="material-symbols-outlined text-xl" aria-hidden="true">arrow_forward</span>
         </div>
         <div className="min-w-0 rounded-xl bg-white p-2.5 shadow-sm ring-1 ring-gray-100">
           <div className="mb-1 flex items-center gap-1 text-[9px] font-black text-slate-400">
-            <span className="material-symbols-outlined text-[13px]">flag</span>
+            <span className="material-symbols-outlined text-[13px]" aria-hidden="true">flag</span>
             ปลายทาง
           </div>
           <p className="truncate text-sm font-black leading-tight text-slate-950">{parcel['สาขาผู้รับ'] || '-'}</p>
@@ -426,7 +426,7 @@ export default function ConfirmReceipt({
         <div className="app-panel overflow-hidden animate-in slide-in-from-right-4 duration-500">
           <div className="app-panel-header p-5 text-center sm:p-6">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-700">
-              <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>search</span>
+              <span className="material-symbols-outlined text-4xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">search</span>
             </div>
             <h2 className="font-display text-xl font-bold text-primary">ระบุหมายเลขติดตาม</h2>
             <p className="text-xs text-on-surface-variant uppercase font-bold tracking-widest mt-1">กรอกหมายเลขติดตามเพื่อดูต้นทาง ปลายทาง และผู้รับ</p>
@@ -447,13 +447,13 @@ export default function ConfirmReceipt({
                   className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-on-surface-variant hover:text-primary hover:bg-surface-container transition-all"
                   title="วางจากคลิปบอร์ด"
                 >
-                  <span className="material-symbols-outlined text-2xl">content_paste</span>
+                  <span className="material-symbols-outlined text-2xl" aria-hidden="true">content_paste</span>
                 </button>
               </div>
 
               {checkedParcel && isDelivered && (
                 <div className="p-4 bg-error-container/30 border border-error/10 rounded-2xl text-error text-sm flex items-start gap-3 animate-in shake duration-300">
-                  <span className="material-symbols-outlined text-xl">block</span>
+                  <span className="material-symbols-outlined text-xl" aria-hidden="true">block</span>
                   <div>
                     <p className="font-bold">รายการนี้ถูกส่งถึงที่หมายแล้ว</p>
                     <p className="opacity-80">ไม่สามารถยืนยันซ้ำได้ กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
@@ -475,7 +475,7 @@ export default function ConfirmReceipt({
               ) : (
                 <>
                   ดูงานส่งนี้
-                  <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+                  <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
                 </>
               )}
             </button>
@@ -493,7 +493,7 @@ export default function ConfirmReceipt({
               className={`absolute grid place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 ${embedded ? 'right-3 top-3 size-8' : 'right-4 top-4 size-10'}`}
               aria-label="ย้อนกลับ"
             >
-              <span className={`material-symbols-outlined ${embedded ? 'text-xl' : 'text-2xl'}`}>close</span>
+              <span className={`material-symbols-outlined ${embedded ? 'text-xl' : 'text-2xl'}`} aria-hidden="true">close</span>
             </button>
             <div className={embedded ? 'pr-10' : 'pr-12'}>
               <h2 className={`font-display font-black leading-tight text-white ${embedded ? 'text-lg' : 'text-2xl'}`}>ถ่ายรูปหลักฐาน</h2>
@@ -530,7 +530,7 @@ export default function ConfirmReceipt({
                 ) : (
                   <>
                     <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-200 text-slate-900 transition-all group-hover:scale-105 group-hover:bg-slate-300">
-                      <span className="material-symbols-outlined text-3xl transition-colors">photo_camera</span>
+                      <span className="material-symbols-outlined text-3xl transition-colors" aria-hidden="true">photo_camera</span>
                     </div>
                     <p className="font-display text-lg font-black text-slate-950">แตะเพื่อถ่ายรูป</p>
                     <p className="mt-1 text-xs font-semibold text-on-surface-variant/60">ระบบจะบีบอัดรูปให้อัตโนมัติ</p>
@@ -553,11 +553,11 @@ export default function ConfirmReceipt({
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
                 >
-                  <span className="material-symbols-outlined text-lg">photo_camera</span>
+                  <span className="material-symbols-outlined text-lg" aria-hidden="true">photo_camera</span>
                   ถ่ายใหม่
                 </button>
                 <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white/95 drop-shadow-md">
-                  <span className="material-symbols-outlined text-base">verified</span>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">verified</span>
                   <span className="text-xs font-bold uppercase tracking-wider">แนบรูปถ่ายสำเร็จ</span>
                 </div>
               </div>
@@ -575,7 +575,7 @@ export default function ConfirmReceipt({
                     {effectiveGeoStatus === 'loading' ? (
                       <Spinner className="h-5 w-5" />
                     ) : (
-                      <span className="material-symbols-outlined text-xl">
+                      <span className="material-symbols-outlined text-xl" aria-hidden="true">
                         {effectiveGeoStatus === 'success' ? 'my_location' : 'location_off'}
                       </span>
                     )}
@@ -632,7 +632,7 @@ export default function ConfirmReceipt({
                 onClick={() => setCurrentStep(1)}
                 className="flex h-13 min-w-0 items-center justify-center gap-1.5 rounded-2xl border border-outline-variant/70 bg-white px-2 font-display text-sm font-black text-on-surface-variant shadow-sm transition-all hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary active:scale-[0.98] cursor-pointer sm:text-base"
               >
-                <span className="material-symbols-outlined text-lg sm:text-xl">arrow_back</span>
+                <span className="material-symbols-outlined text-lg sm:text-xl" aria-hidden="true">arrow_back</span>
                 ย้อนกลับ
               </button>
               <button
@@ -642,7 +642,7 @@ export default function ConfirmReceipt({
                 className="group flex h-13 min-w-0 items-center justify-center gap-2 rounded-2xl bg-primary px-3 font-display text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:bg-primary/95 active:scale-[0.98] disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none cursor-pointer sm:text-base"
               >
                 ขั้นตอนถัดไป
-                <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl font-black">arrow_forward</span>
+                <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl font-black" aria-hidden="true">arrow_forward</span>
               </button>
             </div>
           </div>
@@ -654,7 +654,7 @@ export default function ConfirmReceipt({
         <div className={`overflow-hidden animate-in slide-in-from-right-4 duration-500 ${embedded ? '' : 'rounded-[1.25rem] border border-gray-100 bg-white shadow-xl'}`}>
           <div className={`bg-slate-950 px-4 text-white sm:px-5 ${embedded ? 'flex items-center gap-3 py-3 text-left' : 'py-3.5 text-center sm:py-4'}`}>
             <div className={`${embedded ? 'h-8 w-8 shrink-0' : 'mx-auto mb-2 h-9 w-9'} flex items-center justify-center rounded-xl bg-white/10 text-white`}>
-              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>fact_check</span>
+              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">fact_check</span>
             </div>
             <div className="min-w-0">
               <h2 className={`font-display font-black leading-tight text-white ${embedded ? 'text-base' : 'text-lg sm:text-xl'}`}>เช็กปลายทางก่อนบันทึก</h2>
@@ -666,14 +666,14 @@ export default function ConfirmReceipt({
 
             <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-sm sm:grid-cols-2">
               <div className="flex items-center gap-2.5 text-slate-600">
-                <span className="material-symbols-outlined text-lg text-slate-800">barcode_scanner</span>
+                <span className="material-symbols-outlined text-lg text-slate-800" aria-hidden="true">barcode_scanner</span>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold leading-none text-slate-400">หมายเลขติดตาม</span>
                   <span className="font-mono text-sm font-black leading-tight text-slate-950">{trackingId}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2.5 text-slate-600">
-                <span className="material-symbols-outlined text-lg text-slate-800">person</span>
+                <span className="material-symbols-outlined text-lg text-slate-800" aria-hidden="true">person</span>
                 <div className="flex flex-col">
                   <span className="text-[10px] font-bold leading-none text-slate-400">ผู้รับ</span>
                   <span className="text-sm font-black leading-tight text-slate-950">{checkedParcel?.['ผู้รับ']}</span>
@@ -683,7 +683,7 @@ export default function ConfirmReceipt({
 
             <div className="rounded-2xl border border-gray-200 bg-slate-50 p-3">
               <div className="flex items-start gap-2.5">
-                <span className="material-symbols-outlined mt-0.5 text-lg text-slate-700">flag</span>
+                <span className="material-symbols-outlined mt-0.5 text-lg text-slate-700" aria-hidden="true">flag</span>
                 <div className="min-w-0">
                   <p className="text-[10px] font-bold text-slate-400">ปลายทางที่ระบุไว้</p>
                   <p className="break-words font-display text-base font-black leading-snug text-slate-950">
@@ -699,7 +699,7 @@ export default function ConfirmReceipt({
             <div className="space-y-4">
               <div className="rounded-2xl border border-green-200 bg-green-50 p-3 text-green-900">
                 <div className="flex items-start gap-2.5">
-                  <span className="material-symbols-outlined mt-0.5 text-xl">task_alt</span>
+                  <span className="material-symbols-outlined mt-0.5 text-xl" aria-hidden="true">task_alt</span>
                   <div>
                     <p className="font-display text-sm font-black">ค่าเริ่มต้น: ยืนยันส่งตามปลายทาง</p>
                     <p className="text-xs font-semibold leading-snug opacity-75">ถ้าส่งตามงานปกติ ไม่ต้องเลือกอะไรเพิ่ม กดยืนยันส่งได้เลย</p>
@@ -712,9 +712,9 @@ export default function ConfirmReceipt({
                 onClick={() => setShowAdvancedOptions(value => !value)}
                 className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-outline-variant/50 bg-white font-display text-sm font-black text-primary transition-all hover:bg-surface-container-lowest"
               >
-                <span className="material-symbols-outlined text-lg">tune</span>
+                <span className="material-symbols-outlined text-lg" aria-hidden="true">tune</span>
                 ตัวเลือกเพิ่มเติม
-                <span className={`material-symbols-outlined text-lg transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`}>expand_more</span>
+                <span className={`material-symbols-outlined text-lg transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`} aria-hidden="true">expand_more</span>
               </button>
 
               {showAdvancedOptions && (
@@ -723,7 +723,7 @@ export default function ConfirmReceipt({
                     <div className="flex cursor-pointer items-center justify-between group" onClick={() => { setIsProxy(!isProxy); if (!isProxy) { setIsForwarding(false); setDeliveryMatchStatus('MATCHED_DECLARED_DESTINATION'); setDeliveryMismatchReason(''); } }}>
                       <div className="flex min-w-0 items-center gap-3">
                         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors ${isProxy ? 'bg-blue-600 text-white' : 'bg-surface-container text-on-surface-variant'}`}>
-                          <span className="material-symbols-outlined text-xl">account_circle</span>
+                          <span className="material-symbols-outlined text-xl" aria-hidden="true">account_circle</span>
                         </div>
                         <div className="min-w-0">
                           <p className="font-display text-sm font-black text-primary">มีผู้รับแทน</p>
@@ -731,13 +731,13 @@ export default function ConfirmReceipt({
                         </div>
                       </div>
                       <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all ${isProxy ? 'border-blue-600 bg-blue-600' : 'border-outline-variant group-hover:border-primary'}`}>
-                        {isProxy && <span className="material-symbols-outlined text-white text-base">check</span>}
+                        {isProxy && <span className="material-symbols-outlined text-white text-base" aria-hidden="true">check</span>}
                       </div>
                     </div>
                     {isProxy && (
                       <div className="mt-3 animate-in slide-in-from-top-2 duration-300">
                         <div className="relative">
-                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">person</span>
+                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg" aria-hidden="true">person</span>
                           <input
                             placeholder="ชื่อคนที่รับแทน"
                             value={proxyName}
@@ -754,7 +754,7 @@ export default function ConfirmReceipt({
                       <div className="flex cursor-pointer items-center justify-between group" onClick={() => { setDeliveryMatchStatus(deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'MATCHED_DECLARED_DESTINATION' : 'DELIVERED_ELSEWHERE'); }}>
                         <div className="flex min-w-0 items-center gap-3">
                           <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors ${deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'bg-amber-500 text-white' : 'bg-surface-container text-on-surface-variant'}`}>
-                            <span className="material-symbols-outlined text-xl">move_location</span>
+                            <span className="material-symbols-outlined text-xl" aria-hidden="true">move_location</span>
                           </div>
                           <div className="min-w-0">
                             <p className="font-display text-sm font-black text-primary">ส่งคนละจุด / ฝากไว้ที่อื่น</p>
@@ -762,7 +762,7 @@ export default function ConfirmReceipt({
                           </div>
                         </div>
                         <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all ${deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'border-amber-500 bg-amber-500' : 'border-outline-variant group-hover:border-primary'}`}>
-                          {deliveryMatchStatus === 'DELIVERED_ELSEWHERE' && <span className="material-symbols-outlined text-white text-base">check</span>}
+                          {deliveryMatchStatus === 'DELIVERED_ELSEWHERE' && <span className="material-symbols-outlined text-white text-base" aria-hidden="true">check</span>}
                         </div>
                       </div>
                       {deliveryMatchStatus === 'DELIVERED_ELSEWHERE' && (
@@ -785,7 +785,7 @@ export default function ConfirmReceipt({
                     <div className="flex cursor-pointer items-center justify-between group" onClick={() => { setIsForwarding(!isForwarding); if (!isForwarding) { setIsProxy(false); setProxyName(''); setDeliveryMatchStatus('MATCHED_DECLARED_DESTINATION'); setDeliveryMismatchReason(''); } }}>
                       <div className="flex min-w-0 items-center gap-3">
                         <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition-colors ${isForwarding ? 'bg-secondary text-white' : 'bg-surface-container text-on-surface-variant'}`}>
-                          <span className="material-symbols-outlined text-xl">fork_right</span>
+                          <span className="material-symbols-outlined text-xl" aria-hidden="true">fork_right</span>
                         </div>
                         <div className="min-w-0">
                           <p className="font-display text-sm font-black text-primary">ส่งต่อไปจุดถัดไป</p>
@@ -793,13 +793,13 @@ export default function ConfirmReceipt({
                         </div>
                       </div>
                       <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 transition-all ${isForwarding ? 'border-secondary bg-secondary' : 'border-outline-variant group-hover:border-primary'}`}>
-                        {isForwarding && <span className="material-symbols-outlined text-white text-base">check</span>}
+                        {isForwarding && <span className="material-symbols-outlined text-white text-base" aria-hidden="true">check</span>}
                       </div>
                     </div>
                     {isForwarding && (
                       <div className="mt-3 space-y-3 animate-in slide-in-from-top-2 duration-300">
                         <div className="relative">
-                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg">person</span>
+                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg" aria-hidden="true">person</span>
                           <input
                             placeholder="ชื่อคนที่รับช่วงต่อ"
                             value={forwardSender}
@@ -838,7 +838,7 @@ export default function ConfirmReceipt({
                 onClick={() => setCurrentStep(2)}
                 className="flex h-13 min-w-0 items-center justify-center gap-1.5 rounded-2xl border border-outline-variant/70 bg-white px-2 font-display text-sm font-black text-on-surface-variant shadow-sm transition-all hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary active:scale-[0.98] sm:text-base"
               >
-                <span className="material-symbols-outlined text-lg sm:text-xl">arrow_back</span>
+                <span className="material-symbols-outlined text-lg sm:text-xl" aria-hidden="true">arrow_back</span>
                 ย้อนกลับ
               </button>
               <button
@@ -853,7 +853,7 @@ export default function ConfirmReceipt({
                 className="group flex h-13 min-w-0 items-center justify-center gap-2 rounded-2xl bg-primary px-3 font-display text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:bg-primary/95 active:scale-[0.98] disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none sm:text-base"
               >
                 ยืนยันส่ง
-                <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl">verified</span>
+                <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl" aria-hidden="true">verified</span>
               </button>
             </div>
           </div>
@@ -866,7 +866,7 @@ export default function ConfirmReceipt({
           {/* Header */}
           <div className="relative flex items-center gap-4 bg-slate-950 px-6 py-6 text-white">
             <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-white shadow-sm">
-              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+              <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">
                 {isForwarding ? 'fork_right' : isProxy ? 'account_circle' : 'check_circle'}
               </span>
             </div>
@@ -880,7 +880,7 @@ export default function ConfirmReceipt({
               onClick={() => setIsConfirmDialogOpen(false)}
               className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
             >
-              <span className="material-symbols-outlined text-2xl">close</span>
+              <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
             </button>
           </div>
 
@@ -889,7 +889,7 @@ export default function ConfirmReceipt({
             {/* Tracking ID row */}
             <div className="flex flex-col gap-2 rounded-2xl border border-gray-100 bg-slate-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2 text-slate-500">
-                <span className="material-symbols-outlined text-base">barcode_scanner</span>
+                <span className="material-symbols-outlined text-base" aria-hidden="true">barcode_scanner</span>
                 <span className="text-xs font-bold">หมายเลขติดตาม</span>
               </div>
               <code className="min-w-0 break-all font-mono text-base font-black tracking-wider text-slate-900">{trackingId}</code>
@@ -899,7 +899,7 @@ export default function ConfirmReceipt({
             {isForwarding && (
               <div className="bg-secondary/5 rounded-2xl p-4 border border-secondary/15 space-y-3">
                 <div className="flex items-center gap-2 text-secondary">
-                  <span className="material-symbols-outlined text-base">person</span>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">person</span>
                   <span className="text-xs font-bold">ผู้รับช่วงต่อ: <span className="text-primary">{forwardSender || '-'}</span></span>
                 </div>
                 <div className="flex items-center gap-3">
@@ -909,7 +909,7 @@ export default function ConfirmReceipt({
                       {resolveSelectValue(forwardFromBranch)}
                     </p>
                   </div>
-                  <span className="material-symbols-outlined text-outline-variant text-xl shrink-0">arrow_forward</span>
+                  <span className="material-symbols-outlined text-outline-variant text-xl shrink-0" aria-hidden="true">arrow_forward</span>
                   <div className="flex-1 bg-white rounded-xl px-3 py-2 border border-outline-variant/20 text-center">
                     <p className="text-[9px] text-on-surface-variant/50 font-bold uppercase tracking-wider mb-0.5">ส่งต่อไปที่</p>
                     <p className="text-sm font-black text-primary truncate">
@@ -923,7 +923,7 @@ export default function ConfirmReceipt({
             {/* Proxy details */}
             {isProxy && (
               <div className="bg-blue-50 rounded-2xl px-4 py-3 border border-blue-100 flex items-center gap-3">
-                <span className="material-symbols-outlined text-blue-500 text-xl">how_to_reg</span>
+                <span className="material-symbols-outlined text-blue-500 text-xl" aria-hidden="true">how_to_reg</span>
                 <div>
                   <p className="text-[10px] text-blue-600/70 font-bold uppercase tracking-wider">ผู้รับแทน</p>
                   <p className="font-bold text-blue-900 text-sm">{proxyName || '-'}</p>
@@ -934,7 +934,7 @@ export default function ConfirmReceipt({
             {/* Normal receipt */}
             {!isForwarding && !isProxy && (
               <div className="bg-green-50 rounded-2xl px-4 py-3 border border-green-100 flex items-center gap-3">
-                <span className="material-symbols-outlined text-green-600 text-xl">verified_user</span>
+                <span className="material-symbols-outlined text-green-600 text-xl" aria-hidden="true">verified_user</span>
                 <div>
                   <p className="text-[10px] text-green-600/70 font-bold">ผู้รับ</p>
                   <p className="font-bold text-green-900 text-sm">{checkedParcel?.['ผู้รับ'] || '-'}</p>
@@ -948,7 +948,7 @@ export default function ConfirmReceipt({
                   ? 'bg-amber-50 border-amber-100 text-amber-950'
                   : 'bg-green-50 border-green-100 text-green-900'
               }`}>
-                <span className="material-symbols-outlined text-xl">
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">
                   {deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'move_location' : 'task_alt'}
                 </span>
                 <div className="min-w-0">
@@ -988,12 +988,12 @@ export default function ConfirmReceipt({
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                   <div className="flex items-center gap-2 bg-white/20 backdrop-blur-md px-4 py-2 rounded-xl text-white">
-                    <span className="material-symbols-outlined">zoom_in</span>
+                    <span className="material-symbols-outlined" aria-hidden="true">zoom_in</span>
                     <span className="text-sm font-bold tracking-wide">คลิกเพื่อดูภาพขยาย</span>
                   </div>
                 </div>
                 <div className="absolute bottom-3 left-3 flex items-center gap-1.5 text-white pointer-events-none">
-                  <span className="material-symbols-outlined text-base shadow-sm">photo_camera</span>
+                  <span className="material-symbols-outlined text-base shadow-sm" aria-hidden="true">photo_camera</span>
                   <span className="text-xs font-bold uppercase tracking-wider drop-shadow-md">รูปหลักฐาน</span>
                 </div>
               </div>
@@ -1004,7 +1004,7 @@ export default function ConfirmReceipt({
               <div className="overflow-hidden rounded-2xl border border-gray-100 bg-slate-50 shadow-sm">
                 <div className="flex items-center justify-between border-b border-gray-100 bg-white px-4 py-2">
                   <div className="flex items-center gap-2 text-slate-600">
-                    <span className="material-symbols-outlined text-sm text-green-600">my_location</span>
+                    <span className="material-symbols-outlined text-sm text-green-600" aria-hidden="true">my_location</span>
                     <span className="text-[10px] font-bold">ตำแหน่ง GPS ที่บันทึก</span>
                   </div>
                   <span className="text-[10px] font-mono text-slate-400">
@@ -1044,7 +1044,7 @@ export default function ConfirmReceipt({
             {!position && gpsOverrideReason && (
               <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-amber-950">
                 <div className="flex items-start gap-3">
-                  <span className="material-symbols-outlined text-xl">location_off</span>
+                  <span className="material-symbols-outlined text-xl" aria-hidden="true">location_off</span>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider opacity-70">ยืนยันโดยไม่มีตำแหน่ง GPS</p>
                     <p className="text-sm font-bold leading-snug">{gpsOverrideReason}</p>
@@ -1080,7 +1080,7 @@ export default function ConfirmReceipt({
               ) : (
                 <>
                   ยืนยันรายการ
-                  <span className="material-symbols-outlined text-xl">verified</span>
+                  <span className="material-symbols-outlined text-xl" aria-hidden="true">verified</span>
                 </>
               )}
             </button>

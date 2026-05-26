@@ -25,7 +25,7 @@ class ErrorBoundary extends Component<Props, State> {
       return (
         <div className="flex items-center justify-center min-h-screen p-8 bg-background">
           <div className="flex flex-col items-center w-full max-w-2xl p-8 text-center">
-            <span className="material-symbols-outlined text-5xl text-error mb-6">error</span>
+            <span className="material-symbols-outlined text-5xl text-error mb-6" aria-hidden="true">error</span>
             <h2 className="text-xl font-bold text-primary mb-4">เกิดข้อผิดพลาดที่ไม่คาดคิด</h2>
 
             {import.meta.env.DEV && this.state.error && (
@@ -50,7 +50,7 @@ class ErrorBoundary extends Component<Props, State> {
                 'hover:opacity-90 transition-opacity',
               )}
             >
-              <span className="material-symbols-outlined text-lg">refresh</span>
+              <span className="material-symbols-outlined text-lg" aria-hidden="true">refresh</span>
               รีโหลดหน้า
             </button>
           </div>

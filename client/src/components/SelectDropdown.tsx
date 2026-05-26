@@ -98,12 +98,12 @@ export default function SelectDropdown({
         `}
       >
         {icon && (
-          <span className="material-symbols-outlined text-lg text-on-surface-variant/40 shrink-0">
+          <span className="material-symbols-outlined text-lg text-on-surface-variant/40 shrink-0" aria-hidden="true">
             {icon}
           </span>
         )}
         <span className="flex-1 truncate">{selected ? selected.label : placeholder}</span>
-        <span className={`material-symbols-outlined text-lg text-on-surface-variant/40 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`}>
+        <span className={`material-symbols-outlined text-lg text-on-surface-variant/40 shrink-0 transition-transform duration-200 ${open ? 'rotate-180' : ''}`} aria-hidden="true">
           expand_more
         </span>
       </button>
@@ -132,7 +132,7 @@ export default function SelectDropdown({
                   <span
                     className="material-symbols-outlined text-[16px] text-primary shrink-0"
                     style={{ fontVariationSettings: "'FILL' 1" }}
-                  >
+                   aria-hidden="true">
                     check
                   </span>
                 )}

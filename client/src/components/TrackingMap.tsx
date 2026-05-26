@@ -120,7 +120,7 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
       const html = `<div title="${safeLabel}" style="position:relative;width:42px;height:42px;filter:drop-shadow(0 10px 18px rgba(15,23,42,.22));">
         <div style="position:absolute;inset:0;border-radius:16px;background:${markerRing};"></div>
         <div style="position:absolute;left:5px;top:5px;width:32px;height:32px;display:grid;place-items:center;border-radius:12px;background:${markerColor};border:3px solid #fff;color:#fff;box-shadow:0 5px 14px rgba(15,23,42,.18);">
-          <span class="material-symbols-outlined" style="font-size:17px;line-height:1;">${iconName}</span>
+          <span class="material-symbols-outlined" aria-hidden="true" style="font-size:17px;line-height:1;">${iconName}</span>
         </div>
         <div style="position:absolute;left:18px;top:37px;width:0;height:0;border-left:4px solid transparent;border-right:4px solid transparent;border-top:8px solid ${markerColor};filter:drop-shadow(0 2px 1px rgba(15,23,42,.12));"></div>
         ${isLast ? '<div style="position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:16px;border:2px solid rgba(15,23,42,.22);animation:logitrack-pin-pulse 1.6s infinite;"></div>' : ''}
@@ -246,13 +246,13 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
     <div className={`relative flex w-full flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm ${className}`}>
       {!hasRouteData && (
         <div className="flex items-center gap-2 border-b border-gray-100 bg-blue-50 px-4 py-2.5 text-[11px] font-semibold text-blue-700">
-          <span className="material-symbols-outlined text-base">info</span>
+          <span className="material-symbols-outlined text-base" aria-hidden="true">info</span>
           ยังไม่มีตำแหน่ง GPS — แผนที่จะแสดงเมื่อมีการสร้างรายการหรือยืนยันส่ง
         </div>
       )}
       {hasRouteData && hasUnresolved && (
         <div className="flex items-center gap-2 border-b border-amber-100 bg-amber-50 px-4 py-2.5 text-[11px] font-semibold text-amber-700">
-          <span className="material-symbols-outlined text-base">warning</span>
+          <span className="material-symbols-outlined text-base" aria-hidden="true">warning</span>
           บางจุดไม่มีตำแหน่ง GPS จึงไม่แสดงบนแผนที่
         </div>
       )}
@@ -267,7 +267,15 @@ function TrackingMap({ events, className = '', mapClassName = 'h-[250px] sm:h-[3
         initialCenter={DEFAULT_CENTER}
         initialZoom={7}
         onMapReady={handleMapReady}
+        fallbackMessage="โหลดแผนที่ไม่ได้ แต่ข้อมูลรายการส่งยังใช้งานได้ตามปกติ"
       />
+      {!hasRouteData && (
+        <div className="pointer-events-none absolute inset-x-4 top-1/2 z-[500] mx-auto max-w-sm -translate-y-1/2 rounded-2xl border border-white/80 bg-white/95 p-4 text-center shadow-sm backdrop-blur">
+          <span className="material-symbols-outlined text-3xl text-slate-300" aria-hidden="true">location_off</span>
+          <p className="mt-2 text-sm font-black text-slate-800">ยังไม่มีพิกัดสำหรับแสดงบนแผนที่</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500">ระบบจะแสดงเส้นทางเมื่อมีข้อมูล GPS จากการสร้างรายการหรือยืนยันส่ง</p>
+        </div>
+      )}
       <div className="flex items-center justify-between gap-3 border-t border-gray-100 bg-white px-4 py-2.5 text-[10px] font-semibold text-slate-400">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
           <span className="flex items-center gap-1.5">

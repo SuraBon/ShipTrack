@@ -222,7 +222,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         <div className="app-panel-header">
           <div className="flex items-center gap-3">
             <div className="flex size-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-              <span className="material-symbols-outlined text-base">travel_explore</span>
+              <span className="material-symbols-outlined text-base" aria-hidden="true">travel_explore</span>
             </div>
             <div>
               <h2 className="app-section-title">ค้นหารายการส่ง</h2>
@@ -233,7 +233,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         <div className="p-4 sm:p-5">
           <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
             <div className="group relative flex-1">
-              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground transition-colors group-focus-within:text-primary">search</span>
+              <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground transition-colors group-focus-within:text-primary" aria-hidden="true">search</span>
               <input
                 placeholder="กรอกหมายเลขติดตาม ผู้รับ หรือปลายทาง..."
                 value={trackingId}
@@ -243,8 +243,9 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
               />
               <button type="button" onClick={handlePaste}
                 className="absolute right-3 top-1/2 -translate-y-1/2 rounded-md p-1.5 text-muted-foreground transition-all hover:bg-muted hover:text-foreground"
-                title="วางจากคลิปบอร์ด">
-                <span className="material-symbols-outlined text-xl">content_paste</span>
+                title="วางจากคลิปบอร์ด"
+                aria-label="วางจากคลิปบอร์ด">
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">content_paste</span>
               </button>
             </div>
             <button type="submit" disabled={isLoading}
@@ -256,7 +257,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined text-xl">search</span>
+                  <span className="material-symbols-outlined text-xl" aria-hidden="true">search</span>
                   ดูสถานะ
                 </>
               )}
@@ -266,7 +267,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
           {recentSearches.length > 0 && (
             <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-100 pt-4">
               <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                <span className="material-symbols-outlined text-sm">history</span>ประวัติค้นหา:
+                <span className="material-symbols-outlined text-sm" aria-hidden="true">history</span>ประวัติค้นหา:
               </span>
               {recentSearches.map(id => (
                 <div key={id} className="flex items-center gap-0.5 rounded-lg bg-gray-50 p-0.5 ring-1 ring-gray-100">
@@ -278,8 +279,9 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                     onClick={() => removeFromRecent(id)}
                     className="rounded-md px-1.5 py-1.5 text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
                     title="ลบออกจากประวัติ"
+                    aria-label={`ลบ ${id} ออกจากประวัติ`}
                   >
-                    <span className="material-symbols-outlined text-sm">close</span>
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                   </button>
                 </div>
               ))}
@@ -293,13 +295,13 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         <div className="space-y-3 animate-in slide-in-from-bottom-4 duration-400">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-primary text-lg">list_alt</span>
+              <span className="material-symbols-outlined text-primary text-lg" aria-hidden="true">list_alt</span>
               <h3 className="text-sm font-bold text-primary">รายการที่พบ</h3>
               <span className="px-2 py-0.5 bg-primary/8 text-primary text-[11px] font-bold rounded-full">{searchResults.length}</span>
             </div>
             <button onClick={() => { setSearchResults([]); setVisibleSearchResultCount(TRACK_RESULTS_BATCH_SIZE); }}
               className="text-xs text-on-surface-variant/60 hover:text-error font-semibold flex items-center gap-1 transition-colors">
-              <span className="material-symbols-outlined text-sm">close</span>ล้างรายการ
+              <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>ล้างรายการ
             </button>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
@@ -313,11 +315,11 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 </div>
                 <div className="flex items-center gap-1.5 text-sm">
                   <span className="truncate font-medium text-foreground">{p['ผู้ส่ง']}</span>
-                  <span className="material-symbols-outlined shrink-0 text-sm text-muted-foreground">arrow_forward</span>
+                  <span className="material-symbols-outlined shrink-0 text-sm text-muted-foreground" aria-hidden="true">arrow_forward</span>
                   <span className="truncate font-medium text-foreground">{p['ผู้รับ']}</span>
                 </div>
                 <div className="mt-1.5 flex items-center gap-1 text-xs text-muted-foreground">
-                  <span className="material-symbols-outlined text-sm">event</span>
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">event</span>
                   {formatThaiDateTime(p['วันที่สร้าง'])}
                 </div>
               </div>
@@ -343,7 +345,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
                 <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <span className="material-symbols-outlined text-base">history</span>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">history</span>
                 </div>
                 <div className="min-w-0">
                   <h2 className="app-section-title">ประวัติที่ฉันสร้างในเครื่องนี้</h2>
@@ -358,7 +360,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                   disabled={isRefreshingHistory}
                   className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition-colors hover:bg-white hover:text-primary disabled:opacity-50 flex items-center gap-1"
                 >
-                  {isRefreshingHistory ? <Spinner className="h-3.5 w-3.5" /> : <span className="material-symbols-outlined text-[14px]">refresh</span>}
+                  {isRefreshingHistory ? <Spinner className="h-3.5 w-3.5" /> : <span className="material-symbols-outlined text-[14px]" aria-hidden="true">refresh</span>}
                   อัปเดตสถานะ
                 </button>
                 <button
@@ -400,7 +402,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                       aria-label="ลบประวัติรายการนี้"
                       title="ลบออกจากประวัติ"
                     >
-                      <span className="material-symbols-outlined text-sm">close</span>
+                      <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                     </button>
                   </div>
                 </div>
@@ -420,7 +422,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                     </div>
                   </div>
                   <p className="mt-3 flex items-center gap-1 text-xs text-muted-foreground">
-                    <span className="material-symbols-outlined text-sm">schedule</span>
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">schedule</span>
                     {formatThaiDateTime(item.createdAt)}
                   </p>
                 </button>
@@ -444,7 +446,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                   className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                   aria-label="ปิดผลการติดตามสถานะ"
                 >
-                  <span className="material-symbols-outlined text-2xl">close</span>
+                  <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
                 </button>
                 <div className="pr-12">
                   <div className="min-w-0">
@@ -458,7 +460,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                         className="grid size-7 place-items-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
                         aria-label="คัดลอกหมายเลขติดตาม"
                       >
-                        <span className="material-symbols-outlined text-base">content_copy</span>
+                        <span className="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
                       </button>
                     </div>
                   </div>
@@ -470,7 +472,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="grid size-10 place-items-center rounded-xl bg-blue-50 text-blue-600">
-                        <span className="material-symbols-outlined text-2xl">route</span>
+                        <span className="material-symbols-outlined text-2xl" aria-hidden="true">route</span>
                       </div>
                       <div>
                         <p className="font-display text-base font-black text-slate-900">Milestone การจัดส่ง</p>
@@ -483,7 +485,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                         onClick={() => setIsMapOpen(true)}
                         className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-sm font-bold text-slate-700 transition-all hover:bg-blue-50 hover:text-blue-700 active:scale-95"
                       >
-                        <span className="material-symbols-outlined text-2xl">map</span>
+                        <span className="material-symbols-outlined text-2xl" aria-hidden="true">map</span>
                         แผนที่
                       </button>
                     )}
@@ -539,7 +541,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                   className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                   aria-label="ปิดแผนที่"
                 >
-                  <span className="material-symbols-outlined text-2xl">close</span>
+                  <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
                 </button>
                 <DialogTitle className="pr-12 font-display text-xl font-black leading-tight text-white">
                   แผนที่การจัดส่ง
@@ -558,7 +560,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       {!parcel && !searchResults.length && notFoundQuery && !isLoading && (
         <div className="app-card border-dashed p-8 text-center animate-in fade-in zoom-in-95 duration-400 sm:p-10">
           <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg bg-muted">
-            <span className="material-symbols-outlined text-3xl text-muted-foreground">search_off</span>
+            <span className="material-symbols-outlined text-3xl text-muted-foreground" aria-hidden="true">search_off</span>
           </div>
           <h3 className="text-lg font-semibold text-foreground">ไม่พบรายการส่ง</h3>
           <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">ไม่พบรายการที่ค้นหา กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>

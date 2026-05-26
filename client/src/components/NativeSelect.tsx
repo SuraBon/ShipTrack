@@ -148,7 +148,7 @@ export default function NativeSelect({
         ].join(' ')}
       >
         {icon && (
-          <span className="material-symbols-outlined text-[18px] text-on-surface-variant/40 shrink-0">
+          <span className="material-symbols-outlined text-[18px] text-on-surface-variant/40 shrink-0" aria-hidden="true">
             {icon}
           </span>
         )}
@@ -168,7 +168,7 @@ export default function NativeSelect({
           {/* Search box */}
           <div className="border-b border-outline-variant/10 p-2 bg-slate-50">
             <div className="relative">
-              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant/45">
+              <span className="material-symbols-outlined absolute left-2.5 top-1/2 -translate-y-1/2 text-base text-on-surface-variant/45" aria-hidden="true">
                 search
               </span>
               <input
@@ -190,7 +190,7 @@ export default function NativeSelect({
                   onClick={() => setFilterText('')}
                   className="absolute right-2 top-1/2 -translate-y-1/2 grid h-5 w-5 place-items-center rounded-lg text-on-surface-variant/40 hover:bg-slate-200"
                 >
-                  <span className="material-symbols-outlined text-sm">close</span>
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
                 </button>
               )}
             </div>

@@ -215,7 +215,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             <div className="app-panel-header">
               <div className="flex items-center gap-3">
                 <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  <span className="material-symbols-outlined text-base">person</span>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">person</span>
                 </div>
                 <div>
                   <h2 className="app-section-title">ต้นทาง</h2>
@@ -255,7 +255,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 {geoStatus === 'loading' ? (
                   <Spinner className="h-4 w-4" />
                 ) : (
-                  <span className="material-symbols-outlined text-base">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">
                     {geoStatus === 'success' ? 'my_location' :
                      geoStatus === 'denied' || geoStatus === 'error' ? 'location_disabled' : 'location_searching'}
                   </span>
@@ -285,7 +285,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             <div className="app-panel-header">
               <div className="flex items-center gap-3">
                 <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-500">
-                  <span className="material-symbols-outlined text-base">flag</span>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">flag</span>
                 </div>
                 <div>
                   <h2 className="app-section-title">ปลายทาง</h2>
@@ -335,7 +335,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
           <div className="app-panel-header">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-                <span className="material-symbols-outlined text-base">inventory_2</span>
+                <span className="material-symbols-outlined text-base" aria-hidden="true">inventory_2</span>
               </div>
               <div>
                 <h2 className="app-section-title">สิ่งที่ส่ง</h2>
@@ -385,7 +385,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   ) : (
                     <>
                       <span className="grid size-11 place-items-center rounded-lg bg-background text-foreground shadow-xs">
-                        <span className="material-symbols-outlined text-2xl">add_a_photo</span>
+                        <span className="material-symbols-outlined text-2xl" aria-hidden="true">add_a_photo</span>
                       </span>
                       <span className="text-sm font-semibold text-foreground">ถ่ายหรือแนบรูปสิ่งที่ส่ง</span>
                       <span className="text-xs text-muted-foreground">ใช้ยืนยันของที่พนักงานส่งต้องรับไปส่ง</span>
@@ -409,7 +409,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                       className="absolute right-2 top-2 grid size-9 place-items-center rounded-lg bg-background text-foreground shadow-md transition-colors hover:bg-destructive hover:text-destructive-foreground active:scale-95 disabled:opacity-50"
                       aria-label="ลบรูปสิ่งที่ส่ง"
                     >
-                      <span className="material-symbols-outlined text-xl">close</span>
+                      <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
                     </button>
                   </div>
                   <button
@@ -418,7 +418,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                     onClick={() => proofInputRef.current?.click()}
                     className="flex h-11 w-full items-center justify-center gap-2 bg-muted text-sm font-semibold text-foreground transition-colors hover:bg-muted/80 disabled:opacity-50"
                   >
-                    <span className="material-symbols-outlined text-lg">photo_camera</span>
+                    <span className="material-symbols-outlined text-lg" aria-hidden="true">photo_camera</span>
                     เปลี่ยนรูป
                   </button>
                 </div>
@@ -456,19 +456,19 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 </div>
                 <div className="grid gap-2 text-xs">
                   <div className="flex items-start gap-2 rounded-xl bg-gray-50 p-3">
-                    <span className="material-symbols-outlined text-base text-gray-400">inventory_2</span>
+                    <span className="material-symbols-outlined text-base text-gray-400" aria-hidden="true">inventory_2</span>
                     <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-gray-800">สิ่งที่ส่ง:</span> {formData.description || '-'}</p>
                   </div>
                   <div className="flex items-start gap-2 rounded-xl bg-orange-50/70 p-3">
-                    <span className="material-symbols-outlined text-base text-orange-400">sticky_note_2</span>
+                    <span className="material-symbols-outlined text-base text-orange-400" aria-hidden="true">sticky_note_2</span>
                     <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-orange-600">หมายเหตุ:</span> {formData.note || '-'}</p>
                   </div>
                   <div className={`flex items-center gap-2 rounded-xl p-3 ${position ? 'bg-emerald-50 text-emerald-800' : 'bg-gray-50 text-gray-500'}`}>
-                    <span className="material-symbols-outlined text-base">{position ? 'my_location' : 'location_searching'}</span>
+                    <span className="material-symbols-outlined text-base" aria-hidden="true">{position ? 'my_location' : 'location_searching'}</span>
                     <span className="font-semibold">{position ? 'บันทึกตำแหน่งจุดรับแล้ว' : 'รอตำแหน่งจุดรับ'}</span>
                   </div>
                   <div className={`flex items-center gap-2 rounded-xl p-3 ${proofPhotoPreview ? 'bg-blue-50 text-blue-800' : 'bg-gray-50 text-gray-500'}`}>
-                    <span className="material-symbols-outlined text-base">{proofPhotoPreview ? 'image' : 'add_a_photo'}</span>
+                    <span className="material-symbols-outlined text-base" aria-hidden="true">{proofPhotoPreview ? 'image' : 'add_a_photo'}</span>
                     <span className="font-semibold">{proofPhotoPreview ? 'แนบรูปสิ่งที่ส่งแล้ว' : 'ยังไม่ได้แนบรูป'}</span>
                   </div>
                 </div>
@@ -485,7 +485,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
             disabled={isLoading || isProcessingImage}
             className="app-primary-button h-12 w-full md:w-auto md:px-6 disabled:opacity-55 disabled:cursor-not-allowed"
           >
-            {isLoading || isProcessingImage ? <Spinner className="h-5 w-5" /> : <span className="material-symbols-outlined">add_circle</span>}
+            {isLoading || isProcessingImage ? <Spinner className="h-5 w-5" /> : <span className="material-symbols-outlined" aria-hidden="true">add_circle</span>}
             {isProcessingImage ? 'กำลังประมวลผลรูปภาพ...' : isLoading ? 'กำลังสร้างรายการ...' : UI_COPY.action.create}
           </button>
           </div>
@@ -530,7 +530,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
 
                 {/* Parcel Details */}
                 <div className="flex items-start gap-3 rounded-2xl bg-slate-50 px-4 py-4">
-                  <span className="material-symbols-outlined mt-0.5 text-3xl text-slate-400">inventory_2</span>
+                  <span className="material-symbols-outlined mt-0.5 text-3xl text-slate-400" aria-hidden="true">inventory_2</span>
                   <p className="min-w-0 break-words text-base font-semibold text-slate-800">
                     <span className="font-black text-slate-950">สิ่งที่ส่ง:</span> {formData.description || '-'}
                   </p>
@@ -538,20 +538,20 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
 
                 {/* Note */}
                 <div className="flex items-start gap-3 rounded-2xl bg-orange-50 px-4 py-4">
-                  <span className="material-symbols-outlined mt-0.5 text-3xl text-orange-500">sticky_note_2</span>
+                  <span className="material-symbols-outlined mt-0.5 text-3xl text-orange-500" aria-hidden="true">sticky_note_2</span>
                   <p className="min-w-0 break-words text-base font-semibold leading-relaxed text-slate-800">
                     <span className="font-black text-orange-600">หมายเหตุ:</span> {formData.note || '-'}
                   </p>
                 </div>
 
                 <div className={`flex items-center gap-3 rounded-2xl px-4 py-4 ${position ? 'bg-emerald-50 text-emerald-800' : 'bg-slate-50 text-slate-500'}`}>
-                  <span className="material-symbols-outlined text-3xl">{position ? 'my_location' : 'location_searching'}</span>
+                  <span className="material-symbols-outlined text-3xl" aria-hidden="true">{position ? 'my_location' : 'location_searching'}</span>
                   <span className="min-w-0 text-base font-black">{position ? 'บันทึกตำแหน่งจุดรับแล้ว' : 'รอตำแหน่งจุดรับ'}</span>
                 </div>
 
                 <div className={`overflow-hidden rounded-2xl ${proofPhotoPreview ? 'bg-blue-50 text-blue-800' : 'bg-slate-50 text-slate-500'}`}>
                   <div className="flex items-center gap-3 px-4 py-4">
-                    <span className="material-symbols-outlined text-3xl">{proofPhotoPreview ? 'image' : 'add_photo_alternate'}</span>
+                    <span className="material-symbols-outlined text-3xl" aria-hidden="true">{proofPhotoPreview ? 'image' : 'add_photo_alternate'}</span>
                     <span className="min-w-0 text-base font-black">{proofPhotoPreview ? 'แนบรูปสิ่งที่ส่งแล้ว' : 'ยังไม่ได้แนบรูปสิ่งที่ส่ง'}</span>
                   </div>
                   {proofPhotoPreview && (
@@ -586,7 +586,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   ) : (
                     <>
                   ยืนยันสร้างรายการ
-                      <span className="material-symbols-outlined text-xl">verified</span>
+                      <span className="material-symbols-outlined text-xl" aria-hidden="true">verified</span>
                     </>
                   )}
                 </button>
@@ -610,10 +610,10 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
               className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               aria-label="ปิดผลการสร้างรายการ"
             >
-              <span className="material-symbols-outlined text-2xl">close</span>
+              <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
             </button>
             <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-white/10 text-white sm:size-16">
-              <span className="material-symbols-outlined text-3xl sm:text-4xl">check_circle</span>
+              <span className="material-symbols-outlined text-3xl sm:text-4xl" aria-hidden="true">check_circle</span>
             </div>
             <DialogTitle className="text-xl font-black text-white sm:text-2xl">สร้างรายการสำเร็จ</DialogTitle>
             <p className="mt-1 text-sm font-semibold text-slate-300">สร้างหมายเลขติดตามเรียบร้อยแล้ว</p>
@@ -634,7 +634,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   />
                 ) : (
                   <div className="w-32 h-32 flex flex-col items-center justify-center text-on-surface-variant/40 text-center">
-                    <span className="material-symbols-outlined text-3xl mb-1">qr_code</span>
+                    <span className="material-symbols-outlined text-3xl mb-1" aria-hidden="true">qr_code</span>
                     <span className="text-[10px]">กำลังสร้าง QR...</span>
                   </div>
                 )}
@@ -646,7 +646,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 onClick={handleCopyTrackingId}
                 className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white text-sm font-bold text-slate-700 transition-colors hover:bg-slate-50"
               >
-                <span className="material-symbols-outlined text-xl">content_copy</span>
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">content_copy</span>
                 คัดลอกหมายเลข
               </button>
               <button
@@ -728,7 +728,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                 }}
                 className="flex h-12 min-w-0 flex-1 items-center justify-center gap-2 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-lg shadow-slate-200 transition-colors hover:bg-slate-900"
               >
-                <span className="material-symbols-outlined text-xl">print</span>
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">print</span>
                 พิมพ์ใบปะหน้า
               </button>
             </div>

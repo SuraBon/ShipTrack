@@ -52,7 +52,7 @@ const AppLoading = ({ fullScreen = false }: { fullScreen?: boolean }) => (
   <div className={`grid place-items-center bg-background px-4 ${fullScreen ? "min-h-screen" : "min-h-[56vh]"}`}>
     <div className="flex w-full max-w-[280px] flex-col items-center rounded-2xl border border-outline-variant/20 bg-white px-6 py-7 text-center shadow-sm">
       <div className="grid h-12 w-12 place-items-center rounded-2xl bg-primary text-white shadow-sm">
-        <span className="material-symbols-outlined text-2xl">inventory_2</span>
+        <span className="material-symbols-outlined text-2xl" aria-hidden="true">inventory_2</span>
       </div>
       <div className="mt-4">
         <p className="font-display text-base font-black leading-tight text-primary">ShipTrack</p>
@@ -86,10 +86,14 @@ function App() {
       const updateServiceWorker = (event as CustomEvent<{ updateServiceWorker?: (reloadPage?: boolean) => Promise<void> }>).detail?.updateServiceWorker;
       toast.info("มีเวอร์ชันใหม่พร้อมใช้งาน", {
         description: "กดอัปเดตเพื่อโหลดแอปล่าสุด",
-        duration: Infinity,
+        duration: 15000,
         action: {
           label: "อัปเดต",
           onClick: () => void updateServiceWorker?.(true),
+        },
+        cancel: {
+          label: "ภายหลัง",
+          onClick: () => undefined,
         },
       });
     };

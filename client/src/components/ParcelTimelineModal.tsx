@@ -50,7 +50,7 @@ export default function ParcelTimelineModal({
               className="absolute right-4 top-3 grid h-7 w-7 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               aria-label="ปิดรายละเอียดรายการส่ง"
             >
-              <span className="material-symbols-outlined text-sm">close</span>
+              <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
             </button>
             <DialogTitle className="pr-8 text-sm font-semibold leading-tight text-white">Milestone การจัดส่ง</DialogTitle>
             <p className="mt-1 min-w-0 pr-8 text-[10px] tracking-wide text-slate-400">
@@ -63,7 +63,7 @@ export default function ParcelTimelineModal({
               <div className="mb-4 flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2">
                   <div className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-blue-50 text-blue-500">
-                    <span className="material-symbols-outlined text-sm">route</span>
+                    <span className="material-symbols-outlined text-sm" aria-hidden="true">route</span>
                   </div>
                   <div className="min-w-0">
                     <p className="text-xs font-black text-gray-800">Milestone การจัดส่ง</p>
@@ -78,7 +78,7 @@ export default function ParcelTimelineModal({
                   title={hasKnownBranches ? 'เปิดแผนที่' : 'ยังไม่มีตำแหน่ง GPS'}
                   aria-label={hasKnownBranches ? 'เปิดแผนที่' : 'ยังไม่มีตำแหน่ง GPS'}
                 >
-                  <span className="material-symbols-outlined text-sm">{hasKnownBranches ? 'map' : 'map_off'}</span>
+                  <span className="material-symbols-outlined text-sm" aria-hidden="true">{hasKnownBranches ? 'map' : 'map_off'}</span>
                   แผนที่
                 </button>
               </div>
@@ -102,7 +102,7 @@ export default function ParcelTimelineModal({
                 className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
                 aria-label="ปิดแผนที่"
               >
-                <span className="material-symbols-outlined text-2xl">close</span>
+                <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
               </button>
               <DialogTitle className="pr-12 font-display text-xl font-black leading-tight text-white">
                 แผนที่การจัดส่ง

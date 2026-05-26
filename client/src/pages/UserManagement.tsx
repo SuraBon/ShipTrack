@@ -444,12 +444,12 @@ export default function UserManagement() {
             </p>
             {totalUserPages > 1 && (
               <div className="hidden items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 sm:flex">
-                <button onClick={() => setUserPage(page => Math.max(1, page - 1))} disabled={userPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
-                  <span className="material-symbols-outlined text-base">chevron_left</span>
+                <button onClick={() => setUserPage(page => Math.max(1, page - 1))} disabled={userPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าก่อนหน้า">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_left</span>
                 </button>
                 <span className="px-2 text-xs font-black text-primary">{userPage}/{totalUserPages}</span>
-                <button onClick={() => setUserPage(page => Math.min(totalUserPages, page + 1))} disabled={userPage === totalUserPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
-                  <span className="material-symbols-outlined text-base">chevron_right</span>
+                <button onClick={() => setUserPage(page => Math.min(totalUserPages, page + 1))} disabled={userPage === totalUserPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าถัดไป">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_right</span>
                 </button>
               </div>
             )}
@@ -466,7 +466,7 @@ export default function UserManagement() {
               className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               aria-label="ปิดแก้ไขผู้ใช้"
             >
-              <span className="material-symbols-outlined text-2xl">close</span>
+              <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
             </button>
             <div className="flex items-center gap-3 pr-12">
               <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-white">

@@ -32,14 +32,14 @@ export default function Timeline({ events, className = '', compact = false }: Ti
       case 'completed':
         return (
           <div className={`relative flex items-center justify-center rounded-full bg-primary text-white shadow-lg shadow-primary/20 ${iconSize}`}>
-            <span className={`material-symbols-outlined font-bold ${iconText}`}>check</span>
+            <span className={`material-symbols-outlined font-bold ${iconText}`} aria-hidden="true">check</span>
           </div>
         );
       case 'current':
         return (
           <div className={`relative flex items-center justify-center rounded-full bg-secondary text-primary shadow-lg shadow-secondary/30 ${iconSize}`}>
             <div className="absolute inset-0 rounded-full bg-secondary animate-ping opacity-25"></div>
-            <span className={`material-symbols-outlined font-bold ${iconText}`}>
+            <span className={`material-symbols-outlined font-bold ${iconText}`} aria-hidden="true">
               {title.includes('ส่งต่อ') ? 'local_shipping' : 'radio_button_checked'}
             </span>
           </div>
@@ -47,7 +47,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
       case 'pending':
         return (
           <div className={`relative flex items-center justify-center rounded-full bg-surface-container border-2 border-outline-variant ${iconSize}`}>
-            <span className={`material-symbols-outlined text-outline-variant ${iconText}`}>pending</span>
+            <span className={`material-symbols-outlined text-outline-variant ${iconText}`} aria-hidden="true">pending</span>
           </div>
         );
       default:
@@ -194,13 +194,13 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                     <div className={`${isLatest ? 'mt-2 border-t border-white/70 pt-1.5' : 'mt-2'} flex flex-wrap items-center gap-x-3 gap-y-1`}>
                       {event.timestamp && (
                         <span className="inline-flex items-center gap-1 text-[9px] font-bold text-slate-400">
-                          <span className="material-symbols-outlined text-[12px]">schedule</span>
+                          <span className="material-symbols-outlined text-[12px]" aria-hidden="true">schedule</span>
                           {formatThaiDateTime(event.timestamp)}
                         </span>
                       )}
                       {event.location && (
                         <span className="inline-flex min-w-0 items-center gap-1 text-[9px] font-bold text-slate-400">
-                          <span className="material-symbols-outlined text-[12px]">place</span>
+                          <span className="material-symbols-outlined text-[12px]" aria-hidden="true">place</span>
                           <span className="truncate">{event.location}</span>
                         </span>
                       )}
@@ -213,7 +213,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                             ? 'border-amber-100 bg-amber-50 text-amber-800'
                             : 'border-green-100 bg-green-50 text-green-700'
                         }`}>
-                          <span className="material-symbols-outlined text-[12px]">
+                          <span className="material-symbols-outlined text-[12px]" aria-hidden="true">
                             {event.deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'move_location' : 'task_alt'}
                           </span>
                           {event.deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'ส่งคนละจุด' : 'ส่งตรงปลายทาง'}
@@ -241,7 +241,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
       {!compact && (
         <div className="mb-10 rounded-3xl border border-outline-variant/20 bg-white p-6 shadow-md flex flex-col items-center gap-4">
           <div className={`flex items-center justify-center w-10 h-10 rounded-xl ${headerStyle.color} text-white ${headerStyle.shadow} shadow-lg`}>
-            <span className="material-symbols-outlined text-xl">
+            <span className="material-symbols-outlined text-xl" aria-hidden="true">
               {headerStyle.icon}
             </span>
           </div>
@@ -300,7 +300,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                           ? 'bg-blue-50 text-blue-700 border-blue-100' 
                           : 'bg-secondary/10 text-primary border-secondary/20'
                       }`}>
-                        <span className="material-symbols-outlined text-sm">
+                        <span className="material-symbols-outlined text-sm" aria-hidden="true">
                           {event.title.includes('จัดส่ง') || event.title.includes('เดินทาง') ? 'local_shipping' : 'auto_awesome'}
                         </span>
                         {event.title.includes('จัดส่ง') || event.title.includes('เดินทาง') ? 'กำลังจัดส่ง' : 'รอจัดส่ง'}
@@ -314,7 +314,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                           ? 'bg-amber-50 text-amber-800 border-amber-100'
                           : 'bg-green-50 text-green-700 border-green-100'
                       }`}>
-                        <span className="material-symbols-outlined text-sm">
+                        <span className="material-symbols-outlined text-sm" aria-hidden="true">
                           {event.deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'move_location' : 'task_alt'}
                         </span>
                         {event.deliveryMatchStatus === 'DELIVERED_ELSEWHERE' ? 'ส่งคนละจุด' : 'ส่งตรงปลายทาง'}
@@ -330,7 +330,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                   {/* Metadata Row */}
                   <div className={`flex flex-wrap items-center border-t border-outline-variant/10 ${compact ? 'gap-3 pt-3' : 'gap-4 pt-4'}`}>
                     <div className="flex items-center gap-1.5 text-xs font-bold text-on-surface-variant/60">
-                      <span className="material-symbols-outlined text-base">schedule</span>
+                      <span className="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
                       <time className="tracking-tight uppercase">{event.timestamp ? formatThaiDateTime(event.timestamp) : '-'}</time>
                     </div>
                     {event.location && (

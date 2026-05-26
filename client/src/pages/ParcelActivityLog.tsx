@@ -157,7 +157,7 @@ export default function ParcelActivityLog() {
               className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               aria-label="ปิดคำอธิบาย"
             >
-              <span className="material-symbols-outlined text-xl">close</span>
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
             </button>
             <DialogTitle className="pr-10 font-display text-lg font-black text-white">ประวัติพัสดุใช้ดูอะไร</DialogTitle>
             <p className="mt-1 pr-10 text-xs font-semibold text-slate-300">คำอธิบายของข้อมูลในหน้านี้</p>

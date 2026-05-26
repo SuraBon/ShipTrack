@@ -100,7 +100,7 @@ const dashboardIconMap: Record<string, LucideIcon> = {
 const DashboardIcon = ({ icon, className = '' }: { icon: string; className?: string }) => {
   const Icon = dashboardIconMap[icon];
   if (Icon) return <Icon className={className || 'h-4 w-4'} aria-hidden="true" />;
-  return <span className={`material-symbols-outlined ${className}`}>{icon}</span>;
+  return <span className={`material-symbols-outlined ${className}`} aria-hidden="true">{icon}</span>;
 };
 
 const sortAdminParcels = (items: Parcel[], mode: AdminSortMode) => {
@@ -219,7 +219,7 @@ const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; co
     </div>
     {compact && (
       <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant/70">
-        <span className="material-symbols-outlined text-base text-on-surface-variant/50">person_pin</span>
+        <span className="material-symbols-outlined text-base text-on-surface-variant/50" aria-hidden="true">person_pin</span>
         <span className="min-w-0 truncate">ผู้รับ: {parcel['ผู้รับ'] || '-'}</span>
       </div>
     )}
@@ -290,7 +290,7 @@ const StaleBadge = ({ parcel }: { parcel: Parcel }) => {
   const ageDays = getParcelAgeDays(parcel);
   return (
     <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">
-      <span className="material-symbols-outlined text-[13px]">priority_high</span>
+      <span className="material-symbols-outlined text-[13px]" aria-hidden="true">priority_high</span>
       ค้างนาน {ageDays} วัน
     </span>
   );
@@ -568,7 +568,7 @@ const DeliveryInfoRow = ({
   return (
     <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
       <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}>
-        <span className="material-symbols-outlined text-xl">{icon}</span>
+        <span className="material-symbols-outlined text-xl" aria-hidden="true">{icon}</span>
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[10px] font-bold leading-none text-slate-400">{label}</p>
@@ -608,7 +608,7 @@ const DeliveryJobDetailsModal = ({
               className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
               aria-label="ปิดรายละเอียดงานส่ง"
             >
-              <span className="material-symbols-outlined text-xl">close</span>
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
             </button>
             <DialogTitle className="pr-10 font-display text-lg font-black leading-tight text-white">
               รายละเอียดงานส่ง
@@ -728,7 +728,7 @@ const MessengerDeliveryCard = ({
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${accentClass}`}>
-                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }}>{iconName}</span>
+                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">{iconName}</span>
               </span>
               <div className="min-w-0">
                 <p className="text-[10px] leading-none text-slate-400">ผู้รับ</p>
@@ -784,7 +784,7 @@ const MessengerDeliveryCard = ({
                     onClick={() => note && setIsNoteExpanded(!isNoteExpanded)}
                     className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
                   >
-                    <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500">sticky_note_2</span>
+                    <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500" aria-hidden="true">sticky_note_2</span>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
@@ -806,7 +806,7 @@ const MessengerDeliveryCard = ({
 
         <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-50 pt-3">
           <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
-            <span className="material-symbols-outlined text-[14px]">schedule</span>
+            <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
             <span className="truncate">{dateLabel}</span>
           </div>
           <div className="flex items-center gap-2">
@@ -836,7 +836,7 @@ const MessengerDeliveryCard = ({
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-500 transition-colors hover:text-blue-700"
             >
               {isDone ? 'ดู Milestone' : 'ดูรายละเอียด'}
-              <span className="material-symbols-outlined text-[13px]">{isDone ? 'timeline' : 'chevron_right'}</span>
+              <span className="material-symbols-outlined text-[13px]" aria-hidden="true">{isDone ? 'timeline' : 'chevron_right'}</span>
             </button>
           </div>
         </div>
@@ -899,7 +899,7 @@ const AdminParcelManagementCard = ({
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${accentClass}`}>
-                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>{iconName}</span>
+                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">{iconName}</span>
               </span>
               <div className="min-w-0">
                 <p className="text-[10px] leading-none text-slate-400">ผู้รับ</p>
@@ -938,7 +938,7 @@ const AdminParcelManagementCard = ({
                   onClick={() => note && setIsAdminNoteExpanded(!isAdminNoteExpanded)}
                   className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
                 >
-                  <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500">sticky_note_2</span>
+                  <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500" aria-hidden="true">sticky_note_2</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
                       <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
@@ -973,7 +973,7 @@ const AdminParcelManagementCard = ({
 
         <div className="mt-4 flex flex-col gap-3 border-t border-slate-50 pt-3">
           <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
-            <span className="material-symbols-outlined text-[14px]">schedule</span>
+            <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
             <span className="truncate">{dateLabel}</span>
           </div>
           <CardActions
@@ -1448,7 +1448,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-full max-w-sm p-8 bg-white rounded-3xl shadow-xl text-center border border-error/10">
           <div className="w-16 h-16 bg-error/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <span className="material-symbols-outlined text-3xl text-error">warning</span>
+            <span className="material-symbols-outlined text-3xl text-error" aria-hidden="true">warning</span>
           </div>
           <h2 className="text-xl font-bold text-primary mb-2">ยังไม่ได้ตั้งค่าระบบ</h2>
           <p className="text-sm text-on-surface-variant">กรุณาตั้งค่า GAS URL และ API KEY ในไฟล์ .env</p>
@@ -1523,7 +1523,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Search */}
           <div className="relative min-w-0 flex-1">
-            <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-xl ${isMessengerDashboard ? 'text-gray-400' : 'text-on-surface-variant/50'}`}>search</span>
+            <span className={`material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-xl ${isMessengerDashboard ? 'text-gray-400' : 'text-on-surface-variant/50'}`} aria-hidden="true">search</span>
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
@@ -1540,7 +1540,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 title="ล้างคำค้นหา"
                 aria-label="ล้างคำค้นหา"
               >
-                <span className="material-symbols-outlined text-base">close</span>
+                <span className="material-symbols-outlined text-base" aria-hidden="true">close</span>
               </button>
             )}
           </div>
@@ -1556,15 +1556,16 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 ? 'grid h-11 w-11 place-items-center rounded-xl border border-gray-100 bg-white text-gray-600 shadow-sm transition-all hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:w-12'
                 : 'grid h-8 w-8 place-items-center rounded-lg border border-outline-variant/35 bg-white text-on-surface-variant shadow-sm transition-all hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'}
               title="รีเฟรช"
+              aria-label="รีเฟรชรายการ"
             >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-lg">refresh</span>}
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-lg" aria-hidden="true">refresh</span>}
             </button>
           </div>
         </div>
         {!isMessengerDashboard && (
           <div className="mt-3 grid grid-cols-2 gap-2 border-t border-gray-100 pt-3 sm:flex sm:flex-wrap sm:items-center sm:justify-end">
             <label className="flex min-w-0 items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-slate-600">
-              <span className="material-symbols-outlined text-base text-slate-400">sort</span>
+              <span className="material-symbols-outlined text-base text-slate-400" aria-hidden="true">sort</span>
               <select
                 value={adminSort}
                 onChange={(event) => setAdminSort(event.target.value as AdminSortMode)}
@@ -1578,7 +1579,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               </select>
             </label>
             <label className="hidden min-w-0 items-center gap-2 rounded-xl border border-gray-100 bg-gray-50 px-3 py-2 text-xs font-semibold text-slate-600 sm:flex">
-              <span className="material-symbols-outlined text-base text-slate-400">view_list</span>
+              <span className="material-symbols-outlined text-base text-slate-400" aria-hidden="true">view_list</span>
               <select
                 value={pageSize}
                 onChange={(event) => setPageSize(Number(event.target.value))}
@@ -1953,18 +1954,18 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 </button>
               </div>
               <div className="hidden items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 sm:flex">
-                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
-                  <span className="material-symbols-outlined text-base">first_page</span>
+                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าแรก">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">first_page</span>
                 </button>
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
-                  <span className="material-symbols-outlined text-base">chevron_left</span>
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าก่อนหน้า">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_left</span>
                 </button>
                 <span className="px-2 text-xs font-black text-primary">{currentPage}/{totalPages}</span>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
-                  <span className="material-symbols-outlined text-base">chevron_right</span>
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าถัดไป">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_right</span>
                 </button>
-                <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30">
-                  <span className="material-symbols-outlined text-base">last_page</span>
+                <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าสุดท้าย">
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">last_page</span>
                 </button>
               </div>
               </>
@@ -1976,7 +1977,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 disabled={loading}
                 className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
               >
-                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-sm">download</span>}
+                {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>}
                 โหลดข้อมูลเพิ่ม
               </button>
             )}
