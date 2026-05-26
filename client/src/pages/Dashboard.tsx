@@ -244,6 +244,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     if (currentPage > totalPages) setCurrentPage(totalPages);
   }, [totalPages, currentPage]);
 
+  // Scroll to top of the dashboard list when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [currentPage]);
+
   // Load more from backend when navigating to a page that needs more data
   const loadMoreRef = useRef({ adminSortedParcelsLength: adminSortedParcels.length, hasMore, loading, loadMoreParcels });
   useEffect(() => {
@@ -921,13 +926,22 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
             {totalPages > 1 && (
               <>
-              <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-100 bg-white p-1 sm:hidden">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
-                  ก่อนหน้า
-                </button>
-                <span className="px-2 text-xs font-black text-primary">{currentPage}/{totalPages}</span>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
-                  ถัดไป
+              <div className="flex w-full flex-col gap-2 sm:hidden">
+                <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-100 bg-white p-1">
+                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
+                    ก่อนหน้า
+                  </button>
+                  <span className="px-2 text-xs font-black text-primary">{currentPage}/{totalPages}</span>
+                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
+                    ถัดไป
+                  </button>
+                </div>
+                <button
+                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 transition-all active:scale-[0.98]"
+                >
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_upward</span>
+                  กลับขึ้นด้านบน
                 </button>
               </div>
               <div className="hidden items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 sm:flex">
