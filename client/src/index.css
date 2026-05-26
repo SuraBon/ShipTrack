@@ -485,12 +485,20 @@
 
 @layer utilities {
   .font-black {
-    font-weight: 700;
+    font-weight: 800;
   }
 
   .tracking-widest,
   .tracking-\[0\.2em\],
   .tracking-\[0\.18em\] {
     letter-spacing: 0.04em;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
   }
 }

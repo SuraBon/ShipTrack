@@ -501,6 +501,58 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
         </aside>
         </div>
 
+        {/* Mobile Summary Section */}
+        <div className="app-card overflow-hidden md:hidden mx-3 mb-2">
+          <details className="group">
+            <summary className="flex cursor-pointer select-none items-center justify-between bg-slate-900 px-4 py-3 text-white">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg" aria-hidden="true">visibility</span>
+                <p className="text-sm font-semibold">สรุปรายการส่ง (แตะเพื่อแสดง/ซ่อน)</p>
+              </div>
+              <span className="material-symbols-outlined transition-transform group-open:rotate-180" aria-hidden="true">expand_more</span>
+            </summary>
+            <div className="space-y-3 p-4 bg-slate-50 border-t border-slate-200">
+              <div className="rounded-xl bg-white p-3 shadow-xs">
+                <div className="flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.18)]" />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-slate-700">{formData.senderName || '-'}</p>
+                    <p className="truncate text-[11px] text-slate-500">{resolveSelectValue(formData.senderBranch) || '-'}</p>
+                  </div>
+                </div>
+                <div className="my-2 ml-1 h-4 border-l border-slate-200" />
+                <div className="flex items-center gap-3">
+                  <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_0_3px_rgba(248,113,113,0.18)]" />
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-slate-700">{formData.receiverName || '-'}</p>
+                    <p className="truncate text-[11px] text-slate-500">{resolveSelectValue(formData.receiverBranch) || '-'}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="grid gap-2 text-xs">
+                <div className="flex items-start gap-2 rounded-xl bg-white p-3 shadow-xs">
+                  <span className="material-symbols-outlined text-base text-gray-400" aria-hidden="true">inventory_2</span>
+                  <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-gray-800">สิ่งที่ส่ง:</span> {formData.description || '-'}</p>
+                </div>
+                {formData.note && (
+                  <div className="flex items-start gap-2 rounded-xl bg-white p-3 shadow-xs">
+                    <span className="material-symbols-outlined text-base text-orange-400" aria-hidden="true">sticky_note_2</span>
+                    <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-orange-600">หมายเหตุ:</span> {formData.note}</p>
+                  </div>
+                )}
+                <div className={`flex items-center gap-2 rounded-xl p-3 ${position ? 'bg-emerald-50 text-emerald-800' : 'bg-gray-50 text-gray-500'}`}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{position ? 'my_location' : 'location_searching'}</span>
+                  <span className="font-semibold">{position ? 'บันทึกตำแหน่งจุดรับแล้ว' : 'รอตำแหน่งจุดรับ'}</span>
+                </div>
+                <div className={`flex items-center gap-2 rounded-xl p-3 ${proofPhotoPreview ? 'bg-blue-50 text-blue-800' : 'bg-gray-50 text-gray-500'}`}>
+                  <span className="material-symbols-outlined text-base" aria-hidden="true">{proofPhotoPreview ? 'image' : 'add_a_photo'}</span>
+                  <span className="font-semibold">{proofPhotoPreview ? 'แนบรูปสิ่งที่ส่งแล้ว' : 'ยังไม่ได้แนบรูป'}</span>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
         <div className="app-bottom-action">
           <div className="mx-auto flex max-w-[390px] md:max-w-none md:justify-end">
           <button

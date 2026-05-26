@@ -90,7 +90,6 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       const saved = localStorage.getItem('recent_searches');
       if (saved) {
         const parsed = JSON.parse(saved);
-        // Only keep plain strings, discard anything else
         if (Array.isArray(parsed)) {
           setRecentSearches(parsed.filter((x): x is string => typeof x === 'string').slice(0, 5));
         }
@@ -187,12 +186,54 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
   };
 
   const handlePaste = async () => {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      toast.error('เบราว์เซอร์ไม่รองรับการวางอัตโนมัติ (กรุณาใช้ Ctrl+V หรือกดค้างเพื่อวาง)');
+      return;
+    }
     try {
       const t = await navigator.clipboard.readText();
       const safeText = sanitizeTextInput(t, 100).toUpperCase();
       if (safeText) { setTrackingId(safeText); toast.success('วางหมายเลขติดตามเรียบร้อย'); }
-    } catch { toast.error('ไม่สามารถวางข้อมูลได้'); }
+    } catch {
+      toast.error('ไม่สามารถวางข้อมูลได้ (กรุณาอนุญาตการเข้าถึง Clipboard หรือใช้ Ctrl+V แทน)');
+    }
   };
+
+  useEffect(() => {
+    const handleCustomSearch = (e: Event) => {
+      const trackingIdParam = (e as CustomEvent<{ trackingId: string }>).detail?.trackingId;
+      if (trackingIdParam) {
+        const cleanId = sanitizeTextInput(trackingIdParam, 100).toUpperCase();
+        setTrackingId(cleanId);
+        void handleSearch(undefined, cleanId);
+      }
+    };
+
+    window.addEventListener('shiptrack:search-parcel', handleCustomSearch);
+
+    // Check query params on mount
+    const params = new URLSearchParams(window.location.search);
+    const trackingIdParam = params.get('id');
+    if (trackingIdParam) {
+      const cleanId = sanitizeTextInput(trackingIdParam, 100).toUpperCase();
+      setTrackingId(cleanId);
+      void handleSearch(undefined, cleanId);
+    }
+
+    return () => {
+      window.removeEventListener('shiptrack:search-parcel', handleCustomSearch);
+    };
+  }, []);
+
+  useEffect(() => {
+    const trimmed = trackingId.trim().toUpperCase();
+    if (isValidTrackingId(trimmed) && parcel?.TrackingID !== trimmed) {
+      const delayDebounceFn = setTimeout(() => {
+        void handleSearch(undefined, trimmed);
+      }, 400);
+      return () => clearTimeout(delayDebounceFn);
+    }
+  }, [trackingId, parcel]);
 
   const timelineEvents = useMemo(() => parcel ? parseParcelTimeline(parcel) : [], [parcel]);
   const visibleSearchResults = searchResults.slice(0, visibleSearchResultCount);
@@ -462,6 +503,9 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                       >
                         <span className="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
                       </button>
+                      <div className="ml-1 scale-90 origin-left">
+                        <StatusBadge status={parcel['สถานะ']} />
+                      </div>
                     </div>
                   </div>
                 </div>

@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClipboardList, FilterX, Fingerprint, HelpCircle, Loader2, RefreshCw, Search, ShieldCheck, UserRoundCog } from 'lucide-react';
 import { toast } from 'sonner';
+import EmptyState from '@/components/EmptyState';
 import { getAuditLogs, type AuditLogRow } from '@/lib/parcelService';
 import { useDebounce } from '@/hooks/useDebounce';
 import { AUDIT_ACTION_LABELS, translateAuditDetails } from '@/lib/translationUtils';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { parseDateInput } from '@/lib/dateUtils';
 
 const PAGE_SIZE = 25;
 
@@ -59,6 +61,8 @@ export default function AuditLog() {
   const [action, setAction] = useState('');
   const [actorId, setActorId] = useState('');
   const [targetId, setTargetId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -69,23 +73,67 @@ export default function AuditLog() {
   const debouncedTargetId = useDebounce(targetId, 300);
 
   const offset = useMemo(() => (page - 1) * PAGE_SIZE, [page]);
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const hasFilters = Boolean(debouncedQuery || action || debouncedActorId || debouncedTargetId);
+  const isDateFiltered = Boolean(startDate || endDate);
+
+  const totalPages = useMemo(() => {
+    if (isDateFiltered) {
+      return Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+    }
+    return Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  }, [isDateFiltered, logs.length, totalCount]);
+
+  const clientHasMore = useMemo(() => {
+    if (isDateFiltered) {
+      return (page * PAGE_SIZE) < logs.length;
+    }
+    return hasMore;
+  }, [isDateFiltered, page, logs.length, hasMore]);
+
+  const displayedLogs = useMemo(() => {
+    if (isDateFiltered) {
+      const clientOffset = (page - 1) * PAGE_SIZE;
+      return logs.slice(clientOffset, clientOffset + PAGE_SIZE);
+    }
+    return logs;
+  }, [isDateFiltered, logs, page]);
+
+  const hasFilters = Boolean(debouncedQuery || action || debouncedActorId || debouncedTargetId || startDate || endDate);
 
   const fetchLogs = useCallback(async () => {
     setLoading(true);
+    const limit = isDateFiltered ? 200 : PAGE_SIZE;
     const res = await getAuditLogs({
-      limit: PAGE_SIZE,
-      offset,
+      limit,
+      offset: isDateFiltered ? 0 : offset,
       query: debouncedQuery,
       action,
       actorId: debouncedActorId,
       targetId: debouncedTargetId,
     });
     if (res.success) {
-      setLogs(res.logs ?? []);
-      setTotalCount(res.totalCount ?? 0);
-      setHasMore(Boolean(res.hasMore));
+      const rawLogs = res.logs ?? [];
+      if (isDateFiltered) {
+        const parsedStart = startDate ? new Date(startDate) : null;
+        const parsedEnd = endDate ? new Date(endDate) : null;
+        if (parsedStart) parsedStart.setHours(0, 0, 0, 0);
+        if (parsedEnd) parsedEnd.setHours(23, 59, 59, 999);
+
+        const filtered = rawLogs.filter(log => {
+          const dateObj = parseDateInput(log.timestamp);
+          if (!dateObj) return false;
+          if (parsedStart && dateObj < parsedStart) return false;
+          if (parsedEnd && dateObj > parsedEnd) return false;
+          return true;
+        });
+
+        setLogs(filtered);
+        setTotalCount(filtered.length);
+        setHasMore(false);
+      } else {
+        setLogs(rawLogs);
+        setTotalCount(res.totalCount ?? 0);
+        setHasMore(Boolean(res.hasMore));
+      }
     } else {
       toast.error(res.error || 'ไม่สามารถโหลด Log ระบบได้');
       setLogs([]);
@@ -93,7 +141,7 @@ export default function AuditLog() {
       setHasMore(false);
     }
     setLoading(false);
-  }, [action, debouncedActorId, debouncedQuery, debouncedTargetId, offset]);
+  }, [action, debouncedActorId, debouncedQuery, debouncedTargetId, offset, startDate, endDate, isDateFiltered]);
 
   useEffect(() => {
     void fetchLogs();
@@ -101,13 +149,15 @@ export default function AuditLog() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQuery, action, debouncedActorId, debouncedTargetId]);
+  }, [debouncedQuery, action, debouncedActorId, debouncedTargetId, startDate, endDate]);
 
   const clearFilters = () => {
     setQuery('');
     setAction('');
     setActorId('');
     setTargetId('');
+    setStartDate('');
+    setEndDate('');
   };
 
   return (
@@ -179,22 +229,40 @@ export default function AuditLog() {
         </DialogContent>
       </Dialog>
 
-      <div className="app-toolbar grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาการกระทำ รหัสรายการ รหัสผู้ใช้ หรือรายละเอียด..." className="app-input w-full pl-10" />
+      <div className="app-toolbar flex flex-col gap-3">
+        <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_1fr_auto]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาการกระทำ รหัสรายการ รหัสผู้ใช้ หรือรายละเอียด..." className="app-input w-full pl-10" />
+          </div>
+          <select value={action} onChange={event => setAction(event.target.value)} className="app-input w-full">
+            {ACTION_OPTIONS.map(option => <option key={option || 'ALL'} value={option}>{option ? (AUDIT_ACTION_LABELS[option] || option) : 'ทุกการกระทำในระบบ'}</option>)}
+          </select>
+          <input value={actorId} onChange={event => setActorId(event.target.value)} placeholder="ผู้ทำ เช่น ADMIN" className="app-input w-full" />
+          <input value={targetId} onChange={event => setTargetId(event.target.value)} placeholder="รหัสที่ถูกกระทำ เช่น TRK... หรือ USER" className="app-input w-full" />
+          {hasFilters && (
+            <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600 md:hidden">
+              <FilterX className="h-4 w-4" aria-hidden="true" />
+              ล้าง
+            </button>
+          )}
         </div>
-        <select value={action} onChange={event => setAction(event.target.value)} className="app-input w-full">
-          {ACTION_OPTIONS.map(option => <option key={option || 'ALL'} value={option}>{option ? (AUDIT_ACTION_LABELS[option] || option) : 'ทุกการกระทำในระบบ'}</option>)}
-        </select>
-        <input value={actorId} onChange={event => setActorId(event.target.value)} placeholder="ผู้ทำ เช่น ADMIN" className="app-input w-full" />
-        <input value={targetId} onChange={event => setTargetId(event.target.value)} placeholder="รหัสที่ถูกกระทำ เช่น TRK... หรือ USER" className="app-input w-full" />
-        {hasFilters && (
-          <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600">
-            <FilterX className="h-4 w-4" aria-hidden="true" />
-            ล้าง
-          </button>
-        )}
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-[1fr_1fr_auto] items-end">
+          <div>
+            <label className="block text-[11px] font-bold text-muted-foreground mb-1">จากวันที่</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="app-input w-full h-11" />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-foreground mb-1">ถึงวันที่</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="app-input w-full h-11" />
+          </div>
+          {hasFilters && (
+            <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600 hidden md:inline-flex">
+              <FilterX className="h-4 w-4" aria-hidden="true" />
+              ล้างตัวกรอง
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="app-panel overflow-hidden">
@@ -212,21 +280,24 @@ export default function AuditLog() {
             กำลังโหลด...
           </div>
         ) : logs.length === 0 ? (
-          <div className="grid place-items-center gap-2 py-16 text-center text-sm text-muted-foreground">
-            <ClipboardList className="h-10 w-10 opacity-30" aria-hidden="true" />
-            ไม่พบบันทึกระบบที่ตรงกับเงื่อนไข
+          <div className="p-4">
+            <EmptyState
+              icon={<ClipboardList className="h-7 w-7 text-slate-400" />}
+              title="ไม่พบบันทึกระบบ"
+              description="ไม่พบบันทึกระบบที่ตรงกับเงื่อนไขการค้นหาในขณะนี้"
+            />
           </div>
         ) : (
           <>
             <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
-              {logs.map((log, index) => <AuditLogCard key={`${log.timestamp}-${log.actorId}-${log.action}-${log.targetId}-${index}`} log={log} />)}
+              {displayedLogs.map((log, index) => <AuditLogCard key={`${log.timestamp}-${log.actorId}-${log.action}-${log.targetId}-${index}`} log={log} />)}
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-outline-variant/10 bg-surface-container-lowest/50 px-4 py-3">
               <button type="button" onClick={() => setPage(value => Math.max(1, value - 1))} disabled={page === 1 || loading} className="app-secondary-button h-9 px-3 text-xs">ก่อนหน้า</button>
               <span className="text-xs font-semibold text-muted-foreground">
-                แสดง {offset + 1}-{Math.min(offset + logs.length, totalCount)} จาก {totalCount}
+                แสดง {offset + 1}-{Math.min(offset + displayedLogs.length, totalCount)} จาก {totalCount}
               </span>
-              <button type="button" onClick={() => setPage(value => value + 1)} disabled={!hasMore || loading} className="app-secondary-button h-9 px-3 text-xs">ถัดไป</button>
+              <button type="button" onClick={() => setPage(value => value + 1)} disabled={!clientHasMore || loading} className="app-secondary-button h-9 px-3 text-xs">ถัดไป</button>
             </div>
           </>
         )}

@@ -29,6 +29,8 @@ import {
   Users,
   Building2,
   X,
+  Eye,
+  EyeOff,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -74,6 +76,9 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   const [isMobileNavCollapsed, setIsMobileNavCollapsed] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showPasswordFields, setShowPasswordFields] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [seenIds, setSeenIds] = useState<Set<string>>(() => {
     try {
@@ -118,6 +123,32 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
     const opening = !isNotifOpen;
     setIsNotifOpen(opening);
     if (opening) markAllSeen();
+  };
+
+  const handleNotifClick = (trackingId: string) => {
+    setIsNotifOpen(false);
+    
+    const nextSeen = new Set(seenIds);
+    nextSeen.add(trackingId);
+    setSeenIds(nextSeen);
+    try {
+      localStorage.setItem('seen_parcel_ids', JSON.stringify({
+        ids: Array.from(nextSeen),
+        timestamp: Date.now()
+      }));
+    } catch (e) {
+      // ignore
+    }
+
+    const nextPath = `/track?id=${trackingId}`;
+    if (window.location.pathname + window.location.search !== nextPath) {
+      window.history.pushState({}, "", nextPath);
+    }
+    setCurrentPage("track");
+
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('shiptrack:search-parcel', { detail: { trackingId } }));
+    }, 50);
   };
 
   useEffect(() => {
@@ -295,9 +326,13 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                           ยังไม่มีรายการ
                         </div>
                       ) : recentParcels.map(p => (
-                        <div key={p.TrackingID} className="px-4 py-3 hover:bg-surface-container-lowest transition-colors cursor-default">
+                        <button
+                          key={p.TrackingID}
+                          onClick={() => handleNotifClick(p.TrackingID)}
+                          className="w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors cursor-pointer block"
+                        >
                           <div className="flex items-start gap-3">
-                            <span className={`mt-1 w-2 h-2 rounded-full shrink-0 ${getStatusColor(p['สถานะ'])}`} />
+                            <span className={`mt-1.5 w-2 h-2 rounded-full shrink-0 ${getStatusColor(p['สถานะ'])}`} />
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center justify-between gap-2">
                                 <code className="min-w-0 break-all text-xs font-mono font-black text-primary">{p.TrackingID}</code>
@@ -311,7 +346,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                               </p>
                             </div>
                           </div>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -383,7 +418,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                   <ChevronDown className="h-3.5 w-3.5" aria-hidden="true" />
                 </button>
               )}
-              <div className={`mx-auto grid max-w-md gap-1 ${navItems.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              <div className="mx-auto flex max-w-md gap-1 overflow-x-auto no-scrollbar snap-x">
                 {navItems.map((item) => {
                   const active = currentPage === item.id;
                   return (
@@ -392,7 +427,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                       href={pagePaths[item.id]}
                       onClick={(event) => handleNav(event, item.id)}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${
+                      className={`flex h-14 min-w-[72px] flex-1 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${
                         active
                           ? 'bg-slate-900 text-white'
                           : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
@@ -461,7 +496,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                   เปลี่ยนรหัสผ่าน
                 </button>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-bold text-on-surface-variant/50 uppercase tracking-wider">เปลี่ยนรหัสผ่าน</p>
                     <button
@@ -477,43 +512,72 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                       ไม่เปลี่ยน
                     </button>
                   </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface-variant mb-1.5">รหัสผ่านปัจจุบัน</label>
-                  <input
-                    type="password"
-                    value={profileForm.currentPassword}
-                    onChange={e => setProfileForm(f => ({ ...f, currentPassword: e.target.value }))}
-                    disabled={profileLoading}
-                    className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
-                    placeholder="••••••••"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface-variant mb-1.5">รหัสผ่านใหม่</label>
-                  <input
-                    type="password"
-                    value={profileForm.newPassword}
-                    onChange={e => setProfileForm(f => ({ ...f, newPassword: e.target.value }))}
-                    disabled={profileLoading}
-                    className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
-                    placeholder="อย่างน้อย 4 ตัวอักษร"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-bold text-on-surface-variant mb-1.5">ยืนยันรหัสผ่านใหม่</label>
-                  <input
-                    type="password"
-                    value={profileForm.confirmPassword}
-                    onChange={e => setProfileForm(f => ({ ...f, confirmPassword: e.target.value }))}
-                    disabled={profileLoading}
-                    className="h-11 w-full rounded-lg border border-outline-variant bg-white px-3 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
-                    placeholder="••••••••"
-                  />
-                </div>
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-1.5">รหัสผ่านปัจจุบัน</label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={profileForm.currentPassword}
+                        onChange={e => setProfileForm(f => ({ ...f, currentPassword: e.target.value }))}
+                        disabled={profileLoading}
+                        className="h-11 w-full rounded-lg border border-outline-variant bg-white pl-3 pr-11 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        disabled={profileLoading}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
+                      >
+                        {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-1.5">รหัสผ่านใหม่</label>
+                    <div className="relative">
+                      <input
+                        type={showNewPassword ? "text" : "password"}
+                        value={profileForm.newPassword}
+                        onChange={e => setProfileForm(f => ({ ...f, newPassword: e.target.value }))}
+                        disabled={profileLoading}
+                        className="h-11 w-full rounded-lg border border-outline-variant bg-white pl-3 pr-11 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
+                        placeholder="อย่างน้อย 4 ตัวอักษร"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        disabled={profileLoading}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
+                      >
+                        {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold text-on-surface-variant mb-1.5">ยืนยันรหัสผ่านใหม่</label>
+                    <div className="relative">
+                      <input
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={profileForm.confirmPassword}
+                        onChange={e => setProfileForm(f => ({ ...f, confirmPassword: e.target.value }))}
+                        disabled={profileLoading}
+                        className="h-11 w-full rounded-lg border border-outline-variant bg-white pl-3 pr-11 text-sm outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/10 disabled:opacity-50"
+                        placeholder="••••••••"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        disabled={profileLoading}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
-
             </div>
 
             <div className="flex shrink-0 gap-3 border-t border-outline-variant/15 bg-white px-6 py-4">

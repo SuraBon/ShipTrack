@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { Ban, Edit3, Loader2, Plus, RefreshCw, Search, ShieldCheck, Trash2, Truck, UserX, Users } from 'lucide-react';
 import { toast } from 'sonner';
+import EmptyState from '@/components/EmptyState';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -16,6 +17,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { createUser, deleteUser, disableUser, getUsers, updateUser, updateUserRole, type UserRow } from '@/lib/parcelService';
 import { SYSTEM_ROLES, type AppRole, type SystemRole } from '@/lib/roles';
 import { isValidEmployeeId, normalizeEmployeeId, sanitizeTextInput, validatePassword, validateRequiredText } from '@/lib/validation';
+import { formatThaiDateTime } from '@/lib/dateUtils';
 
 const USER_MOBILE_BATCH_SIZE = 10;
 const USER_DESKTOP_PAGE_SIZE = 20;
@@ -355,7 +357,13 @@ export default function UserManagement() {
           {loading ? (
             <div className="grid place-items-center gap-2 py-16 text-sm text-muted-foreground"><Loader2 className="h-6 w-6 animate-spin" aria-hidden="true" />กำลังโหลด...</div>
           ) : filtered.length === 0 ? (
-            <div className="grid place-items-center gap-2 py-16 text-center text-sm text-muted-foreground"><Users className="h-10 w-10 opacity-30" aria-hidden="true" />ไม่พบผู้ใช้</div>
+            <div className="p-4">
+              <EmptyState
+                icon={<Users className="h-7 w-7 text-slate-400" />}
+                title="ไม่พบรายชื่อพนักงาน"
+                description="ไม่พบพนักงานที่ตรงกับเงื่อนไขการค้นหาในระบบ"
+              />
+            </div>
           ) : (
             <>
               <div className="divide-y divide-outline-variant/10">
@@ -371,6 +379,9 @@ export default function UserManagement() {
                             {isSelf && <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[10px] font-bold text-primary/60">คุณ</span>}
                           </div>
                           <p className="mt-1 truncate text-base font-black leading-tight text-on-surface">{u.name}</p>
+                          {u.createdAt && (
+                            <p className="mt-1 text-[11px] font-semibold text-muted-foreground">สร้างเมื่อ: {formatThaiDateTime(u.createdAt)}</p>
+                          )}
                           <div className="mt-2 flex items-center gap-2">
                             <RoleDropdown value={u.role} onChange={(role) => handleRoleChange(u.employeeId, role)} disabled={isSelf || updatingId === u.employeeId} />
                             <StatusBadge status={u.status} />
@@ -400,15 +411,24 @@ export default function UserManagement() {
                 <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">รหัสพนักงาน</th>
                 <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ชื่อ-นามสกุล</th>
                 <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">สิทธิ์</th>
+                <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">วันที่สร้าง</th>
                 <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">สถานะ</th>
                 <th className="px-5 py-3.5 text-right text-[11px] font-black uppercase tracking-widest text-muted-foreground">จัดการ</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/10">
               {loading ? (
-                <tr><td colSpan={5} className="py-16 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin" aria-hidden="true" />กำลังโหลด...</td></tr>
+                <tr><td colSpan={6} className="py-16 text-center text-sm text-muted-foreground"><Loader2 className="mx-auto mb-2 h-6 w-6 animate-spin" aria-hidden="true" />กำลังโหลด...</td></tr>
               ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="py-16 text-center text-sm text-muted-foreground"><Users className="mx-auto mb-2 h-10 w-10 opacity-30" aria-hidden="true" />ไม่พบผู้ใช้</td></tr>
+                <tr>
+                  <td colSpan={6} className="p-4">
+                    <EmptyState
+                      icon={<Users className="h-7 w-7 text-slate-400" />}
+                      title="ไม่พบรายชื่อพนักงาน"
+                      description="ไม่พบพนักงานที่ตรงกับเงื่อนไขการค้นหาในระบบ"
+                    />
+                  </td>
+                </tr>
               ) : paginatedUsers.map(u => {
                 const isSelf = u.employeeId === currentUser?.employeeId;
                 return (
@@ -426,6 +446,7 @@ export default function UserManagement() {
                       </div>
                     </td>
                     <td className="px-5 py-4">{updatingId === u.employeeId ? <Loader2 className="h-4 w-4 animate-spin text-primary" aria-hidden="true" /> : <RoleDropdown value={u.role} onChange={(role) => handleRoleChange(u.employeeId, role)} disabled={isSelf} />}</td>
+                    <td className="px-5 py-4 text-xs font-semibold text-muted-foreground">{formatThaiDateTime(u.createdAt)}</td>
                     <td className="px-5 py-4"><StatusBadge status={u.status} /></td>
                     <td className="px-5 py-4">{renderActions(u)}</td>
                   </tr>

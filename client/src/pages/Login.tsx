@@ -10,6 +10,8 @@ import {
   PackagePlus,
   UserRound,
   XCircle,
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isValidEmployeeId, normalizeEmployeeId, validatePassword, validateRequiredText } from '@/lib/validation';
@@ -47,6 +49,7 @@ export default function Login() {
   
   const [employeeId, setEmployeeId] = useState('');
   const [pin, setPin] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isSetup, setIsSetup] = useState(false);
   
   // For setup
@@ -157,6 +160,15 @@ export default function Login() {
       <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
         <main className="px-5 py-6 sm:px-8 sm:py-8 md:px-10">
           <div className="mb-7">
+            <div className="mb-5 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-white shadow-sm">
+                <span className="material-symbols-outlined text-xl" aria-hidden="true">inventory_2</span>
+              </div>
+              <div>
+                <p className="font-display text-lg font-black leading-none text-primary">ShipTrack</p>
+                <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Internal Parcel Tracking</p>
+              </div>
+            </div>
             <p className="mb-2 text-xs font-bold uppercase text-primary">Staff access</p>
             <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
               {isSetup ? 'ตั้งค่าการเข้าใช้งาน' : 'เข้าสู่ระบบพนักงานส่ง'}
@@ -210,14 +222,27 @@ export default function Login() {
               <div className="relative">
                 <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={pin}
                   onChange={e => setPin(e.target.value)}
                   disabled={isLoginDisabled}
-                  className="app-input w-full pl-11 font-medium"
+                  className="app-input w-full pl-11 pr-11 font-medium"
                   placeholder="กรอกรหัสผ่าน"
                   autoComplete={isSetup ? 'new-password' : 'current-password'}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoginDisabled}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
+                  aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
               </div>
             </div>
 

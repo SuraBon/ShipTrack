@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FileClock, FilterX, HelpCircle, Loader2, MapPin, PackageCheck, RefreshCw, Route, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import EmptyState from '@/components/EmptyState';
 import { getParcelActivityLogs, type ParcelActivityLogRow } from '@/lib/parcelService';
 import { useDebounce } from '@/hooks/useDebounce';
 import { translateSystemNote } from '@/lib/translationUtils';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { parseDateInput } from '@/lib/dateUtils';
 
 const PAGE_SIZE = 25;
 const EVENT_TYPES = ['', 'CREATED', 'START_DELIVERY', 'PICKUP', 'FORWARD', 'PROXY', 'DELIVERED', 'RELEASE_DELIVERY'];
@@ -71,6 +73,8 @@ export default function ParcelActivityLog() {
   const [query, setQuery] = useState('');
   const [eventType, setEventType] = useState('');
   const [trackingId, setTrackingId] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -80,22 +84,66 @@ export default function ParcelActivityLog() {
   const debouncedTrackingId = useDebounce(trackingId, 300);
 
   const offset = useMemo(() => (page - 1) * PAGE_SIZE, [page]);
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
-  const hasFilters = Boolean(debouncedQuery || eventType || debouncedTrackingId);
+  const isDateFiltered = Boolean(startDate || endDate);
+
+  const totalPages = useMemo(() => {
+    if (isDateFiltered) {
+      return Math.max(1, Math.ceil(activities.length / PAGE_SIZE));
+    }
+    return Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  }, [isDateFiltered, activities.length, totalCount]);
+
+  const clientHasMore = useMemo(() => {
+    if (isDateFiltered) {
+      return (page * PAGE_SIZE) < activities.length;
+    }
+    return hasMore;
+  }, [isDateFiltered, page, activities.length, hasMore]);
+
+  const displayedActivities = useMemo(() => {
+    if (isDateFiltered) {
+      const clientOffset = (page - 1) * PAGE_SIZE;
+      return activities.slice(clientOffset, clientOffset + PAGE_SIZE);
+    }
+    return activities;
+  }, [isDateFiltered, activities, page]);
+
+  const hasFilters = Boolean(debouncedQuery || eventType || debouncedTrackingId || startDate || endDate);
 
   const fetchActivities = useCallback(async () => {
     setLoading(true);
+    const limit = isDateFiltered ? 200 : PAGE_SIZE;
     const res = await getParcelActivityLogs({
-      limit: PAGE_SIZE,
-      offset,
+      limit,
+      offset: isDateFiltered ? 0 : offset,
       query: debouncedQuery,
       eventType,
       trackingId: debouncedTrackingId,
     });
     if (res.success) {
-      setActivities(res.activities ?? []);
-      setTotalCount(res.totalCount ?? 0);
-      setHasMore(Boolean(res.hasMore));
+      const rawActivities = res.activities ?? [];
+      if (isDateFiltered) {
+        const parsedStart = startDate ? new Date(startDate) : null;
+        const parsedEnd = endDate ? new Date(endDate) : null;
+        if (parsedStart) parsedStart.setHours(0, 0, 0, 0);
+        if (parsedEnd) parsedEnd.setHours(23, 59, 59, 999);
+
+        const filtered = rawActivities.filter(act => {
+          const dateObj = parseDateInput(act.timestamp);
+          if (!dateObj) return false;
+          if (parsedStart && dateObj < parsedStart) return false;
+          if (parsedEnd && dateObj > parsedEnd) return false;
+          return true;
+        });
+
+        setActivities(filtered);
+        setTotalCount(filtered.length);
+        setHasMore(false);
+      } else {
+        setActivities(rawActivities);
+        setTotalCount(res.totalCount ?? 0);
+        setHasMore(Boolean(res.hasMore));
+      }
     } else {
       toast.error(res.error || 'ไม่สามารถโหลดประวัติรายการส่งได้');
       setActivities([]);
@@ -103,7 +151,7 @@ export default function ParcelActivityLog() {
       setHasMore(false);
     }
     setLoading(false);
-  }, [debouncedQuery, debouncedTrackingId, eventType, offset]);
+  }, [debouncedQuery, debouncedTrackingId, eventType, offset, startDate, endDate, isDateFiltered]);
 
   useEffect(() => {
     void fetchActivities();
@@ -111,12 +159,14 @@ export default function ParcelActivityLog() {
 
   useEffect(() => {
     setPage(1);
-  }, [debouncedQuery, eventType, debouncedTrackingId]);
+  }, [debouncedQuery, eventType, debouncedTrackingId, startDate, endDate]);
 
   const clearFilters = () => {
     setQuery('');
     setEventType('');
     setTrackingId('');
+    setStartDate('');
+    setEndDate('');
   };
 
   return (
@@ -188,21 +238,39 @@ export default function ParcelActivityLog() {
         </DialogContent>
       </Dialog>
 
-      <div className="app-toolbar grid gap-3 lg:grid-cols-[1.4fr_1fr_1fr_auto]">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-          <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาสถานที่ ผู้ทำเหตุการณ์ หรือหมายเหตุ..." className="app-input w-full pl-10" />
+      <div className="app-toolbar flex flex-col gap-3">
+        <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto]">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาสถานที่ ผู้ทำเหตุการณ์ หรือหมายเหตุ..." className="app-input w-full pl-10" />
+          </div>
+          <select value={eventType} onChange={event => setEventType(event.target.value)} className="app-input w-full">
+            {EVENT_TYPES.map(type => <option key={type || 'ALL'} value={type}>{type ? EVENT_LABELS[type] || type : 'ทุกเหตุการณ์พัสดุ'}</option>)}
+          </select>
+          <input value={trackingId} onChange={event => setTrackingId(event.target.value.toUpperCase())} placeholder="Tracking ID" className="app-input w-full font-mono uppercase" />
+          {hasFilters && (
+            <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600 md:hidden">
+              <FilterX className="h-4 w-4" aria-hidden="true" />
+              ล้าง
+            </button>
+          )}
         </div>
-        <select value={eventType} onChange={event => setEventType(event.target.value)} className="app-input w-full">
-          {EVENT_TYPES.map(type => <option key={type || 'ALL'} value={type}>{type ? EVENT_LABELS[type] || type : 'ทุกเหตุการณ์พัสดุ'}</option>)}
-        </select>
-        <input value={trackingId} onChange={event => setTrackingId(event.target.value.toUpperCase())} placeholder="Tracking ID" className="app-input w-full font-mono uppercase" />
-        {hasFilters && (
-          <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600">
-            <FilterX className="h-4 w-4" aria-hidden="true" />
-            ล้าง
-          </button>
-        )}
+        <div className="grid gap-3 grid-cols-2 md:grid-cols-[1fr_1fr_auto] items-end">
+          <div>
+            <label className="block text-[11px] font-bold text-muted-foreground mb-1">จากวันที่</label>
+            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="app-input w-full h-11" />
+          </div>
+          <div>
+            <label className="block text-[11px] font-bold text-muted-foreground mb-1">ถึงวันที่</label>
+            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="app-input w-full h-11" />
+          </div>
+          {hasFilters && (
+            <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600 hidden md:inline-flex">
+              <FilterX className="h-4 w-4" aria-hidden="true" />
+              ล้างตัวกรอง
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="app-panel overflow-hidden">
@@ -220,21 +288,24 @@ export default function ParcelActivityLog() {
             กำลังโหลด...
           </div>
         ) : activities.length === 0 ? (
-          <div className="grid place-items-center gap-2 py-16 text-center text-sm text-muted-foreground">
-            <FileClock className="h-10 w-10 opacity-30" aria-hidden="true" />
-            ไม่พบประวัติพัสดุที่ตรงกับเงื่อนไข
+          <div className="p-4">
+            <EmptyState
+              icon={<FileClock className="h-7 w-7 text-slate-400" />}
+              title="ไม่พบประวัติพัสดุ"
+              description="ไม่พบเหตุการณ์หรือประวัติการจัดส่งพัสดุที่ตรงกับเงื่อนไขการค้นหา"
+            />
           </div>
         ) : (
           <>
             <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
-              {activities.map(activity => <ActivityCard key={activity.id} activity={activity} />)}
+              {displayedActivities.map(activity => <ActivityCard key={activity.id} activity={activity} />)}
             </div>
             <div className="flex items-center justify-between gap-2 border-t border-outline-variant/10 bg-surface-container-lowest/50 px-4 py-3">
               <button type="button" onClick={() => setPage(value => Math.max(1, value - 1))} disabled={page === 1 || loading} className="app-secondary-button h-9 px-3 text-xs">ก่อนหน้า</button>
               <span className="text-xs font-semibold text-muted-foreground">
-                แสดง {offset + 1}-{Math.min(offset + activities.length, totalCount)} จาก {totalCount}
+                แสดง {offset + 1}-{Math.min(offset + displayedActivities.length, totalCount)} จาก {totalCount}
               </span>
-              <button type="button" onClick={() => setPage(value => value + 1)} disabled={!hasMore || loading} className="app-secondary-button h-9 px-3 text-xs">ถัดไป</button>
+              <button type="button" onClick={() => setPage(value => value + 1)} disabled={!clientHasMore || loading} className="app-secondary-button h-9 px-3 text-xs">ถัดไป</button>
             </div>
           </>
         )}

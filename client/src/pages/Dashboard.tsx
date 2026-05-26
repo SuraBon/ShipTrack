@@ -2,32 +2,23 @@
  * Dashboard Page
  */
 
-import { lazy, Suspense, useEffect, useState, useCallback, useMemo, useRef, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useParcelStore } from '@/hooks/useParcelStore';
 import { useAuth } from '@/contexts/AuthContext';
 import { deleteParcel, releaseDelivery, startDelivery, syncRouteSamples } from '@/lib/parcelService';
 import { startRouteTracking, stopRouteTracking } from '@/lib/routeTracking';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useGeolocation } from '@/hooks/useGeolocation';
-import StatusBadge from '@/components/StatusBadge';
-import ImagePopup from '@/components/ImagePopup';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
-import { parseParcelTimeline } from '@/lib/timeline';
 import {
-  buildAssignmentNote,
   canConfirmMessengerJob,
   canReleaseMessengerJob,
   getActiveDeliveryAssignment,
   isAssignedToCurrentUser,
   isAvailableForMessenger,
-  parseAssignedToId,
-  type DeliveryAssignment,
+  buildAssignmentNote,
 } from '@/lib/deliveryAssignment';
-import { Skeleton } from '@/components/ui/skeleton';
-import { formatThaiDateTime, getDateTime } from '@/lib/dateUtils';
-import { normalizeRole, type AppRole } from '@/lib/roles';
-import type { TimelineEvent } from '@/types/timeline';
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -36,1093 +27,45 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { translateSystemNote } from '@/lib/translationUtils';
 import {
   AlertTriangle,
-  Camera,
-  CheckCircle2,
   ClipboardList,
-  ClipboardCheck,
-  FilterX,
-  History,
   Loader2,
-  Map,
-  Package,
   PackageCheck,
-  PackageOpen,
   RotateCcw,
   Search,
-  SearchX,
-  Trash2,
-  Truck,
   Undo2,
-  UserCheck,
-  type LucideIcon,
+  FilterX,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import EmptyState from '@/components/EmptyState';
+
+// Subcomponents and helpers
+import {
+  STATS,
+  MESSENGER_BATCH_SIZE,
+  sortAdminParcels,
+  resolveDashboardRole,
+  sortMessengerWork,
+  wasAssignedToMe,
+  StatsCard,
+  TableSkeleton,
+  LazyPanelFallback,
+  MessengerViewBanner,
+  isParcelStale,
+  getTimelineEvents,
+  DashboardIcon,
+  DashboardActionButton,
+  type MessengerView,
+  type AdminSortMode,
+} from '@/components/dashboard/DashboardComponents';
+import { DeliveryJobDetailsModal } from '@/components/dashboard/DeliveryJobDetailsModal';
+import { MessengerDeliveryCard } from '@/components/dashboard/MessengerDeliveryCard';
+import { AdminParcelManagementCard } from '@/components/dashboard/AdminParcelManagementCard';
+import { AdminParcelManagementTable } from '@/components/dashboard/AdminParcelManagementTable';
 
 interface DashboardProps { isConfigured: boolean; }
 
 const ParcelTimelineModal = lazy(() => import('@/components/ParcelTimelineModal'));
 const ConfirmReceipt = lazy(() => import('@/pages/ConfirmReceipt'));
-
-const STATS = [
-  { key: 'total',     filter: 'ทั้งหมด',     label: 'ทั้งหมด',  icon: 'inventory_2',     iconBg: 'bg-slate-100',    iconText: 'text-primary' },
-  { key: 'pending',   filter: 'รอจัดส่ง',    label: 'รอจัดส่ง', icon: 'package_open', iconBg: 'bg-amber-50',    iconText: 'text-amber-600' },
-  { key: 'transit',   filter: 'กำลังจัดส่ง', label: 'กำลังจัดส่ง', icon: 'local_shipping', iconBg: 'bg-blue-50',     iconText: 'text-blue-600' },
-  { key: 'delivered', filter: 'ส่งสำเร็จ',   label: 'ส่งสำเร็จ', icon: 'check_circle',       iconBg: 'bg-emerald-50',  iconText: 'text-emerald-600' },
-] as const;
-
-const STALE_DAYS = 2;
-type MessengerView = 'waiting' | 'mine' | 'done';
-type AdminSortMode = 'newest' | 'oldest' | 'stale' | 'status';
-
-const MESSENGER_BATCH_SIZE = 10;
-
-const dashboardIconMap: Record<string, LucideIcon> = {
-  add_a_photo: Camera,
-  assignment_turned_in: ClipboardCheck,
-  check_circle: CheckCircle2,
-  delete: Trash2,
-  done_all: PackageCheck,
-  filter_alt_off: FilterX,
-  history: History,
-  inventory_2: Package,
-  local_shipping: Truck,
-  map: Map,
-  package_check: PackageCheck,
-  package_open: PackageOpen,
-  person_pin_circle: UserCheck,
-  priority_high: AlertTriangle,
-  progress_activity: Loader2,
-  search: Search,
-  search_off: SearchX,
-  task_alt: CheckCircle2,
-  undo: Undo2,
-  view_agenda: ClipboardList,
-};
-
-const DashboardIcon = ({ icon, className = '' }: { icon: string; className?: string }) => {
-  const Icon = dashboardIconMap[icon];
-  if (Icon) return <Icon className={className || 'h-4 w-4'} aria-hidden="true" />;
-  return <span className={`material-symbols-outlined ${className}`} aria-hidden="true">{icon}</span>;
-};
-
-const sortAdminParcels = (items: Parcel[], mode: AdminSortMode) => {
-  const sorted = [...items];
-  if (mode === 'oldest') {
-    return sorted.sort((a, b) => getDateTime(a['วันที่สร้าง']) - getDateTime(b['วันที่สร้าง']));
-  }
-  if (mode === 'stale') {
-    return sorted.sort((a, b) => {
-      const staleDiff = Number(isParcelStale(b)) - Number(isParcelStale(a));
-      if (staleDiff !== 0) return staleDiff;
-      return getDateTime(a['วันที่สร้าง']) - getDateTime(b['วันที่สร้าง']);
-    });
-  }
-  if (mode === 'status') {
-    const statusOrder: Record<string, number> = {
-      'รอจัดส่ง': 0,
-      'กำลังจัดส่ง': 1,
-      'ส่งสำเร็จ': 2,
-    };
-    return sorted.sort((a, b) => {
-      const statusDiff = (statusOrder[a['สถานะ']] ?? 9) - (statusOrder[b['สถานะ']] ?? 9);
-      if (statusDiff !== 0) return statusDiff;
-      return getDateTime(b['วันที่สร้าง']) - getDateTime(a['วันที่สร้าง']);
-    });
-  }
-  return sorted.sort((a, b) => getDateTime(b['วันที่สร้าง']) - getDateTime(a['วันที่สร้าง']));
-};
-
-const StatsCard = ({
-  label,
-  icon,
-  iconBg,
-  iconText,
-  count,
-  active,
-  onClick,
-}: {
-  label: string;
-  icon: string;
-  iconBg: string;
-  iconText: string;
-  count: number;
-  active: boolean;
-  onClick: () => void;
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    aria-pressed={active}
-    className={`flex min-h-[92px] w-full items-center rounded-2xl border bg-white px-5 py-4 text-left shadow-sm transition-all duration-300 active:scale-[0.99] ${
-      active
-        ? 'border-slate-900/35 ring-2 ring-slate-900/10'
-        : 'border-gray-100 hover:border-slate-300 hover:shadow-md'
-    }`}
-  >
-    <div className="flex min-w-0 items-center gap-4">
-      <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${iconBg}`}>
-        <DashboardIcon icon={icon} className={`h-6 w-6 ${iconText}`} />
-      </div>
-      <div className="min-w-0">
-        <p className="text-3xl font-black leading-none text-primary font-display">{count}</p>
-        <p className="mt-1 truncate text-sm font-medium leading-tight text-primary">{label}</p>
-      </div>
-    </div>
-  </button>
-);
-
-const TableSkeleton = () => (
-  <div className="w-full space-y-3 p-3">
-    {[...Array(6)].map((_, i) => (
-      <div key={i} className="rounded-2xl border border-outline-variant/15 bg-white p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-5 w-32 rounded-lg" />
-            <Skeleton className="h-4 w-3/4 rounded-lg" />
-          </div>
-          <Skeleton className="h-7 w-24 rounded-full" />
-        </div>
-        <Skeleton className="mt-4 h-24 w-full rounded-xl" />
-      </div>
-    ))}
-  </div>
-);
-
-const LazyPanelFallback = ({ label = 'กำลังโหลด...' }: { label?: string }) => (
-  <div className="grid min-h-[220px] place-items-center rounded-2xl bg-white/80 p-6 text-center">
-    <div className="flex flex-col items-center gap-3 text-primary">
-      <Loader2 className="h-7 w-7 animate-spin" aria-hidden="true" />
-      <p className="text-sm font-black">{label}</p>
-    </div>
-  </div>
-);
-
-const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; compact?: boolean }) => (
-  <div className={`rounded-2xl bg-slate-50 ${compact ? 'p-2.5' : 'p-3'}`}>
-    <div className="space-y-2.5">
-      <div className="flex min-w-0 items-start gap-2.5 px-0.5">
-        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.14)]" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black leading-none text-slate-400">รับจาก</p>
-          <p className="mt-1 min-w-0 truncate text-[13px] font-bold leading-snug text-slate-700">
-            {parcel['สาขาผู้ส่ง'] || '-'} <span className="font-medium text-slate-500">({parcel['ผู้ส่ง'] || '-'})</span>
-          </p>
-        </div>
-      </div>
-      <div className="flex min-w-0 items-start gap-2.5 rounded-xl bg-red-50/70 px-3 py-2.5">
-        <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(248,113,113,0.14)]" />
-        <div className="min-w-0 flex-1">
-          <p className="text-[10px] font-black leading-none text-red-500">ต้องไปส่ง</p>
-          <p className="mt-1 min-w-0 truncate text-[15px] font-black leading-snug text-slate-900">
-            {parcel['สาขาผู้รับ'] || '-'} <span className="font-semibold text-slate-600">({parcel['ผู้รับ'] || '-'})</span>
-          </p>
-        </div>
-      </div>
-    </div>
-    {compact && (
-      <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-on-surface-variant/70">
-        <span className="material-symbols-outlined text-base text-on-surface-variant/50" aria-hidden="true">person_pin</span>
-        <span className="min-w-0 truncate">ผู้รับ: {parcel['ผู้รับ'] || '-'}</span>
-      </div>
-    )}
-  </div>
-);
-
-const getCleanNote = (parcel: Parcel) => {
-  const createdEventNote = parcel.events?.find(evt => evt.eventType === 'CREATED')?.note?.trim();
-  if (createdEventNote && createdEventNote !== 'รับเข้าระบบ') return createdEventNote;
-  return (parcel['หมายเหตุ'] || '').replace(/\[[\s\S]*?\]/g, '').trim();
-};
-
-const timelineCache = new WeakMap<Parcel, TimelineEvent[]>();
-const getTimelineEvents = (parcel: Parcel) => {
-  const cached = timelineCache.get(parcel);
-  if (cached) return cached;
-  const events = parseParcelTimeline(parcel);
-  timelineCache.set(parcel, events);
-  return events;
-};
-
-const getLatestTimelineSummary = (parcel: Parcel) => {
-  const events = getTimelineEvents(parcel);
-  const latest = [...events].reverse().find(event => event.title || event.description);
-  if (!latest) return 'ยังไม่มีประวัติการเคลื่อนไหว';
-  return `${latest.title}${latest.description ? `: ${latest.description}` : ''}`;
-};
-
-const getParcelAgeDays = (parcel: Parcel) => {
-  const createdAt = getDateTime(parcel['วันที่สร้าง']);
-  if (!createdAt) return 0;
-  return Math.max(0, Math.floor((Date.now() - createdAt) / (24 * 60 * 60 * 1000)));
-};
-
-const isParcelStale = (parcel: Parcel) => parcel['สถานะ'] !== 'ส่งสำเร็จ' && getParcelAgeDays(parcel) > STALE_DAYS;
-
-const sortMessengerWork = (a: Parcel, b: Parcel) => {
-  const priority = (parcel: Parcel) => parcel['สถานะ'] === 'กำลังจัดส่ง' ? 0 : 1;
-  const priorityDiff = priority(a) - priority(b);
-  if (priorityDiff !== 0) return priorityDiff;
-  return getDateTime(a['วันที่สร้าง']) - getDateTime(b['วันที่สร้าง']);
-};
-
-const wasAssignedToMe = (parcel: Parcel, employeeId: string): boolean => {
-  const currentId = employeeId.trim().toUpperCase();
-  if (!currentId) return false;
-  
-  let lastAssignedId = '';
-  for (const event of parcel.events || []) {
-    if (event.eventType === 'START_DELIVERY') {
-      const assignedToId = parseAssignedToId(event.note);
-      if (assignedToId) {
-        lastAssignedId = assignedToId.trim().toUpperCase();
-      }
-    } else if (event.eventType === 'RELEASE_DELIVERY') {
-      lastAssignedId = '';
-    }
-  }
-  return lastAssignedId === currentId;
-};
-
-const resolveDashboardRole = (rawRole: unknown): AppRole => {
-  return normalizeRole(rawRole);
-};
-
-const StaleBadge = ({ parcel }: { parcel: Parcel }) => {
-  if (!isParcelStale(parcel)) return null;
-  const ageDays = getParcelAgeDays(parcel);
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">
-      <span className="material-symbols-outlined text-[13px]" aria-hidden="true">priority_high</span>
-      ค้างนาน {ageDays} วัน
-    </span>
-  );
-};
-
-type DashboardActionVariant = 'primary' | 'secondary' | 'blue' | 'warning' | 'danger' | 'ghost';
-type SectionTone = 'default' | 'amber' | 'emerald' | 'blue';
-
-const actionVariantClass: Record<DashboardActionVariant, string> = {
-  primary: 'bg-primary text-white shadow-sm hover:bg-primary/95',
-  secondary: 'border border-outline-variant/35 bg-white text-primary hover:border-primary/35 hover:bg-primary/5',
-  blue: 'bg-blue-600 text-white shadow-sm hover:bg-blue-700',
-  warning: 'border border-amber-200 bg-amber-50 text-amber-800 hover:bg-amber-100',
-  danger: 'border border-error/20 bg-error/8 text-error hover:bg-error hover:text-white',
-  ghost: 'bg-surface-container-lowest text-primary ring-1 ring-outline-variant/10 hover:bg-surface-container',
-};
-
-const sectionToneClass: Record<SectionTone, { shell: string; icon: string; count: string }> = {
-  default: {
-    shell: 'border-outline-variant/20 bg-white',
-    icon: 'bg-primary/8 text-primary',
-    count: 'bg-primary/8 text-primary',
-  },
-  amber: {
-    shell: 'border-amber-100 bg-amber-50/60',
-    icon: 'bg-white text-amber-700',
-    count: 'bg-white text-amber-800 shadow-sm',
-  },
-  emerald: {
-    shell: 'border-emerald-100 bg-emerald-50/70',
-    icon: 'bg-white text-emerald-700',
-    count: 'bg-white text-emerald-800 shadow-sm',
-  },
-  blue: {
-    shell: 'border-blue-100 bg-blue-50/70',
-    icon: 'bg-white text-blue-700',
-    count: 'bg-white text-blue-800 shadow-sm',
-  },
-};
-
-const DashboardActionButton = ({
-  icon,
-  children,
-  onClick,
-  disabled,
-  loading,
-  variant = 'secondary',
-  compact = false,
-  className = '',
-}: {
-  icon: string;
-  children: ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-  variant?: DashboardActionVariant;
-  compact?: boolean;
-  className?: string;
-}) => (
-  <button
-    type="button"
-    onClick={onClick}
-    disabled={disabled || loading}
-    className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl font-black transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 sm:flex-none ${
-      compact ? 'h-8 px-3 text-xs' : 'h-10 px-4 text-sm'
-    } ${actionVariantClass[variant]} ${className}`}
-  >
-    {loading ? (
-      <Loader2 className={`${compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} animate-spin`} aria-hidden="true" />
-    ) : (
-      <DashboardIcon icon={icon} className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
-    )}
-    {children}
-  </button>
-);
-
-const MessengerViewBanner = ({
-  icon,
-  title,
-  subtitle,
-  count,
-  tone = 'amber',
-}: {
-  icon: string;
-  title: string;
-  subtitle: string;
-  count: number;
-  tone?: SectionTone;
-}) => {
-  const toneMap: Record<SectionTone, { shell: string; icon: string; badge: string }> = {
-    default: {
-      shell: 'border-slate-100 bg-slate-50/70',
-      icon: 'bg-white text-slate-700',
-      badge: 'border-slate-100 bg-white text-slate-700',
-    },
-    amber: {
-      shell: 'border-orange-100 bg-orange-50/50',
-      icon: 'bg-orange-100 text-orange-600',
-      badge: 'border-orange-100 bg-white text-orange-600',
-    },
-    emerald: {
-      shell: 'border-emerald-100 bg-emerald-50/60',
-      icon: 'bg-emerald-100 text-emerald-700',
-      badge: 'border-emerald-100 bg-white text-emerald-700',
-    },
-    blue: {
-      shell: 'border-blue-100 bg-blue-50/60',
-      icon: 'bg-blue-100 text-blue-700',
-      badge: 'border-blue-100 bg-white text-blue-700',
-    },
-  };
-  const classes = toneMap[tone];
-  return (
-    <div className={`mb-4 flex items-start gap-4 rounded-2xl border p-4 ${classes.shell}`}>
-      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${classes.icon}`}>
-        <DashboardIcon icon={icon} className="h-5 w-5" />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-center justify-between gap-2">
-          <h3 className="truncate text-sm font-bold text-gray-800">{title}</h3>
-          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${classes.badge}`}>{count} งาน</span>
-        </div>
-        <p className="text-[11px] leading-relaxed text-gray-500">{subtitle}</p>
-      </div>
-    </div>
-  );
-};
-
-const EmptyState = ({
-  icon,
-  title,
-  description,
-  action,
-  tone = 'default',
-}: {
-  icon: string;
-  title: string;
-  description?: string;
-  action?: ReactNode;
-  tone?: SectionTone;
-}) => {
-  const toneClass = sectionToneClass[tone];
-  return (
-    <div className={`flex flex-col items-center gap-3 rounded-2xl border px-4 py-8 text-center ${toneClass.shell}`}>
-      <div className={`grid h-14 w-14 place-items-center rounded-2xl ${toneClass.icon}`}>
-        <DashboardIcon icon={icon} className="h-7 w-7" />
-      </div>
-      <div>
-        <p className="font-bold text-primary">{title}</p>
-        {description && <p className="mt-0.5 text-sm text-on-surface-variant/65">{description}</p>}
-      </div>
-      {action}
-    </div>
-  );
-};
-
-const AssignmentBadge = ({
-  assignment,
-  isMine = false,
-  canRelease = false,
-  isReleasing = false,
-  onRelease,
-}: {
-  assignment: DeliveryAssignment;
-  isMine?: boolean;
-  canRelease?: boolean;
-  isReleasing?: boolean;
-  onRelease?: () => void;
-}) => (
-  <div className={`flex flex-col gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold sm:flex-row sm:items-center sm:justify-between ${
-    isMine
-      ? 'border-emerald-100 bg-emerald-50 text-emerald-800'
-      : 'border-blue-100 bg-blue-50 text-blue-800'
-  }`}>
-    <span className="inline-flex min-w-0 items-center gap-2">
-      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/80">
-        <DashboardIcon icon="person_pin_circle" className="h-4 w-4" />
-      </span>
-      <span className="min-w-0 truncate">
-        {isMine ? 'คุณรับงานนี้แล้ว' : `คุณ ${assignment.assignedToName} กำลังส่งอยู่`}
-      </span>
-    </span>
-    {canRelease && onRelease && (
-      <DashboardActionButton
-        icon="undo"
-        onClick={onRelease}
-        loading={isReleasing}
-        variant={isMine ? 'warning' : 'secondary'}
-        compact
-        className="bg-white/85"
-      >
-        {isReleasing ? 'กำลังคืนงาน' : 'คืนงาน'}
-      </DashboardActionButton>
-    )}
-  </div>
-);
-
-const CardActions = ({
-  parcel,
-  onOpen,
-  onConfirm,
-  onDelete,
-  canConfirm,
-  canDelete = false,
-  detailLabel = 'ประวัติเต็ม',
-  compactDetail = false,
-}: {
-  parcel: Parcel;
-  onOpen: () => void;
-  onConfirm: () => void;
-  onDelete?: () => void;
-  canConfirm: boolean;
-  canDelete?: boolean;
-  detailLabel?: string;
-  compactDetail?: boolean;
-}) => (
-  <div className="grid gap-2">
-    {canConfirm && parcel['สถานะ'] !== 'ส่งสำเร็จ' && (
-      <button
-        type="button"
-        onClick={onConfirm}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98]"
-      >
-        <PackageCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
-        ยืนยันส่ง
-      </button>
-    )}
-    <div className={canDelete && onDelete ? 'grid grid-cols-[minmax(0,1fr)_auto] gap-2' : 'grid'}>
-      <button
-        type="button"
-        onClick={onOpen}
-        className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-100 bg-white px-3 font-semibold text-slate-700 shadow-sm transition-all hover:bg-slate-50 active:scale-[0.98] ${
-          compactDetail ? 'h-10 text-xs' : 'h-11 text-sm'
-        }`}
-      >
-        <ClipboardList className="h-4 w-4 shrink-0" aria-hidden="true" />
-        <span className="truncate">{detailLabel}</span>
-      </button>
-      {canDelete && onDelete && (
-        <button
-          type="button"
-          onClick={onDelete}
-          className={`inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-3 font-semibold text-red-600 shadow-sm transition-all hover:bg-red-100 active:scale-[0.98] ${
-            compactDetail ? 'h-10 text-xs' : 'h-11 text-sm'
-          }`}
-          aria-label="ลบรายการ"
-          title="ลบรายการ"
-        >
-          <Trash2 className="h-4 w-4 shrink-0" aria-hidden="true" />
-          <span className="hidden sm:inline">ลบ</span>
-        </button>
-      )}
-    </div>
-  </div>
-);
-
-const DeliveryInfoRow = ({
-  icon,
-  label,
-  value,
-  tone = 'slate',
-}: {
-  icon: string;
-  label: string;
-  value?: string;
-  tone?: 'slate' | 'blue' | 'emerald' | 'orange';
-}) => {
-  const toneClasses = {
-    slate: 'bg-slate-50 text-slate-700',
-    blue: 'bg-blue-50 text-blue-700',
-    emerald: 'bg-emerald-50 text-emerald-700',
-    orange: 'bg-orange-50 text-orange-700',
-  };
-
-  return (
-    <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}>
-        <span className="material-symbols-outlined text-xl" aria-hidden="true">{icon}</span>
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold leading-none text-slate-400">{label}</p>
-        <p className="mt-1 whitespace-pre-wrap break-words text-sm font-black leading-snug text-slate-900">
-          {value?.trim() || '-'}
-        </p>
-      </div>
-    </div>
-  );
-};
-
-const DeliveryJobDetailsModal = ({
-  parcel,
-  open,
-  onOpenChange,
-}: {
-  parcel: Parcel | null;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-}) => {
-  if (!parcel) return null;
-
-  const note = translateSystemNote(getCleanNote(parcel));
-  const itemDescription = parcel['รายละเอียด'] || '';
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        showCloseButton={false}
-        className="max-h-[88vh] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-[1.5rem] border border-slate-100 bg-white p-0 shadow-2xl"
-      >
-        <div className="flex max-h-[88vh] flex-col">
-          <div className="relative shrink-0 bg-slate-950 px-5 py-4 text-white">
-            <button
-              type="button"
-              onClick={() => onOpenChange(false)}
-              className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
-              aria-label="ปิดรายละเอียดงานส่ง"
-            >
-              <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
-            </button>
-            <DialogTitle className="pr-10 font-display text-lg font-black leading-tight text-white">
-              รายละเอียดงานส่ง
-            </DialogTitle>
-            <p className="mt-1 break-all font-mono text-xs font-black tracking-wide text-blue-200">{parcel.TrackingID}</p>
-          </div>
-
-          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
-            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-blue-950">
-              <p className="text-[10px] font-bold text-blue-600">ต้องไปส่งที่</p>
-              <p className="mt-1 break-words font-display text-xl font-black leading-tight">
-                {parcel['สาขาผู้รับ'] || '-'}
-              </p>
-              <p className="mt-1 text-xs font-semibold text-blue-700/80">ผู้รับ: {parcel['ผู้รับ'] || '-'}</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3">
-              <DeliveryInfoRow icon="person" label="ผู้ส่ง" value={parcel['ผู้ส่ง']} tone="slate" />
-              <DeliveryInfoRow icon="apartment" label="ต้นทาง" value={parcel['สาขาผู้ส่ง']} tone="slate" />
-              <DeliveryInfoRow icon="person_check" label="ผู้รับ" value={parcel['ผู้รับ']} tone="blue" />
-              <DeliveryInfoRow icon="flag" label="ปลายทาง" value={parcel['สาขาผู้รับ']} tone="blue" />
-              <DeliveryInfoRow icon="inventory_2" label="สิ่งที่ส่ง" value={itemDescription} tone="emerald" />
-              {note && <DeliveryInfoRow icon="sticky_note_2" label="หมายเหตุ" value={note} tone="orange" />}
-              <DeliveryInfoRow icon="schedule" label="สร้างรายการเมื่อ" value={formatThaiDateTime(parcel['วันที่สร้าง'])} tone="slate" />
-            </div>
-          </div>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
-const MessengerDeliveryCard = ({
-  parcel,
-  onOpen,
-  onConfirm,
-  onStartDelivery,
-  onReleaseDelivery,
-  isStartingDelivery,
-  isReleasingDelivery,
-  assignment,
-  canStartDelivery,
-  canReleaseDelivery,
-  canConfirmDelivery,
-}: {
-  parcel: Parcel;
-  onOpen: () => void;
-  onConfirm: () => void;
-  onStartDelivery: () => void;
-  onReleaseDelivery: () => void;
-  isStartingDelivery: boolean;
-  isReleasingDelivery: boolean;
-  assignment: DeliveryAssignment | null;
-  canStartDelivery: boolean;
-  canReleaseDelivery: boolean;
-  canConfirmDelivery: boolean;
-}) => {
-  const note = getCleanNote(parcel);
-  const itemDescription = parcel['รายละเอียด'] || '';
-  const [isNoteExpanded, setIsNoteExpanded] = useState(false);
-  const [isItemDescriptionExpanded, setIsItemDescriptionExpanded] = useState(false);
-  const translatedNote = translateSystemNote(note);
-  const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
-  const isAssignedElsewhere = Boolean(assignment && !canConfirmDelivery && !isDone);
-  const proofImageUrl = getTimelineEvents(parcel).find(event => event.imageUrl)?.imageUrl;
-  const actionLabel = canStartDelivery
-    ? (isStartingDelivery ? 'กำลังรับงาน' : 'รับงาน')
-    : canConfirmDelivery
-      ? 'ยืนยันส่ง'
-      : '';
-
-  let cardStyles = 'border-slate-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.04)]';
-  let iconName = 'person';
-  let accentClass = 'bg-blue-50 text-blue-500';
-  let statusLabel = 'รอดำเนินการ';
-  let statusPillClass = 'bg-slate-100 text-slate-500';
-
-  if (isDone) {
-    cardStyles = 'border-emerald-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.04)]';
-    iconName = 'check_circle';
-    accentClass = 'bg-emerald-50 text-emerald-600';
-    statusLabel = 'ส่งแล้ว';
-    statusPillClass = 'bg-emerald-100 text-emerald-700';
-  } else if (canConfirmDelivery) {
-    cardStyles = 'border-blue-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.04)]';
-    iconName = 'local_shipping';
-    accentClass = 'bg-blue-50 text-blue-500';
-    statusLabel = 'กำลังส่ง';
-    statusPillClass = 'bg-blue-100 text-blue-600';
-  } else if (canStartDelivery) {
-    iconName = 'person';
-    accentClass = 'bg-blue-50 text-blue-500';
-    statusLabel = 'งานใหม่';
-    statusPillClass = 'bg-blue-100 text-blue-600';
-  } else if (isAssignedElsewhere) {
-    statusLabel = 'มีผู้รับงานแล้ว';
-    statusPillClass = 'bg-blue-50 text-blue-700';
-  }
-
-  const dateLabel = parcel['วันที่รับ']
-    ? new Date(parcel['วันที่รับ']).toLocaleDateString('th-TH', { month: 'short', day: 'numeric' })
-    : 'เพิ่งเมื่อสักครู่';
-
-  return (
-    <article className={`flex h-full flex-col overflow-hidden rounded-[1.25rem] border transition-all duration-200 hover:shadow-md ${cardStyles}`}>
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-3.5 py-2">
-        <code className="min-w-0 truncate font-mono text-[10px] font-black tracking-wider text-slate-400">
-          {parcel.TrackingID}
-        </code>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusPillClass}`}>
-          {statusLabel}
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col justify-between p-3.5">
-        <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className={`grid h-10 w-10 shrink-0 place-items-center rounded-2xl ${accentClass}`}>
-                <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">{iconName}</span>
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] leading-none text-slate-400">ผู้รับ</p>
-                <h3 className="mt-1 truncate text-base font-black leading-tight text-slate-900">
-                  {parcel['ผู้รับ'] || '-'}
-                </h3>
-              </div>
-            </div>
-
-            {!isDone && (canStartDelivery || canConfirmDelivery) && (
-              <DashboardActionButton
-                icon={canStartDelivery ? 'assignment_turned_in' : 'package_check'}
-                onClick={canStartDelivery ? onStartDelivery : onConfirm}
-                loading={canStartDelivery ? isStartingDelivery : false}
-                variant="blue"
-                compact
-                className="h-10 flex-none rounded-xl bg-blue-600 px-4 text-xs font-black shadow-md shadow-blue-100 hover:bg-blue-700"
-              >
-                {actionLabel}
-              </DashboardActionButton>
-            )}
-          </div>
-
-          {assignment && !isDone && isAssignedElsewhere && (
-            <AssignmentBadge assignment={assignment} />
-          )}
-
-          <MessengerRouteSummary parcel={parcel} />
-
-          {(itemDescription || note || isParcelStale(parcel)) && (
-            <div className="space-y-2">
-              {(itemDescription || note) && (
-                <div className="grid grid-cols-2 gap-2">
-                  <div
-                    onClick={() => itemDescription && setIsItemDescriptionExpanded(!isItemDescriptionExpanded)}
-                    className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-slate-50 px-2.5 py-2 transition-all ${itemDescription ? 'cursor-pointer hover:bg-slate-100' : 'opacity-40'}`}
-                  >
-                    <Package className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] font-bold leading-none text-slate-500">สิ่งที่ส่ง</p>
-                        {itemDescription.length > 25 && (
-                          <span className="shrink-0 text-[8px] font-bold uppercase text-slate-500">{isItemDescriptionExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
-                        )}
-                      </div>
-                      <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isItemDescriptionExpanded ? 'break-words whitespace-pre-wrap' : 'truncate'}`}>
-                        {itemDescription || '-'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div 
-                    onClick={() => note && setIsNoteExpanded(!isNoteExpanded)}
-                    className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
-                  >
-                    <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500" aria-hidden="true">sticky_note_2</span>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
-                        {translatedNote.length > 25 && (
-                          <span className="text-[8px] text-orange-600 font-bold uppercase">{isNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
-                        )}
-                      </div>
-                      <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isNoteExpanded ? 'break-words' : 'truncate'}`}>
-                        {translatedNote || '-'}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
-              <StaleBadge parcel={parcel} />
-            </div>
-          )}
-        </div>
-
-        <div className="mt-3 flex items-center justify-between gap-3 border-t border-slate-50 pt-3">
-          <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
-            <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
-            <span className="truncate">{dateLabel}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            {proofImageUrl && (
-              <ImagePopup
-                url={proofImageUrl}
-                title="รูปหลักฐาน"
-                triggerVariant="icon"
-                className="h-9 w-9 rounded-xl bg-slate-50 text-slate-600 ring-1 ring-slate-100 hover:bg-blue-50 hover:text-blue-700"
-              />
-            )}
-            {canReleaseDelivery && (
-              <DashboardActionButton
-                icon="undo"
-                onClick={onReleaseDelivery}
-                loading={isReleasingDelivery}
-                variant="warning"
-                compact
-                className="h-8 flex-none rounded-lg px-2.5 text-[11px]"
-              >
-                {isReleasingDelivery ? 'กำลังคืน' : 'คืนงาน'}
-              </DashboardActionButton>
-            )}
-            <button
-              type="button"
-              onClick={onOpen}
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-500 transition-colors hover:text-blue-700"
-            >
-              {isDone ? 'ดู Milestone' : 'ดูรายละเอียด'}
-              <span className="material-symbols-outlined text-[13px]" aria-hidden="true">{isDone ? 'timeline' : 'chevron_right'}</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    </article>
-  );
-};
-
-const AdminParcelManagementCard = ({
-  parcel,
-  onOpen,
-  onConfirm,
-  onDelete,
-  onReleaseDelivery,
-  isReleasingDelivery,
-  assignment,
-}: {
-  parcel: Parcel;
-  onOpen: () => void;
-  onConfirm: () => void;
-  onDelete: () => void;
-  onReleaseDelivery: () => void;
-  isReleasingDelivery: boolean;
-  assignment: DeliveryAssignment | null;
-}) => {
-  const note = getCleanNote(parcel);
-  const itemDescription = parcel['รายละเอียด'] || '';
-  const [isAdminNoteExpanded, setIsAdminNoteExpanded] = useState(false);
-  const [isAdminItemDescriptionExpanded, setIsAdminItemDescriptionExpanded] = useState(false);
-  const translatedNote = translateSystemNote(note);
-  const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
-  const isInTransit = parcel['สถานะ'] === 'กำลังจัดส่ง';
-  const statusLabel = isDone ? 'ส่งแล้ว' : isInTransit ? 'กำลังส่ง' : 'รอดำเนินการ';
-  const statusPillClass = isDone
-    ? 'bg-emerald-100 text-emerald-700'
-    : isInTransit
-      ? 'bg-blue-100 text-blue-600'
-      : 'bg-amber-100 text-amber-700';
-  const accentClass = isDone
-    ? 'bg-emerald-50 text-emerald-600'
-    : isInTransit
-      ? 'bg-blue-50 text-blue-500'
-      : 'bg-amber-50 text-amber-600';
-  const iconName = isDone ? 'check_circle' : isInTransit ? 'local_shipping' : 'inventory_2';
-  const dateLabel = formatThaiDateTime(parcel['วันที่รับ'] || parcel['วันที่สร้าง']);
-
-  return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.04)] transition-all duration-200 hover:shadow-md">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2">
-        <code className="min-w-0 truncate font-mono text-[10px] font-black tracking-wider text-slate-400">
-          {parcel.TrackingID}
-        </code>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusPillClass}`}>
-          {statusLabel}
-        </span>
-      </div>
-
-      <div className="flex flex-1 flex-col justify-between p-4">
-        <div className="space-y-4">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${accentClass}`}>
-                <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }} aria-hidden="true">{iconName}</span>
-              </span>
-              <div className="min-w-0">
-                <p className="text-[10px] leading-none text-slate-400">ผู้รับ</p>
-                <h3 className="mt-1 truncate text-sm font-semibold leading-tight text-slate-800">
-                  {parcel['ผู้รับ'] || '-'}
-                </h3>
-              </div>
-            </div>
-            <StatusBadge status={parcel['สถานะ']} />
-          </div>
-
-          <MessengerRouteSummary parcel={parcel} />
-
-          <div className="space-y-2">
-            {(itemDescription || note) && (
-              <div className="grid grid-cols-2 gap-2">
-                <div
-                  onClick={() => itemDescription && setIsAdminItemDescriptionExpanded(!isAdminItemDescriptionExpanded)}
-                  className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-slate-50 px-2.5 py-2 transition-all ${itemDescription ? 'cursor-pointer hover:bg-slate-100' : 'opacity-40'}`}
-                >
-                  <Package className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-bold leading-none text-slate-500">สิ่งที่ส่ง</p>
-                      {itemDescription.length > 25 && (
-                        <span className="shrink-0 text-[8px] font-bold uppercase text-slate-500">{isAdminItemDescriptionExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
-                      )}
-                    </div>
-                    <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isAdminItemDescriptionExpanded ? 'break-words whitespace-pre-wrap' : 'truncate'}`}>
-                      {itemDescription || '-'}
-                    </p>
-                  </div>
-                </div>
-
-                <div 
-                  onClick={() => note && setIsAdminNoteExpanded(!isAdminNoteExpanded)}
-                  className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
-                >
-                  <span className="material-symbols-outlined mt-0.5 shrink-0 text-base leading-none text-orange-500" aria-hidden="true">sticky_note_2</span>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
-                      {translatedNote.length > 25 && (
-                        <span className="text-[8px] text-orange-600 font-bold uppercase">{isAdminNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
-                      )}
-                    </div>
-                    <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isAdminNoteExpanded ? 'break-words' : 'truncate'}`}>
-                      {translatedNote || '-'}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            <StaleBadge parcel={parcel} />
-          </div>
-
-          {assignment && !isDone && (
-            <AssignmentBadge
-              assignment={assignment}
-              canRelease
-              isReleasing={isReleasingDelivery}
-              onRelease={onReleaseDelivery}
-            />
-          )}
-
-          <div className="rounded-xl bg-slate-50 px-3 py-2">
-            <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">ล่าสุด</p>
-            <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-slate-700">{getLatestTimelineSummary(parcel)}</p>
-          </div>
-        </div>
-
-        <div className="mt-4 flex flex-col gap-3 border-t border-slate-50 pt-3">
-          <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
-            <span className="material-symbols-outlined text-[14px]" aria-hidden="true">schedule</span>
-            <span className="truncate">{dateLabel}</span>
-          </div>
-          <CardActions
-            parcel={parcel}
-            onOpen={onOpen}
-            onConfirm={onConfirm}
-            onDelete={onDelete}
-            canConfirm
-            canDelete
-            detailLabel="ดูรายละเอียด"
-            compactDetail
-          />
-        </div>
-      </div>
-    </article>
-  );
-};
-
-const AdminParcelManagementTable = ({
-  parcels,
-  onOpen,
-  onConfirm,
-  onDelete,
-  onReleaseDelivery,
-  releasingDeliveryId,
-}: {
-  parcels: Parcel[];
-  onOpen: (parcel: Parcel) => void;
-  onConfirm: (parcel: Parcel) => void;
-  onDelete: (parcel: Parcel) => void;
-  onReleaseDelivery: (parcel: Parcel) => void;
-  releasingDeliveryId: string | null;
-}) => {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
-
-  const toggleExpand = (id: string) => {
-    const next = new Set(expandedIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setExpandedIds(next);
-  };
-
-  return (
-    <div className="hidden overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm md:block">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[980px] text-left">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">Tracking</th>
-              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">เส้นทาง</th>
-              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ผู้รับ</th>
-              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">สถานะ</th>
-              <th className="px-4 py-3 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ล่าสุด</th>
-              <th className="px-4 py-3 text-right text-[11px] font-black uppercase tracking-widest text-muted-foreground">จัดการ</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-outline-variant/10">
-            {parcels.map(parcel => {
-              const assignment = getActiveDeliveryAssignment(parcel);
-              const isDone = parcel['สถานะ'] === 'ส่งสำเร็จ';
-              const isReleasing = releasingDeliveryId === parcel.TrackingID;
-              return (
-                <tr key={parcel.TrackingID} className={`${isParcelStale(parcel) ? 'bg-amber-50/30' : ''} transition-colors hover:bg-surface-container-lowest/70`}>
-                  <td className="px-4 py-3 align-top">
-                    <code className="block max-w-[150px] break-all font-mono text-xs font-black text-primary">{parcel.TrackingID}</code>
-                    <p className="mt-1 text-[11px] text-muted-foreground">{formatThaiDateTime(parcel['วันที่สร้าง'])}</p>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="max-w-[220px] space-y-1 text-xs">
-                      <p className="truncate font-semibold text-slate-800">{parcel['สาขาผู้ส่ง'] || '-'}</p>
-                      <p className="truncate text-muted-foreground">→ {parcel['สาขาผู้รับ'] || '-'}</p>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="max-w-[190px]">
-                      <p className="truncate text-sm font-semibold text-foreground">{parcel['ผู้รับ'] || '-'}</p>
-                      {(() => {
-                        const textToShow = parcel['รายละเอียด'] || translateSystemNote(getCleanNote(parcel)) || '-';
-                        const isExpanded = expandedIds.has(parcel.TrackingID);
-                        const isLong = textToShow.length > 30;
-                        return (
-                          <div 
-                            onClick={() => isLong && toggleExpand(parcel.TrackingID)}
-                            className={`mt-1 text-xs text-muted-foreground transition-all ${isLong ? 'cursor-pointer hover:text-slate-800' : ''}`}
-                          >
-                            <p className={`${isExpanded ? 'break-words whitespace-pre-wrap leading-relaxed' : 'truncate'}`}>
-                              {textToShow}
-                            </p>
-                            {isLong && (
-                              <span className="text-[9px] font-bold text-primary/70 hover:text-primary mt-0.5 block leading-none">
-                                {isExpanded ? 'ย่อรายละเอียด' : 'ดูรายละเอียดเพิ่ม'}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="space-y-2">
-                      <StatusBadge status={parcel['สถานะ']} />
-                      {isParcelStale(parcel) && (
-                        <span className="inline-flex rounded-lg bg-amber-100 px-2 py-1 text-[11px] font-semibold text-amber-700">ค้างนาน</span>
-                      )}
-                      {assignment && !isDone && (
-                        <p className="max-w-[180px] truncate text-[11px] font-semibold text-blue-700">ผู้รับงาน: {assignment.assignedToName}</p>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <p className="max-w-[240px] line-clamp-2 text-xs font-medium leading-relaxed text-slate-700">{getLatestTimelineSummary(parcel)}</p>
-                  </td>
-                  <td className="px-4 py-3 align-top">
-                    <div className="flex justify-end gap-1.5">
-                      <button type="button" onClick={() => onOpen(parcel)} className="app-secondary-button h-9 px-2.5 text-xs">
-                        <ClipboardList className="h-3.5 w-3.5" aria-hidden="true" />
-                        รายละเอียด
-                      </button>
-                      {!isDone && (
-                        <button type="button" onClick={() => onConfirm(parcel)} className="app-primary-button h-9 px-2.5 text-xs">
-                          <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                          ยืนยันส่ง
-                      </button>
-                      )}
-                      {assignment && !isDone && (
-                        <button type="button" onClick={() => onReleaseDelivery(parcel)} disabled={isReleasing} className="app-secondary-button h-9 px-2.5 text-xs text-amber-700">
-                          {isReleasing ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Undo2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                          คืนงาน
-                        </button>
-                      )}
-                      <button type="button" onClick={() => onDelete(parcel)} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-red-50 px-2.5 text-xs font-semibold text-red-600 shadow-sm transition-colors hover:bg-red-100">
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        ลบ
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-};
 
 export default function Dashboard({ isConfigured }: DashboardProps) {
   const { user } = useAuth();
@@ -1206,6 +149,16 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [isConfigured, fetchData, lastUpdatedAt]);
+
+  // Auto-refresh every 60 seconds when the dashboard is active and document is visible
+  useEffect(() => {
+    if (!isConfigured) return;
+    const intervalId = setInterval(() => {
+      if (document.hidden) return;
+      void fetchData();
+    }, 60 * 1000);
+    return () => clearInterval(intervalId);
+  }, [isConfigured, fetchData]);
 
   const filteredParcels = useMemo(() => {
     let f = parcels;
@@ -1292,12 +245,18 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   }, [totalPages, currentPage]);
 
   // Load more from backend when navigating to a page that needs more data
+  const loadMoreRef = useRef({ adminSortedParcelsLength: adminSortedParcels.length, hasMore, loading, loadMoreParcels });
+  useEffect(() => {
+    loadMoreRef.current = { adminSortedParcelsLength: adminSortedParcels.length, hasMore, loading, loadMoreParcels };
+  });
+
   useEffect(() => {
     const neededCount = currentPage * pageSize;
-    if (neededCount > adminSortedParcels.length && hasMore && !loading) {
-      loadMoreParcels();
+    const { adminSortedParcelsLength, hasMore: more, loading: isLoadingData, loadMoreParcels: fetchMore } = loadMoreRef.current;
+    if (neededCount > adminSortedParcelsLength && more && !isLoadingData) {
+      fetchMore();
     }
-  }, [currentPage, pageSize]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentPage, pageSize]);
 
   const handleRefresh = async () => {
     if (loading) return; // ป้องกันกดซ้ำระหว่าง loading
@@ -1483,44 +442,52 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       )}
 
       {/* ── Stats ── */}
-      {!isMessengerDashboard && (
-        <>
-          <div className="grid grid-cols-2 gap-2 sm:hidden">
-            {stats.map(s => (
-              <button
-                key={s.key}
-                type="button"
-                onClick={() => setStatusFilter(s.filter)}
-                aria-pressed={statusFilter === s.filter}
-                className={`rounded-xl border bg-white/90 p-2.5 text-left shadow-sm transition-all active:scale-[0.99] ${
-                  statusFilter === s.filter
-                    ? 'border-primary/45 ring-2 ring-primary/10'
-                    : 'border-outline-variant/25'
-                }`}
-              >
-                <div className="flex items-center gap-2.5">
-                  <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${s.iconBg}`}>
-                    <DashboardIcon icon={s.icon} className={`h-5 w-5 ${s.iconText}`} />
+      {!isMessengerDashboard && (() => {
+        const isFirstLoad = loading && !lastUpdatedAt;
+        return (
+          <>
+            <div className="grid grid-cols-2 gap-2 sm:hidden">
+              {stats.map(s => (
+                <button
+                  key={s.key}
+                  type="button"
+                  onClick={() => setStatusFilter(s.filter)}
+                  aria-pressed={statusFilter === s.filter}
+                  className={`rounded-xl border bg-white/90 p-2.5 text-left shadow-sm transition-all active:scale-[0.99] ${
+                    statusFilter === s.filter
+                      ? 'border-primary/45 ring-2 ring-primary/10'
+                      : 'border-outline-variant/25'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${s.iconBg}`}>
+                      <DashboardIcon icon={s.icon} className={`h-5 w-5 ${s.iconText}`} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {isFirstLoad ? (
+                        <Skeleton className="h-5 w-10 rounded-lg" />
+                      ) : (
+                        <p className="text-xl font-black leading-none text-primary">{s.count}</p>
+                      )}
+                      <p className="mt-0.5 truncate text-xs font-medium text-primary">{s.label}</p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xl font-black leading-none text-primary">{s.count}</p>
-                    <p className="mt-0.5 truncate text-xs font-medium text-primary">{s.label}</p>
-                  </div>
-                </div>
-              </button>
-            ))}
-          </div>
-          <div className="hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
-            {stats.map(s => (
-              <StatsCard key={s.key} label={s.label} icon={s.icon} iconBg={s.iconBg} iconText={s.iconText}
-                count={s.count}
-                active={statusFilter === s.filter}
-                onClick={() => setStatusFilter(s.filter)}
-              />
-            ))}
-          </div>
-        </>
-      )}
+                </button>
+              ))}
+            </div>
+            <div className="hidden gap-4 sm:grid sm:grid-cols-2 lg:grid-cols-4">
+              {stats.map(s => (
+                <StatsCard key={s.key} label={s.label} icon={s.icon} iconBg={s.iconBg} iconText={s.iconText}
+                  count={s.count}
+                  active={statusFilter === s.filter}
+                  onClick={() => setStatusFilter(s.filter)}
+                  loading={isFirstLoad}
+                />
+              ))}
+            </div>
+          </>
+        );
+      })()}
 
       {/* ── Filters ── */}
       <div className="bg-transparent md:rounded-2xl md:border md:border-gray-100 md:bg-white md:p-4 md:shadow-sm">
@@ -1550,8 +517,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <div className="hidden h-8 items-center gap-1 rounded-lg border border-outline-variant/35 bg-white px-2 text-[11px] font-medium text-on-surface-variant sm:flex">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-              <span>{lastUpdatedAt ? `อัปเดต ${new Date(lastUpdatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : 'รอข้อมูล'}</span>
+              <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
+              <span>
+                {loading ? 'กำลังอัปเดต...' : (lastUpdatedAt ? `อัปเดต ${new Date(lastUpdatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })}` : 'รอข้อมูล')}
+              </span>
             </div>
             <button
               onClick={handleRefresh}

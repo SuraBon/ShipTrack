@@ -135,6 +135,7 @@ export default function ConfirmReceipt({
   const [gpsOverrideReason, setGpsOverrideReason] = useState('');
   const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
 
+
   const [isLoading, setIsLoading] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [isAutoPreparingCamera, setIsAutoPreparingCamera] = useState(false);
@@ -142,8 +143,33 @@ export default function ConfirmReceipt({
   const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isDelivered, setIsDelivered] = useState(false);
   const pendingOfflineCount = offlineQueue.filter(item => item.status === 'pending' || item.status === 'failed').length;
+  const resetFormState = () => {
+    setCurrentStep(1);
+    setTrackingId('');
+    setPhotoUrl('');
+    setPhotoPreview(null);
+    setIsProcessingImage(false);
+    setNote('');
+    setIsGpsBypassed(false);
+    setIsForwarding(false);
+    setForwardSender('');
+    setForwardFromBranch('');
+    setForwardToBranch('');
+    setIsProxy(false);
+    setProxyName('');
+    setDeliveryMatchStatus('MATCHED_DECLARED_DESTINATION');
+    setDeliveryMismatchReason('');
+    setGpsOverrideReason('');
+    setShowAdvancedOptions(false);
+    setCheckedParcel(null);
+    setIsConfirmDialogOpen(false);
+    setIsDelivered(false);
+    resetGeo();
+  };
+
   const handleCloseStep = () => {
     if (embedded && onClose) {
+      resetFormState();
       onClose();
       return;
     }
@@ -162,7 +188,7 @@ export default function ConfirmReceipt({
     if (currentStep === 2 && geoStatus === 'idle') {
       requestLocation();
     }
-  }, [currentStep]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [currentStep, geoStatus, requestLocation]);
 
   useEffect(() => {
     if (!isLoading) return;
@@ -224,6 +250,24 @@ export default function ConfirmReceipt({
     await checkParcelByTrackingId(trackingId);
   };
 
+  const initialTriggerRef = useRef({
+    onInitialTrackingIdConsumed,
+    autoCheckInitial,
+    autoOpenCamera,
+    checkParcelByTrackingId,
+    resetGeo,
+  });
+
+  useEffect(() => {
+    initialTriggerRef.current = {
+      onInitialTrackingIdConsumed,
+      autoCheckInitial,
+      autoOpenCamera,
+      checkParcelByTrackingId,
+      resetGeo,
+    };
+  });
+
   // Auto-fill tracking ID เมื่อถูกเปิดจาก Dashboard และตรวจสอบทันที
   useEffect(() => {
     if (!initialTrackingId) return;
@@ -248,20 +292,24 @@ export default function ConfirmReceipt({
     setIsDelivered(false);
     setIsConfirmDialogOpen(false);
     setIsGpsBypassed(false);
-    resetGeo();
+    initialTriggerRef.current.resetGeo();
     if (fileInputRef.current) fileInputRef.current.value = '';
 
-    onInitialTrackingIdConsumed?.();
-    if (autoCheckInitial) {
+    initialTriggerRef.current.onInitialTrackingIdConsumed?.();
+    if (initialTriggerRef.current.autoCheckInitial) {
       setIsAutoPreparingCamera(true);
       setTimeout(() => {
-        void checkParcelByTrackingId(safeTrackingId, autoOpenCamera)
+        void initialTriggerRef.current.checkParcelByTrackingId(safeTrackingId, initialTriggerRef.current.autoOpenCamera)
           .finally(() => setIsAutoPreparingCamera(false));
       }, 0);
     }
-  }, [initialTrackingId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [initialTrackingId]);
 
   const handlePasteTrackingID = async () => {
+    if (!navigator.clipboard || !navigator.clipboard.readText) {
+      toast.error('เบราว์เซอร์ไม่รองรับการวางอัตโนมัติ (กรุณาใช้ Ctrl+V หรือกดค้างเพื่อวาง)');
+      return;
+    }
     try {
       const text = await navigator.clipboard.readText();
       const safeText = sanitizeTextInput(text, 100).toUpperCase();
@@ -270,7 +318,7 @@ export default function ConfirmReceipt({
         toast.success('วางหมายเลขติดตามเรียบร้อย');
       }
     } catch {
-      toast.error('ไม่สามารถวางข้อมูลได้');
+      toast.error('ไม่สามารถวางข้อมูลได้ (กรุณาอนุญาตการเข้าถึง Clipboard หรือใช้ Ctrl+V แทน)');
     }
   };
 
