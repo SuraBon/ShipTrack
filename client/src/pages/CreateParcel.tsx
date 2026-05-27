@@ -214,7 +214,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
           <div className="app-card overflow-hidden">
             <div className="app-panel-header">
               <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
                   <span className="material-symbols-outlined text-base" aria-hidden="true">person</span>
                 </div>
                 <div>
@@ -284,7 +284,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
           <div className="app-card overflow-hidden">
             <div className="app-panel-header">
               <div className="flex items-center gap-3">
-                <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 text-red-500">
+                <div className="flex size-9 items-center justify-center rounded-xl bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400">
                   <span className="material-symbols-outlined text-base" aria-hidden="true">flag</span>
                 </div>
                 <div>
@@ -334,7 +334,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
         <div className="app-card overflow-hidden">
           <div className="app-panel-header">
             <div className="flex items-center gap-3">
-              <div className="flex size-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+              <div className="flex size-9 items-center justify-center rounded-xl bg-slate-100 dark:bg-surface-container text-slate-700 dark:text-muted-foreground">
                 <span className="material-symbols-outlined text-base" aria-hidden="true">inventory_2</span>
               </div>
               <div>
@@ -373,7 +373,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                   type="button"
                   disabled={isProcessingImage}
                   onClick={() => proofInputRef.current?.click()}
-                  className="flex min-h-[138px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-5 text-center transition-colors hover:bg-gray-100 active:scale-[0.99] disabled:opacity-75 disabled:pointer-events-none"
+                  className="flex min-h-[138px] w-full flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-gray-200 dark:border-outline-variant bg-gray-50 dark:bg-surface-container px-4 py-5 text-center transition-colors hover:bg-gray-100 dark:hover:bg-surface-container-high active:scale-[0.99] disabled:opacity-75 disabled:pointer-events-none"
                 >
                   {isProcessingImage ? (
                     <>
@@ -432,42 +432,54 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
         <aside className="hidden md:block">
           <div className="sticky top-20 space-y-3">
             <div className="app-panel overflow-hidden">
-              <div className="bg-slate-900 px-4 py-3 text-white">
+              <div className="bg-slate-900 dark:bg-surface-container-lowest px-4 py-3 text-white dark:text-foreground">
                 <p className="text-sm font-semibold">สรุปรายการส่ง</p>
-                <p className="text-[11px] text-white/55">ตรวจต้นทาง ปลายทาง และหลักฐานก่อนสร้างรายการ</p>
+                <p className="text-[11px] text-white/55 dark:text-muted-foreground">ตรวจต้นทาง ปลายทาง และหลักฐานก่อนสร้างรายการ</p>
               </div>
               <div className="space-y-3 p-4">
-                <div className="rounded-xl bg-slate-50 p-3">
+                <div className="rounded-xl bg-slate-50 dark:bg-surface-container p-3">
                   <div className="flex items-center gap-3">
                     <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.18)]" />
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-slate-700">{formData.senderName || 'ผู้ส่ง'}</p>
-                      <p className="truncate text-[11px] text-slate-500">{resolveSelectValue(formData.senderBranch) || 'แผนก/สาขาต้นทาง'}</p>
+                      <p className="truncate text-xs font-semibold text-slate-700 dark:text-foreground">{formData.senderName || 'ผู้ส่ง'}</p>
+                      <p className="truncate text-[11px] text-slate-500 dark:text-muted-foreground">{resolveSelectValue(formData.senderBranch) || 'แผนก/สาขาต้นทาง'}</p>
                     </div>
                   </div>
-                  <div className="my-2 ml-1 h-4 border-l border-slate-200" />
+                  <div className="my-2 ml-1 h-4 border-l border-slate-200 dark:border-outline-variant" />
                   <div className="flex items-center gap-3">
                     <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_0_3px_rgba(248,113,113,0.18)]" />
                     <div className="min-w-0">
-                      <p className="truncate text-xs font-semibold text-slate-700">{formData.receiverName || 'ผู้รับ/ปลายทาง'}</p>
-                      <p className="truncate text-[11px] text-slate-500">{resolveSelectValue(formData.receiverBranch) || 'แผนก/สาขาหรือสถานที่ปลายทาง'}</p>
+                      <p className="truncate text-xs font-semibold text-slate-700 dark:text-foreground">{formData.receiverName || 'ผู้รับ/ปลายทาง'}</p>
+                      <p className="truncate text-[11px] text-slate-500 dark:text-muted-foreground">{resolveSelectValue(formData.receiverBranch) || 'แผนก/สาขาหรือสถานที่ปลายทาง'}</p>
                     </div>
                   </div>
                 </div>
                 <div className="grid gap-2 text-xs">
-                  <div className="flex items-start gap-2 rounded-xl bg-gray-50 p-3">
-                    <span className="material-symbols-outlined text-base text-gray-400" aria-hidden="true">inventory_2</span>
-                    <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-gray-800">สิ่งที่ส่ง:</span> {formData.description || '-'}</p>
+                  <div className="flex items-start gap-2 rounded-xl bg-gray-50 dark:bg-surface-container p-3">
+                    <span className="material-symbols-outlined text-base text-gray-400 dark:text-muted-foreground" aria-hidden="true">inventory_2</span>
+                    <p className="min-w-0 break-words text-gray-600 dark:text-muted-foreground">
+                      <span className="font-semibold text-gray-800 dark:text-foreground">สิ่งที่ส่ง:</span> {formData.description || '-'}
+                    </p>
                   </div>
-                  <div className="flex items-start gap-2 rounded-xl bg-orange-50/70 p-3">
-                    <span className="material-symbols-outlined text-base text-orange-400" aria-hidden="true">sticky_note_2</span>
-                    <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-orange-600">หมายเหตุ:</span> {formData.note || '-'}</p>
+                  <div className="flex items-start gap-2 rounded-xl bg-orange-50/70 dark:bg-amber-900/25 p-3">
+                    <span className="material-symbols-outlined text-base text-orange-400 dark:text-amber-400" aria-hidden="true">sticky_note_2</span>
+                    <p className="min-w-0 break-words text-gray-600 dark:text-muted-foreground">
+                      <span className="font-semibold text-orange-600 dark:text-amber-400">หมายเหตุ:</span> {formData.note || '-'}
+                    </p>
                   </div>
-                  <div className={`flex items-center gap-2 rounded-xl p-3 ${position ? 'bg-emerald-50 text-emerald-800' : 'bg-gray-50 text-gray-500'}`}>
+                  <div className={`flex items-center gap-2 rounded-xl p-3 ${
+                    position
+                      ? 'bg-emerald-50 dark:bg-emerald-900/25 text-emerald-800 dark:text-emerald-300'
+                      : 'bg-gray-50 dark:bg-surface-container text-gray-500 dark:text-muted-foreground'
+                  }`}>
                     <span className="material-symbols-outlined text-base" aria-hidden="true">{position ? 'my_location' : 'location_searching'}</span>
                     <span className="font-semibold">{position ? 'บันทึกตำแหน่งจุดรับแล้ว' : 'รอตำแหน่งจุดรับ'}</span>
                   </div>
-                  <div className={`flex items-center gap-2 rounded-xl p-3 ${proofPhotoPreview ? 'bg-blue-50 text-blue-800' : 'bg-gray-50 text-gray-500'}`}>
+                  <div className={`flex items-center gap-2 rounded-xl p-3 ${
+                    proofPhotoPreview
+                      ? 'bg-blue-50 dark:bg-blue-900/25 text-blue-800 dark:text-blue-300'
+                      : 'bg-gray-50 dark:bg-surface-container text-gray-500 dark:text-muted-foreground'
+                  }`}>
                     <span className="material-symbols-outlined text-base" aria-hidden="true">{proofPhotoPreview ? 'image' : 'add_a_photo'}</span>
                     <span className="font-semibold">{proofPhotoPreview ? 'แนบรูปสิ่งที่ส่งแล้ว' : 'ยังไม่ได้แนบรูป'}</span>
                   </div>
@@ -481,47 +493,59 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
         {/* Mobile Summary Section */}
         <div className="app-card overflow-hidden md:hidden mx-3 mb-2">
           <details className="group">
-            <summary className="flex cursor-pointer select-none items-center justify-between bg-slate-900 px-4 py-3 text-white">
+            <summary className="flex cursor-pointer select-none items-center justify-between bg-slate-900 dark:bg-surface-container-lowest px-4 py-3 text-white dark:text-foreground">
               <div className="flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg" aria-hidden="true">visibility</span>
                 <p className="text-sm font-semibold">สรุปรายการส่ง (แตะเพื่อแสดง/ซ่อน)</p>
               </div>
               <span className="material-symbols-outlined transition-transform group-open:rotate-180" aria-hidden="true">expand_more</span>
             </summary>
-            <div className="space-y-3 p-4 bg-slate-50 border-t border-slate-200">
-              <div className="rounded-xl bg-white p-3 shadow-xs">
+            <div className="space-y-3 p-4 bg-slate-50 dark:bg-surface-container border-t border-slate-200 dark:border-outline-variant">
+              <div className="rounded-xl bg-white dark:bg-card p-3 shadow-xs">
                 <div className="flex items-center gap-3">
                   <span className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_0_3px_rgba(59,130,246,0.18)]" />
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-slate-700">{formData.senderName || '-'}</p>
-                    <p className="truncate text-[11px] text-slate-500">{resolveSelectValue(formData.senderBranch) || '-'}</p>
+                    <p className="truncate text-xs font-semibold text-slate-700 dark:text-foreground">{formData.senderName || '-'}</p>
+                    <p className="truncate text-[11px] text-slate-500 dark:text-muted-foreground">{resolveSelectValue(formData.senderBranch) || '-'}</p>
                   </div>
                 </div>
-                <div className="my-2 ml-1 h-4 border-l border-slate-200" />
+                <div className="my-2 ml-1 h-4 border-l border-slate-200 dark:border-outline-variant" />
                 <div className="flex items-center gap-3">
                   <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_0_3px_rgba(248,113,113,0.18)]" />
                   <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-slate-700">{formData.receiverName || '-'}</p>
-                    <p className="truncate text-[11px] text-slate-500">{resolveSelectValue(formData.receiverBranch) || '-'}</p>
+                    <p className="truncate text-xs font-semibold text-slate-700 dark:text-foreground">{formData.receiverName || '-'}</p>
+                    <p className="truncate text-[11px] text-slate-500 dark:text-muted-foreground">{resolveSelectValue(formData.receiverBranch) || '-'}</p>
                   </div>
                 </div>
               </div>
               <div className="grid gap-2 text-xs">
-                <div className="flex items-start gap-2 rounded-xl bg-white p-3 shadow-xs">
-                  <span className="material-symbols-outlined text-base text-gray-400" aria-hidden="true">inventory_2</span>
-                  <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-gray-800">สิ่งที่ส่ง:</span> {formData.description || '-'}</p>
+                <div className="flex items-start gap-2 rounded-xl bg-white dark:bg-card p-3 shadow-xs">
+                  <span className="material-symbols-outlined text-base text-gray-400 dark:text-muted-foreground" aria-hidden="true">inventory_2</span>
+                  <p className="min-w-0 break-words text-gray-600 dark:text-muted-foreground">
+                    <span className="font-semibold text-gray-800 dark:text-foreground">สิ่งที่ส่ง:</span> {formData.description || '-'}
+                  </p>
                 </div>
                 {formData.note && (
-                  <div className="flex items-start gap-2 rounded-xl bg-white p-3 shadow-xs">
-                    <span className="material-symbols-outlined text-base text-orange-400" aria-hidden="true">sticky_note_2</span>
-                    <p className="min-w-0 break-words text-gray-600"><span className="font-semibold text-orange-600">หมายเหตุ:</span> {formData.note}</p>
+                  <div className="flex items-start gap-2 rounded-xl bg-white dark:bg-card p-3 shadow-xs">
+                    <span className="material-symbols-outlined text-base text-orange-400 dark:text-amber-400" aria-hidden="true">sticky_note_2</span>
+                    <p className="min-w-0 break-words text-gray-600 dark:text-muted-foreground">
+                      <span className="font-semibold text-orange-600 dark:text-amber-400">หมายเหตุ:</span> {formData.note}
+                    </p>
                   </div>
                 )}
-                <div className={`flex items-center gap-2 rounded-xl p-3 ${position ? 'bg-emerald-50 text-emerald-800' : 'bg-gray-50 text-gray-500'}`}>
+                <div className={`flex items-center gap-2 rounded-xl p-3 ${
+                  position
+                    ? 'bg-emerald-50 dark:bg-emerald-900/25 text-emerald-800 dark:text-emerald-300'
+                    : 'bg-gray-50 dark:bg-surface-container text-gray-500 dark:text-muted-foreground'
+                }`}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">{position ? 'my_location' : 'location_searching'}</span>
                   <span className="font-semibold">{position ? 'บันทึกตำแหน่งจุดรับแล้ว' : 'รอตำแหน่งจุดรับ'}</span>
                 </div>
-                <div className={`flex items-center gap-2 rounded-xl p-3 ${proofPhotoPreview ? 'bg-blue-50 text-blue-800' : 'bg-gray-50 text-gray-500'}`}>
+                <div className={`flex items-center gap-2 rounded-xl p-3 ${
+                  proofPhotoPreview
+                    ? 'bg-blue-50 dark:bg-blue-900/25 text-blue-800 dark:text-blue-300'
+                    : 'bg-gray-50 dark:bg-surface-container text-gray-500 dark:text-muted-foreground'
+                }`}>
                   <span className="material-symbols-outlined text-base" aria-hidden="true">{proofPhotoPreview ? 'image' : 'add_a_photo'}</span>
                   <span className="font-semibold">{proofPhotoPreview ? 'แนบรูปสิ่งที่ส่งแล้ว' : 'ยังไม่ได้แนบรูป'}</span>
                 </div>

@@ -21,6 +21,17 @@ updateServiceWorker = registerSW({
   },
 });
 
+// ลบ HTML splash screen หลัง React mount พร้อม fade out
+function removeSplash() {
+  const splash = document.querySelector<HTMLElement>(".splash-container");
+  if (!splash) return;
+  splash.style.transition = "opacity 0.4s ease-out";
+  splash.style.opacity = "0";
+  splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+  // fallback กรณี transition ไม่ทำงาน
+  setTimeout(() => splash.remove(), 600);
+}
+
 createRoot(document.getElementById("root")!).render(
   <AuthProvider>
     <ParcelStoreProvider>
@@ -28,3 +39,6 @@ createRoot(document.getElementById("root")!).render(
     </ParcelStoreProvider>
   </AuthProvider>
 );
+
+// ลบ splash หลัง React render รอบแรกเสร็จ
+requestAnimationFrame(() => requestAnimationFrame(removeSplash));

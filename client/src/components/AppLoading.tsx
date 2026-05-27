@@ -7,7 +7,9 @@ export function AppLoading({ fullScreen = false, label = 'กำลังโห�
   return (
     <div
       className={`grid place-items-center bg-[#091426] px-4 text-white ${
-        fullScreen ? 'min-h-screen' : 'min-h-[56vh] rounded-2xl'
+        fullScreen
+          ? 'fixed inset-0 z-50'
+          : 'min-h-[56vh] rounded-2xl'
       }`}
     >
       <div className="flex w-full max-w-[280px] animate-in fade-in slide-in-from-bottom-4 duration-500 flex-col items-center text-center">

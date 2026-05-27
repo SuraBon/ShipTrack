@@ -551,11 +551,11 @@
 
 @layer components {
   .app-card {
-    @apply rounded-2xl border border-gray-100 bg-white text-card-foreground shadow-sm;
+    @apply rounded-2xl border border-gray-100 bg-white dark:bg-card dark:border-outline-variant text-card-foreground shadow-sm;
   }
 
   .app-input {
-    @apply min-h-11 rounded-xl border border-gray-100 bg-gray-50 px-3 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-gray-400 focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply min-h-11 rounded-xl border border-gray-100 dark:border-outline-variant bg-gray-50 dark:bg-surface-container px-3 text-sm text-foreground shadow-xs outline-none transition-colors placeholder:text-gray-400 dark:placeholder:text-muted-foreground/60 focus:border-primary/40 focus:bg-white dark:focus:bg-card focus:ring-2 focus:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .app-section-title {
@@ -579,39 +579,39 @@
   }
 
   .app-page-title {
-    @apply text-xl font-bold leading-tight text-gray-800 md:text-2xl;
+    @apply text-xl font-bold leading-tight text-gray-800 dark:text-foreground md:text-2xl;
   }
 
   .app-page-subtitle {
-    @apply mt-0.5 text-xs leading-relaxed text-gray-500 md:text-sm;
+    @apply mt-0.5 text-xs leading-relaxed text-gray-500 dark:text-muted-foreground md:text-sm;
   }
 
   .app-panel {
-    @apply rounded-2xl border border-gray-100 bg-white shadow-sm;
+    @apply rounded-2xl border border-gray-100 dark:border-outline-variant bg-white dark:bg-card shadow-sm;
   }
 
   .app-panel-header {
-    @apply border-b border-gray-100 bg-gray-50 px-4 py-3;
+    @apply border-b border-gray-100 dark:border-outline-variant bg-gray-50 dark:bg-surface-container px-4 py-3;
   }
 
   .app-compact-card {
-    @apply rounded-2xl border border-gray-100 bg-white p-4 shadow-sm;
+    @apply rounded-2xl border border-gray-100 dark:border-outline-variant bg-white dark:bg-card p-4 shadow-sm;
   }
 
   .app-toolbar {
-    @apply rounded-2xl border border-gray-100 bg-white p-3 shadow-sm md:p-4;
+    @apply rounded-2xl border border-gray-100 dark:border-outline-variant bg-white dark:bg-card p-3 shadow-sm md:p-4;
   }
 
   .app-primary-button {
-    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-900 dark:bg-primary px-4 text-sm font-semibold text-white dark:text-primary-foreground shadow-sm transition-all hover:bg-slate-800 dark:hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .app-secondary-button {
-    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-100 bg-white px-4 text-sm font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-gray-100 dark:border-outline-variant bg-white dark:bg-card px-4 text-sm font-semibold text-gray-700 dark:text-foreground shadow-sm transition-all hover:bg-gray-50 dark:hover:bg-surface-container active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50;
   }
 
   .app-bottom-action {
-    @apply fixed inset-x-0 bottom-[4.75rem] z-40 border-t border-gray-100 bg-white/95 px-4 pb-3 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none;
+    @apply fixed inset-x-0 bottom-[4.75rem] z-40 border-t border-gray-100 dark:border-outline-variant bg-white/95 dark:bg-card/95 px-4 pb-3 pt-3 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:static md:border-0 md:bg-transparent md:p-0 md:shadow-none md:backdrop-blur-none;
   }
 
   .app-desktop-split {
