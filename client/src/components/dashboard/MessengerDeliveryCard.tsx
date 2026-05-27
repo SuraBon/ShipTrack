@@ -4,6 +4,7 @@ import type { Parcel } from '@/types/parcel';
 import type { DeliveryAssignment } from '@/lib/deliveryAssignment';
 import StatusBadge from '@/components/StatusBadge';
 import ImagePopup from '@/components/ImagePopup';
+import { Checkbox } from '@/components/ui/checkbox';
 import { translateSystemNote } from '@/lib/translationUtils';
 import {
   DashboardActionButton,
@@ -28,6 +29,8 @@ export const MessengerDeliveryCard = ({
   canStartDelivery,
   canReleaseDelivery,
   canConfirmDelivery,
+  selected,
+  onSelectedChange,
 }: {
   parcel: Parcel;
   onOpen: () => void;
@@ -40,6 +43,8 @@ export const MessengerDeliveryCard = ({
   canStartDelivery: boolean;
   canReleaseDelivery: boolean;
   canConfirmDelivery: boolean;
+  selected?: boolean;
+  onSelectedChange?: (checked: boolean) => void;
 }) => {
   const note = getCleanNote(parcel);
   const itemDescription = parcel['รายละเอียด'] || '';
@@ -95,9 +100,19 @@ export const MessengerDeliveryCard = ({
   return (
     <article className={`flex h-full flex-col overflow-hidden rounded-[1.25rem] border transition-all duration-200 hover:shadow-md ${cardStyles}`}>
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-3.5 py-2">
-        <code className="min-w-0 truncate font-mono text-[10px] font-black tracking-wider text-slate-400">
-          {parcel.TrackingID}
-        </code>
+        <div className="flex min-w-0 items-center gap-2">
+          {onSelectedChange && (
+            <Checkbox
+              checked={selected}
+              onCheckedChange={(checked) => onSelectedChange(checked === true)}
+              aria-label={`เลือก ${parcel.TrackingID}`}
+              className="size-5 rounded-md"
+            />
+          )}
+          <code className="min-w-0 truncate font-mono text-[10px] font-black tracking-wider text-slate-400">
+            {parcel.TrackingID}
+          </code>
+        </div>
         <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusPillClass}`}>
           {statusLabel}
         </span>
@@ -147,7 +162,7 @@ export const MessengerDeliveryCard = ({
           {(itemDescription || note || isParcelStale(parcel)) && (
             <div className="space-y-2">
               {(itemDescription || note) && (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 min-[420px]:grid-cols-2">
                   <div
                     onClick={() => itemDescription && setIsItemDescriptionExpanded(!isItemDescriptionExpanded)}
                     className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-slate-50 px-2.5 py-2 transition-all ${itemDescription ? 'cursor-pointer hover:bg-slate-100' : 'opacity-40'}`}

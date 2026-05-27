@@ -1,5 +1,6 @@
 export {
   confirmReceipt,
+  batchConfirmReceipt,
   createParcel,
   deleteParcel,
   editParcel,
@@ -9,5 +10,6 @@ export {
   releaseDelivery,
   searchParcels,
   startDelivery,
+  batchStartDelivery,
   getCachedParcelsLocally,
 } from './core';

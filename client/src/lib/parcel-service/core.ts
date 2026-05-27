@@ -15,6 +15,7 @@ import type {
   StartDeliveryResponse,
   ReleaseDeliveryPayload,
   ReleaseDeliveryResponse,
+  BatchParcelActionResponse,
   ExportSummaryResponse,
   ParcelSummary,
   Parcel,
@@ -69,7 +70,7 @@ import {
 let isSyncing = false;
 let isRouteSyncing = false;
 const ROUTE_SYNC_BATCH_SIZE = 100;
-const QUEUEABLE_ACTIONS = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery'];
+const QUEUEABLE_ACTIONS = ['createParcel', 'confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery'];
 const ROUTE_BACKGROUND_SYNC_MS = 30_000;
 const ROUTE_SYNC_STATUS_EVENT = 'shiptrack-route-sync-status';
 
@@ -372,6 +373,48 @@ export async function startDelivery(
   };
   try {
     return await callAPI<StartDeliveryResponse>(payload);
+  } catch (err) {
+    const message = getErrorMessage(err);
+    return { success: false, error: message };
+  }
+}
+
+export async function batchStartDelivery(
+  trackingIDs: string[],
+  latitude?: number,
+  longitude?: number,
+): Promise<BatchParcelActionResponse> {
+  try {
+    return await callAPI<BatchParcelActionResponse>({
+      action: 'batchStartDelivery',
+      trackingIDs,
+      latitude,
+      longitude,
+      idempotencyKey: createIdempotencyKey('batchStartDelivery'),
+    });
+  } catch (err) {
+    const message = getErrorMessage(err);
+    return { success: false, error: message };
+  }
+}
+
+export async function batchConfirmReceipt(
+  trackingIDs: string[],
+  photoUrl: string,
+  note?: string,
+  latitude?: number,
+  longitude?: number,
+): Promise<BatchParcelActionResponse> {
+  try {
+    return await callAPI<BatchParcelActionResponse>({
+      action: 'batchConfirmReceipt',
+      trackingIDs,
+      photoUrl,
+      note,
+      latitude,
+      longitude,
+      idempotencyKey: createIdempotencyKey('batchConfirmReceipt'),
+    });
   } catch (err) {
     const message = getErrorMessage(err);
     return { success: false, error: message };
@@ -744,6 +787,12 @@ async function runQueuedAction(item: OfflineQueueItem): Promise<any> {
     return callAPI(payload, {}, NO_RETRY);
   }
   if (payload.action === 'startDelivery') {
+    return callAPI(payload, {}, NO_RETRY);
+  }
+  if (payload.action === 'batchStartDelivery') {
+    return callAPI(payload, {}, NO_RETRY);
+  }
+  if (payload.action === 'batchConfirmReceipt') {
     return callAPI(payload, {}, NO_RETRY);
   }
   if (payload.action === 'releaseDelivery') {

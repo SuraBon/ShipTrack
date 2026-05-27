@@ -1,7 +1,7 @@
 import { Spinner } from '@/components/ui/spinner';
 import { sanitizeTextInput } from '@/lib/validation';
 import type { Parcel } from '@/types/parcel';
-import { ParcelJobSummary } from './ConfirmReceiptShared';
+import { confirmNavButtonClass, embeddedStepBodyClass, ParcelJobSummary } from './ConfirmReceiptShared';
 
 import { GeoPosition, GeoStatus } from '@/hooks/useGeolocation';
 
@@ -60,8 +60,8 @@ export function Step2PhotoEvidence({
             </div>
           </div>
         )}
-        <div className={embedded ? 'p-5 space-y-4' : 'p-6 sm:p-8 space-y-6'}>
-          {checkedParcel && <ParcelJobSummary parcel={checkedParcel} />}
+        <div className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
+          {checkedParcel && <ParcelJobSummary parcel={checkedParcel} compact={embedded} />}
 
           <input
             ref={fileInputRef as any}
@@ -76,7 +76,7 @@ export function Step2PhotoEvidence({
               type="button"
               disabled={isProcessingImage}
               onClick={() => fileInputRef.current?.click()}
-              className="group relative overflow-hidden rounded-3xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center transition-all hover:border-primary/40 hover:bg-gray-100 sm:p-10 w-full disabled:opacity-75 disabled:pointer-events-none"
+              className="group relative w-full overflow-hidden rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-6 text-center transition-all hover:border-primary/40 hover:bg-gray-100 disabled:pointer-events-none disabled:opacity-75 sm:rounded-3xl sm:p-10 min-h-[11rem]"
             >
               {isProcessingImage ? (
                 <>
@@ -97,7 +97,7 @@ export function Step2PhotoEvidence({
               )}
             </button>
           ) : (
-            <div className="relative h-64 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 sm:h-80 w-full">
+            <div className="relative h-52 w-full overflow-hidden rounded-2xl border border-gray-100 bg-gray-50 sm:h-72">
               <img
                 src={photoPreview}
                 alt="หลักฐานการจัดส่ง"
@@ -114,7 +114,7 @@ export function Step2PhotoEvidence({
                 type="button"
                 disabled={isProcessingImage}
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-4 right-4 z-10 flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50"
+                className="absolute bottom-3 right-3 z-10 flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50 sm:bottom-4 sm:right-4"
               >
                 <span className="material-symbols-outlined text-lg" aria-hidden="true">photo_camera</span>
                 ถ่ายใหม่
@@ -127,8 +127,8 @@ export function Step2PhotoEvidence({
           )}
 
           {/* GPS status panel */}
-          <div className="space-y-4 rounded-2xl border border-gray-100 bg-gray-50 p-4">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 p-3 sm:space-y-4 sm:p-4">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-start gap-3">
                 <div
                   className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-300 ${
@@ -171,7 +171,7 @@ export function Step2PhotoEvidence({
                   <button
                     type="button"
                     onClick={() => setIsGpsBypassed(true)}
-                    className="w-full sm:w-auto font-display text-xs font-black text-amber-600 hover:text-amber-700 border border-amber-200 hover:bg-amber-50 px-3 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer"
+                    className="w-full min-h-11 font-display text-xs font-black text-amber-600 hover:text-amber-700 border border-amber-200 hover:bg-amber-50 px-3 py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer sm:w-auto"
                   >
                     ข้ามระบุตำแหน่ง
                   </button>
@@ -185,7 +185,7 @@ export function Step2PhotoEvidence({
                       setIsGpsBypassed(false);
                       requestLocation();
                     }}
-                    className="w-full sm:w-auto font-display text-xs font-black text-primary hover:text-primary/95 border border-primary/20 hover:bg-primary/5 px-3 py-2 rounded-xl transition-all active:scale-[0.98] cursor-pointer"
+                    className="w-full min-h-11 font-display text-xs font-black text-primary hover:text-primary/95 border border-primary/20 hover:bg-primary/5 px-3 py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer sm:w-auto"
                   >
                     {isGpsBypassed ? 'เปิดระบุตำแหน่ง' : 'ลองดึงตำแหน่งใหม่'}
                   </button>
@@ -210,11 +210,11 @@ export function Step2PhotoEvidence({
           </div>
 
           {/* Navigation controls */}
-          <div className="grid grid-cols-[0.9fr_1.4fr] gap-2.5 sm:gap-3 pt-2">
+          <div className="grid grid-cols-1 gap-2 pt-1 min-[400px]:grid-cols-[0.9fr_1.4fr] sm:gap-3 sm:pt-2">
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="flex h-13 min-w-0 items-center justify-center gap-1.5 rounded-2xl border border-outline-variant/70 bg-white px-2 font-display text-sm font-black text-on-surface-variant shadow-sm transition-all hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary active:scale-[0.98] cursor-pointer sm:text-base"
+              className={`${confirmNavButtonClass} border border-outline-variant/70 bg-white text-on-surface-variant shadow-sm hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary`}
             >
               <span className="material-symbols-outlined text-lg sm:text-xl" aria-hidden="true">arrow_back</span>
               ย้อนกลับ
@@ -223,7 +223,7 @@ export function Step2PhotoEvidence({
               type="button"
               onClick={() => setCurrentStep(3)}
               disabled={!canProceedFromPhoto}
-              className="group flex h-13 min-w-0 items-center justify-center gap-2 rounded-2xl bg-primary px-3 font-display text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:bg-primary/95 active:scale-[0.98] disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none cursor-pointer sm:text-base"
+              className={`${confirmNavButtonClass} group gap-2 bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.01] hover:bg-primary/95 disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none`}
             >
               ขั้นตอนถัดไป
               <span

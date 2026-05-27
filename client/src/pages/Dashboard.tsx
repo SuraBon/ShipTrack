@@ -180,6 +180,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     openEditParcel,
     submitParcelEdit,
     executeBatchDelete,
+    executeBatchStartDelivery,
+    executeBatchConfirmDelivery,
     executeDelete,
     openConfirmFlow,
     handleStartDelivery,
@@ -283,7 +285,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     done: MESSENGER_BATCH_SIZE,
   });
   const [selectedAdminParcelIds, setSelectedAdminParcelIds] = useState<Set<string>>(new Set());
+  const [selectedMessengerParcelIds, setSelectedMessengerParcelIds] = useState<Set<string>>(new Set());
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  const [isBatchConfirmOpen, setIsBatchConfirmOpen] = useState(false);
+  const [isBatchConfirming, setIsBatchConfirming] = useState(false);
 
   const toggleSelectedAdminParcel = useCallback((trackingId: string, checked: boolean) => {
     setSelectedAdminParcelIds(current => {
@@ -309,6 +314,38 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     setSelectedAdminParcelIds(new Set());
   }, []);
 
+  const toggleSelectedMessengerParcel = useCallback((trackingId: string, checked: boolean) => {
+    setSelectedMessengerParcelIds(current => {
+      const next = new Set(current);
+      if (checked) next.add(trackingId);
+      else next.delete(trackingId);
+      return next;
+    });
+  }, []);
+
+  const clearSelectedMessengerParcels = useCallback(() => {
+    setSelectedMessengerParcelIds(new Set());
+  }, []);
+
+  const selectedAdminParcels = useMemo(
+    () => filteredParcels.filter(parcel => selectedAdminParcelIds.has(parcel.TrackingID)),
+    [filteredParcels, selectedAdminParcelIds],
+  );
+  const selectedMessengerParcels = useMemo(
+    () => filteredParcels.filter(parcel => selectedMessengerParcelIds.has(parcel.TrackingID)),
+    [filteredParcels, selectedMessengerParcelIds],
+  );
+  const batchConfirmParcels = useMemo(
+    () => isMessengerDashboard
+      ? selectedMessengerParcels.filter(parcel => canConfirmMessengerJob(parcel, currentEmployeeId))
+      : selectedAdminParcels.filter(parcel => parcel['สถานะ'] !== 'ส่งสำเร็จ'),
+    [currentEmployeeId, isMessengerDashboard, selectedAdminParcels, selectedMessengerParcels],
+  );
+  const eligibleMessengerStartCount = useMemo(
+    () => selectedMessengerParcels.filter(parcel => isAvailableForMessenger(parcel)).length,
+    [selectedMessengerParcels],
+  );
+
   const handleBatchDelete = useCallback(async () => {
     const trackingIds = Array.from(selectedAdminParcelIds);
     if (trackingIds.length === 0 || isBatchDeleting) return;
@@ -320,6 +357,48 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     clearSelectedAdminParcels();
   }, [clearSelectedAdminParcels, executeBatchDelete, isBatchDeleting, selectedAdminParcelIds]);
 
+  const handleBatchStartDelivery = useCallback(async () => {
+    const parcelsToStart = selectedMessengerParcels.filter(parcel => isAvailableForMessenger(parcel));
+    if (parcelsToStart.length === 0) return;
+    const result = await executeBatchStartDelivery(parcelsToStart, messengerPosition?.latitude, messengerPosition?.longitude);
+    if (result.queued || result.failedCount === 0) {
+      clearSelectedMessengerParcels();
+      return;
+    }
+    setSelectedMessengerParcelIds(new Set(result.failedIds));
+  }, [clearSelectedMessengerParcels, executeBatchStartDelivery, messengerPosition, selectedMessengerParcels]);
+
+  const submitBatchConfirm = useCallback(async (input: {
+    photoUrl: string;
+    note: string;
+    latitude?: number;
+    longitude?: number;
+  }): Promise<boolean> => {
+    if (batchConfirmParcels.length === 0 || isBatchConfirming) return false;
+    setIsBatchConfirming(true);
+    const result = await executeBatchConfirmDelivery(
+      batchConfirmParcels,
+      input.photoUrl,
+      input.note,
+      input.latitude,
+      input.longitude,
+    );
+    setIsBatchConfirming(false);
+    if (!result.success) return false;
+    setIsBatchConfirmOpen(false);
+    if (result.queued || result.failedCount === 0) {
+      clearSelectedAdminParcels();
+      clearSelectedMessengerParcels();
+    } else if (isMessengerDashboard) {
+      clearSelectedAdminParcels();
+      setSelectedMessengerParcelIds(new Set(result.failedIds));
+    } else {
+      setSelectedAdminParcelIds(new Set(result.failedIds));
+      clearSelectedMessengerParcels();
+    }
+    return true;
+  }, [batchConfirmParcels, clearSelectedAdminParcels, clearSelectedMessengerParcels, executeBatchConfirmDelivery, isBatchConfirming, isMessengerDashboard]);
+
   useEffect(() => {
     setMessengerVisibleCounts({
       waiting: MESSENGER_BATCH_SIZE,
@@ -330,6 +409,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   useEffect(() => {
     setSelectedAdminParcelIds(current => {
+      const availableIds = new Set(filteredParcels.map(parcel => parcel.TrackingID));
+      const next = new Set(Array.from(current).filter(id => availableIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+    setSelectedMessengerParcelIds(current => {
       const availableIds = new Set(filteredParcels.map(parcel => parcel.TrackingID));
       const next = new Set(Array.from(current).filter(id => availableIds.has(id)));
       return next.size === current.size ? current : next;
@@ -599,6 +683,36 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           </div>
         ) : isMessengerDashboard ? (
           <div className="space-y-4 p-0 pb-20">
+            {selectedMessengerParcelIds.size > 0 && (
+              <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm font-bold text-slate-700">
+                  เลือกแล้ว {selectedMessengerParcelIds.size} รายการ • รับได้ {eligibleMessengerStartCount} • ส่งได้ {batchConfirmParcels.length}
+                </span>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  <button type="button" onClick={clearSelectedMessengerParcels} className="app-secondary-button h-10 px-3 text-xs">
+                    ยกเลิกเลือก
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleBatchStartDelivery}
+                    disabled={!selectedMessengerParcels.some(isAvailableForMessenger)}
+                    className="app-secondary-button h-10 px-3 text-xs disabled:opacity-60"
+                  >
+                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    รับพร้อมกัน
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBatchConfirmOpen(true)}
+                    disabled={batchConfirmParcels.length === 0}
+                    className="app-primary-button col-span-2 h-10 px-3 text-xs disabled:opacity-60 sm:col-span-1"
+                  >
+                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    ส่งพร้อมกัน
+                  </button>
+                </div>
+              </div>
+            )}
             {messengerView === 'waiting' && (
               <div>
                 <MessengerViewBanner
@@ -625,6 +739,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                         onReleaseDelivery={() => handleReleaseDelivery(parcel)}
                         isStartingDelivery={startingDeliveryId === parcel.TrackingID}
                         isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
+                        selected={selectedMessengerParcelIds.has(parcel.TrackingID)}
+                        onSelectedChange={(checked) => toggleSelectedMessengerParcel(parcel.TrackingID, checked)}
                       />
                     ))}
                   </div>
@@ -670,6 +786,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                           onReleaseDelivery={() => handleReleaseDelivery(parcel)}
                           isStartingDelivery={startingDeliveryId === parcel.TrackingID}
                           isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
+                          selected={selectedMessengerParcelIds.has(parcel.TrackingID)}
+                          onSelectedChange={(checked) => toggleSelectedMessengerParcel(parcel.TrackingID, checked)}
                         />
                       );
                     })}
@@ -793,12 +911,18 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           <div className="space-y-4 pb-4 animate-in fade-in duration-300">
             {selectedAdminParcelIds.size > 0 && (
               <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm font-bold text-slate-700">เลือกแล้ว {selectedAdminParcelIds.size} รายการ</span>
-                <div className="flex gap-2">
-                  <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-9 px-3 text-xs">
+                <span className="text-sm font-bold text-slate-700">
+                  เลือกแล้ว {selectedAdminParcelIds.size} รายการ (ส่งได้ {batchConfirmParcels.length})
+                </span>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs">
                     ยกเลิกเลือก
                   </button>
-                  <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60">
+                  <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs disabled:opacity-60">
+                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    ส่งพร้อมกัน
+                  </button>
+                  <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60 sm:col-span-1">
                     {isBatchDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
                     ลบพร้อมกัน
                   </button>
@@ -857,12 +981,18 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           <div className="space-y-4 pb-4">
             {selectedAdminParcelIds.size > 0 && (
               <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm font-bold text-slate-700">เลือกแล้ว {selectedAdminParcelIds.size} รายการ</span>
-                <div className="flex gap-2">
-                  <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-9 px-3 text-xs">
+                <span className="text-sm font-bold text-slate-700">
+                  เลือกแล้ว {selectedAdminParcelIds.size} รายการ (ส่งได้ {batchConfirmParcels.length})
+                </span>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+                  <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs">
                     ยกเลิกเลือก
                   </button>
-                  <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60">
+                  <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs disabled:opacity-60">
+                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                    ส่งพร้อมกัน
+                  </button>
+                  <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60 sm:col-span-1">
                     {isBatchDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
                     ลบพร้อมกัน
                   </button>
@@ -1025,7 +1155,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         )}
       </section>
 
-      {(isDeliveryDetailsOpen || isTimelineOpen || isConfirmFlowOpen || isDeleteConfirmOpen || isEditParcelOpen) && (
+      {(isDeliveryDetailsOpen || isTimelineOpen || isConfirmFlowOpen || isDeleteConfirmOpen || isEditParcelOpen || isBatchConfirmOpen) && (
         <Suspense fallback={null}>
           <DashboardDialogs
             selectedParcel={liveSelectedParcel}
@@ -1048,6 +1178,11 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             setIsEditParcelOpen={setIsEditParcelOpen}
             isSavingParcelEdit={isSavingParcelEdit}
             submitParcelEdit={submitParcelEdit}
+            isBatchConfirmOpen={isBatchConfirmOpen}
+            setIsBatchConfirmOpen={setIsBatchConfirmOpen}
+            batchConfirmParcels={batchConfirmParcels}
+            isBatchConfirming={isBatchConfirming}
+            submitBatchConfirm={submitBatchConfirm}
           />
         </Suspense>
       )}

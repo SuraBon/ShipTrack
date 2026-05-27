@@ -1,19 +1,34 @@
 import type { Parcel } from '@/types/parcel';
 
+/** Body padding for confirm steps inside dashboard modal (mobile-first). */
+export const embeddedStepBodyClass = 'space-y-3 p-4 sm:space-y-4 sm:p-5';
+
+/** Primary/secondary nav buttons with 48px min touch target. */
+export const confirmNavButtonClass =
+  'flex min-h-12 min-w-0 items-center justify-center gap-1.5 rounded-2xl px-3 font-display text-sm font-black active:scale-[0.98] sm:min-h-[3.25rem] sm:text-base';
+
 /** Rendered outside the main component so it never remounts on state changes. */
-export function StepIndicator({ currentStep, compact = false }: { currentStep: number; compact?: boolean }) {
+export function StepIndicator({
+  currentStep,
+  compact = false,
+  onDark = false,
+}: {
+  currentStep: number;
+  compact?: boolean;
+  onDark?: boolean;
+}) {
   return (
-    <div className={`flex items-center justify-center ${compact ? 'mb-4 mt-4' : 'mb-8 sm:mb-10'}`}>
+    <div className={`flex items-center justify-center ${compact ? 'my-2' : 'mb-8 sm:mb-10'}`}>
       {[1, 2, 3].map((step) => (
         <div key={step} className="flex items-center">
           <div className={`flex items-center justify-center transition-all duration-500 font-display font-bold ${
             compact 
               ? `w-8 h-8 rounded-lg text-xs ${
                   currentStep === step 
-                    ? 'bg-slate-900 text-white shadow-md' 
+                    ? (onDark ? 'bg-white text-slate-900 shadow-md' : 'bg-slate-900 text-white shadow-md')
                     : currentStep > step 
                       ? 'bg-green-500 text-white' 
-                      : 'bg-slate-100 text-slate-400'
+                      : (onDark ? 'bg-white/15 text-slate-300' : 'bg-slate-100 text-slate-400')
                 }`
               : `w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl text-base sm:text-lg ${
                   currentStep === step
@@ -28,7 +43,7 @@ export function StepIndicator({ currentStep, compact = false }: { currentStep: n
               : step}
           </div>
           {step < 3 && (
-            <div className={`rounded-full overflow-hidden bg-slate-100 ${compact ? 'w-6 h-0.5 mx-1' : 'w-8 sm:w-12 h-1 mx-1 sm:mx-2 bg-surface-container'}`}>
+            <div className={`rounded-full overflow-hidden ${compact ? `w-6 h-0.5 mx-1 ${onDark ? 'bg-white/20' : 'bg-slate-100'}` : 'w-8 sm:w-12 h-1 mx-1 sm:mx-2 bg-surface-container'}`}>
               <div className={`h-full bg-green-500 transition-all duration-500 ${currentStep > step ? 'w-full' : 'w-0'}`} />
             </div>
           )}
@@ -38,9 +53,9 @@ export function StepIndicator({ currentStep, compact = false }: { currentStep: n
   );
 }
 
-export function ParcelJobSummary({ parcel }: { parcel: Parcel }) {
+export function ParcelJobSummary({ parcel, compact = false }: { parcel: Parcel; compact?: boolean }) {
   return (
-    <div className="rounded-2xl border border-gray-200 bg-slate-50 p-3 text-left">
+    <div className={`border border-gray-200 bg-slate-50 text-left ${compact ? 'rounded-xl p-2.5' : 'rounded-2xl p-3'}`}>
       <div className="mb-3 flex items-center justify-between gap-2">
         <div className="min-w-0">
           <p className="text-[10px] font-black text-slate-400">งานส่งนี้</p>

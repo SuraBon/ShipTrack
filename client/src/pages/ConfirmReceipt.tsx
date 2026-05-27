@@ -11,6 +11,7 @@ import { useConfirmReceiptForm } from '@/hooks/useConfirmReceiptForm';
 import { Step1CheckTracking } from '@/components/confirm-receipt/Step1CheckTracking';
 import { Step2PhotoEvidence } from '@/components/confirm-receipt/Step2PhotoEvidence';
 import { Step3ConfirmDetails } from '@/components/confirm-receipt/Step3ConfirmDetails';
+import { StepIndicator } from '@/components/confirm-receipt/ConfirmReceiptShared';
 
 export default function ConfirmReceipt({
   initialTrackingId,
@@ -102,7 +103,7 @@ export default function ConfirmReceipt({
   });
 
   return (
-    <div className={`${embedded ? 'max-w-none pb-0 overflow-hidden rounded-[1.75rem]' : 'app-page-narrow'} animate-in fade-in slide-in-from-bottom-4 duration-700`}>
+    <div className={`${embedded ? 'flex max-h-full min-h-0 w-full flex-col overflow-hidden' : 'app-page-narrow'} animate-in fade-in slide-in-from-bottom-4 duration-700`}>
       {/* Header Section (Standalone) */}
       {!embedded && (
         <div className="app-page-header">
@@ -121,29 +122,30 @@ export default function ConfirmReceipt({
 
       {/* Header Section (Embedded Modal) */}
       {embedded && (
-        <div className="relative shrink-0 bg-slate-950 px-5 py-4 text-white">
+        <div className="relative shrink-0 border-b border-slate-800 bg-slate-950 px-4 py-3 text-white sm:px-5 sm:py-3.5">
           {onClose && (
             <button
               type="button"
               onClick={handleCloseStep}
-              className="absolute right-4 top-3 grid h-8 w-8 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+              className="absolute right-3 top-2.5 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95 sm:right-4"
               aria-label="ปิดหน้านี้"
             >
-              <span className="material-symbols-outlined text-lg" aria-hidden="true">close</span>
+              <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>
             </button>
           )}
-          <h2 className="font-display text-sm font-semibold leading-tight text-white">
+          <h2 className="font-display pr-12 text-sm font-semibold leading-snug text-white sm:text-base">
             {currentStep === 1 && 'ระบุหมายเลขติดตาม'}
-            {currentStep === 2 && 'ถ่ายรูปหลักฐานการจัดส่ง'}
-            {currentStep === 3 && 'ตรวจสอบและยืนยันข้อมูล'}
+            {currentStep === 2 && 'ถ่ายรูปหลักฐาน'}
+            {currentStep === 3 && 'ยืนยันข้อมูล'}
           </h2>
-          <p className="mt-1 min-w-0 pr-8 text-[10px] tracking-wide text-slate-400">
+          <p className="mt-0.5 min-w-0 pr-12 text-[11px] text-slate-400">
             {checkedParcel ? (
-              <span className="font-mono">{checkedParcel.TrackingID}</span>
+              <span className="font-mono font-semibold text-slate-300">{checkedParcel.TrackingID}</span>
             ) : (
-              'กรุณาตรวจสอบหมายเลขพัสดุก่อนทำรายการ'
+              'ตรวจสอบหมายเลขก่อนทำรายการ'
             )}
           </p>
+          <StepIndicator currentStep={currentStep} compact onDark />
         </div>
       )}
 
@@ -158,16 +160,16 @@ export default function ConfirmReceipt({
         document.body
       )}
 
+      <div className={embedded ? 'modal-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain' : undefined}>
       {isAutoPreparingCamera && currentStep === 1 && (
-        <div className="app-panel p-8 text-center animate-in fade-in zoom-in-95 duration-300">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Spinner className="h-10 w-10" />
+        <div className={`text-center animate-in fade-in zoom-in-95 duration-300 ${embedded ? 'p-6' : 'app-panel p-8'}`}>
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Spinner className="h-9 w-9" />
           </div>
-          <h2 className="font-display text-xl font-black text-primary">กำลังเปิดกล้อง...</h2>
-          <p className="mt-1 text-sm font-semibold text-on-surface-variant/60">ระบบกำลังตรวจสอบรายการส่งและเตรียมถ่ายรูปหลักฐาน</p>
+          <h2 className="font-display text-lg font-black text-primary sm:text-xl">กำลังเปิดกล้อง...</h2>
+          <p className="mt-1 text-sm font-semibold text-on-surface-variant/60">กำลังตรวจสอบรายการและเตรียมถ่ายรูป</p>
         </div>
       )}
-
       {/* Step 1: Check Tracking ID */}
       {currentStep === 1 && !isAutoPreparingCamera && (
         <Step1CheckTracking
@@ -245,6 +247,7 @@ export default function ConfirmReceipt({
           setTempReceiverBranch={setTempReceiverBranch}
         />
       )}
+      </div>
     </div>
   );
 }

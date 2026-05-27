@@ -1,6 +1,7 @@
 import { Spinner } from '@/components/ui/spinner';
 import { sanitizeTextInput } from '@/lib/validation';
 import type { Parcel } from '@/types/parcel';
+import { embeddedStepBodyClass } from './ConfirmReceiptShared';
 
 interface Step1CheckTrackingProps {
   trackingId: string;
@@ -41,7 +42,7 @@ export function Step1CheckTracking({
             </div>
           </div>
         )}
-        <div className={embedded ? 'p-5 space-y-5' : 'p-6 sm:p-8 space-y-6'}>
+        <div className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
           <div className="space-y-4">
             <div className="relative group">
               <input

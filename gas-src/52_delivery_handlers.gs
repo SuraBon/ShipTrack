@@ -1,12 +1,16 @@
+var _batchEventsMapBySpreadsheetId = null;
+
 function handleConfirmReceipt(payload) {
   if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER'])) {
     return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
   }
 
   // Rate limit: ป้องกัน spam ยืนยันพัสดุ
-  const rl = checkWriteRateLimit(payload.employeeId, 'confirmReceipt');
-  if (!rl.allowed) {
-    return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+  if (!payload.skipRateLimit) {
+    const rl = checkWriteRateLimit(payload.employeeId, 'confirmReceipt');
+    if (!rl.allowed) {
+      return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+    }
   }
 
   if (!validateTrackingID(payload.trackingID)) {
@@ -68,7 +72,16 @@ function handleConfirmReceipt(payload) {
       const rowIndex = i + 1;
       const currentStatus = row[8];
       const noteStr = String(row[7] || "");
-      const activeAssignment = getActiveDeliveryAssignmentFromEvents(getParcelEventsForSpreadsheet(storage.spreadsheet, payload.trackingID));
+      // In batch confirm flow we may preload ParcelEvents to avoid reading the same sheet repeatedly.
+      let events;
+      const spreadsheetId = storage.spreadsheet.getId();
+      if (_batchEventsMapBySpreadsheetId && _batchEventsMapBySpreadsheetId[spreadsheetId]) {
+        events = _batchEventsMapBySpreadsheetId[spreadsheetId][payload.trackingID];
+      }
+      if (!events) {
+        events = getParcelEventsForSpreadsheet(storage.spreadsheet, payload.trackingID);
+      }
+      const activeAssignment = getActiveDeliveryAssignmentFromEvents(events);
       if (
         activeAssignment &&
         activeAssignment.assignedToId &&
@@ -116,51 +129,7 @@ function handleConfirmReceipt(payload) {
 
       if (finalPhotoUrl && finalPhotoUrl.startsWith('data:image')) {
         try {
-          // ค้นหาหรือสร้างโฟลเดอร์หลักชื่อ ShipTrack_Images
-          const systemFolder = getShipTrackFolder();
-          let rootFolder;
-          const rootFolderIterator = systemFolder
-            ? systemFolder.getFoldersByName("ShipTrack_Images")
-            : DriveApp.getFoldersByName("ShipTrack_Images");
-          if (rootFolderIterator.hasNext()) {
-            rootFolder = rootFolderIterator.next();
-          } else {
-            rootFolder = systemFolder
-              ? systemFolder.createFolder("ShipTrack_Images")
-              : DriveApp.createFolder("ShipTrack_Images");
-            try {
-              rootFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-            } catch (e) { }
-          }
-
-          // สร้างโฟลเดอร์ย่อยตามเดือน (เช่น 2026-04)
-          const dateStr = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM");
-          let folders = rootFolder.getFoldersByName(dateStr);
-          let folder;
-          if (folders.hasNext()) {
-            folder = folders.next();
-          } else {
-            folder = rootFolder.createFolder(dateStr);
-            try {
-              folder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-            } catch (e) { }
-          }
-
-          const splitData = finalPhotoUrl.split(',');
-          const base64Data = splitData[1];
-          const mimeTypeMatch = splitData[0].match(/:(.*?);/);
-          const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
-          const extension = mimeType === 'image/jpeg' ? 'jpg' : (mimeType.split('/')[1] || 'jpg');
-
-          const filename = payload.trackingID + "_" + new Date().getTime() + "." + extension;
-          const blob = Utilities.newBlob(Utilities.base64Decode(base64Data), mimeType, filename);
-
-          const file = folder.createFile(blob);
-          try {
-            file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          } catch (e) { }
-
-          finalPhotoUrl = "https://drive.google.com/uc?export=view&id=" + file.getId();
+          finalPhotoUrl = saveImagePayloadToDrive(finalPhotoUrl, payload.trackingID);
         } catch (e) {
           return createJsonResponse({ success: false, error: "ไม่สามารถบันทึกรูปภาพได้ กรุณาลองใหม่" });
         }
@@ -217,14 +186,224 @@ function handleConfirmReceipt(payload) {
   return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
 }
 
+function parseJsonTextOutput(output) {
+  try {
+    return JSON.parse(output.getContent());
+  } catch (e) {
+    return { success: false, error: "ระบบตอบกลับไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง" };
+  }
+}
+
+function normalizeTrackingIdList(value) {
+  if (!Array.isArray(value)) return [];
+  const seen = {};
+  const result = [];
+  value.forEach(function (item) {
+    const trackingID = String(item || "").trim();
+    if (!trackingID || seen[trackingID]) return;
+    seen[trackingID] = true;
+    result.push(trackingID);
+  });
+  return result;
+}
+
+function getBatchDeliveryDefaults(payload, trackingID) {
+  const storage = getParcelStorageByTrackingId(trackingID);
+  if (!storage) return {};
+  const data = storage.sheet.getDataRange().getValues();
+  for (let i = 1; i < data.length; i++) {
+    const row = data[i];
+    if (row[0] !== trackingID) continue;
+    if (!canReadParcelRow(payload, row)) return {};
+    return {
+      location: escapeSheetValue(row[5] || ""),
+      person: escapeSheetValue(row[4] || "")
+    };
+  }
+  return {};
+}
+
+function getBatchDeliveryDefaultsMap(payload, trackingIDs) {
+  const defaultsByTrackingId = {};
+
+  // Group tracking IDs by (spreadsheetId + sheetName) to avoid reading the same sheet repeatedly.
+  const groups = {}; // key -> { storage, trackingIdSet }
+  trackingIDs.forEach(function (trackingID) {
+    const storage = getParcelStorageByTrackingId(trackingID);
+    if (!storage) return;
+    const key = storage.spreadsheet.getId() + "|" + storage.sheet.getName();
+    if (!groups[key]) {
+      groups[key] = { storage: storage, trackingIdSet: {} };
+    }
+    groups[key].trackingIdSet[String(trackingID).trim()] = true;
+  });
+
+  Object.keys(groups).forEach(function (key) {
+    const group = groups[key];
+    const data = group.storage.sheet.getDataRange().getValues();
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowTrackingId = String(row[0]).trim();
+      if (!group.trackingIdSet[rowTrackingId]) continue;
+      if (!canReadParcelRow(payload, row)) continue;
+      defaultsByTrackingId[rowTrackingId] = {
+        location: escapeSheetValue(row[5] || ""),
+        person: escapeSheetValue(row[4] || "")
+      };
+    }
+  });
+
+  return defaultsByTrackingId;
+}
+
+function getBatchParcelEventsMapBySpreadsheetId(trackingIDs) {
+  const groups = {}; // spreadsheetId -> { spreadsheet, trackingIdSet }
+  trackingIDs.forEach(function (trackingID) {
+    const storage = getParcelStorageByTrackingId(trackingID);
+    if (!storage) return;
+    const spreadsheetId = storage.spreadsheet.getId();
+    if (!groups[spreadsheetId]) {
+      groups[spreadsheetId] = { spreadsheet: storage.spreadsheet, trackingIdSet: {} };
+    }
+    groups[spreadsheetId].trackingIdSet[String(trackingID).trim()] = true;
+  });
+
+  const eventsBySpreadsheetId = {};
+  Object.keys(groups).forEach(function (spreadsheetId) {
+    const group = groups[spreadsheetId];
+    const eventSheet = group.spreadsheet.getSheetByName("ParcelEvents");
+    if (!eventSheet || eventSheet.getLastRow() <= 1) return;
+
+    const data = eventSheet.getDataRange().getValues();
+    const eventsByTrackingId = {};
+
+    for (let i = 1; i < data.length; i++) {
+      const row = data[i];
+      const rowTrackingId = String(row[1]).trim();
+      if (!group.trackingIdSet[rowTrackingId]) continue;
+      if (!eventsByTrackingId[rowTrackingId]) eventsByTrackingId[rowTrackingId] = [];
+      eventsByTrackingId[rowTrackingId].push(parseEventRow(row));
+    }
+
+    eventsBySpreadsheetId[spreadsheetId] = eventsByTrackingId;
+  });
+
+  return eventsBySpreadsheetId;
+}
+
+function handleBatchConfirmReceipt(payload) {
+  if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER'])) {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+  }
+
+  const rl = checkWriteRateLimit(payload.employeeId, 'batchConfirmReceipt');
+  if (!rl.allowed) return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+
+  const trackingIDs = normalizeTrackingIdList(payload.trackingIDs);
+  if (trackingIDs.length === 0) return createJsonResponse({ success: false, error: "กรุณาเลือกรายการพัสดุ" });
+  if (trackingIDs.length > 50) return createJsonResponse({ success: false, error: "ทำรายการพร้อมกันได้ไม่เกิน 50 รายการ" });
+
+  const imageValidation = validateImagePayload(payload.photoUrl);
+  if (!imageValidation.ok) return createJsonResponse({ success: false, error: imageValidation.error });
+
+  let sharedPhotoUrl = imageValidation.value;
+  try {
+    sharedPhotoUrl = saveImagePayloadToDrive(sharedPhotoUrl, "BATCH_" + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyyMMddHHmmss"));
+  } catch (e) {
+    return createJsonResponse({ success: false, error: "ไม่สามารถบันทึกรูปภาพได้ กรุณาลองใหม่" });
+  }
+
+  try {
+    _batchEventsMapBySpreadsheetId = getBatchParcelEventsMapBySpreadsheetId(trackingIDs);
+
+    const defaultsMap = getBatchDeliveryDefaultsMap(payload, trackingIDs);
+    const results = trackingIDs.map(function (trackingID) {
+      const defaults = defaultsMap[String(trackingID).trim()] || {};
+      const singlePayload = Object.assign({}, payload, {
+        trackingID: trackingID,
+        photoUrl: sharedPhotoUrl,
+        eventType: "DELIVERED",
+        location: defaults.location || payload.location || "",
+        person: defaults.person || payload.person || "",
+        deliveryMatchStatus: "MATCHED_DECLARED_DESTINATION",
+        deliveryMismatchReason: "",
+        skipRateLimit: true,
+        idempotencyKey: ""
+      });
+      const result = parseJsonTextOutput(handleConfirmReceipt(singlePayload));
+      return {
+        trackingID: trackingID,
+        success: !!result.success,
+        error: result.error || ""
+      };
+    });
+
+    const successCount = results.filter(function (item) { return item.success; }).length;
+    const failedCount = results.length - successCount;
+    writeAuditLog(payload.employeeId, "BATCH_CONFIRM_RECEIPT", trackingIDs.join(","), "success=" + successCount + " failed=" + failedCount);
+    return createJsonResponse({
+      success: successCount > 0,
+      sharedPhotoUrl: sharedPhotoUrl,
+      successCount: successCount,
+      failedCount: failedCount,
+      results: results
+    });
+  } finally {
+    _batchEventsMapBySpreadsheetId = null;
+  }
+}
+
+function handleBatchStartDelivery(payload) {
+  if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER'])) {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
+  }
+
+  const rl = checkWriteRateLimit(payload.employeeId, 'batchStartDelivery');
+  if (!rl.allowed) return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+
+  const trackingIDs = normalizeTrackingIdList(payload.trackingIDs);
+  if (trackingIDs.length === 0) return createJsonResponse({ success: false, error: "กรุณาเลือกรายการพัสดุ" });
+  if (trackingIDs.length > 50) return createJsonResponse({ success: false, error: "ทำรายการพร้อมกันได้ไม่เกิน 50 รายการ" });
+
+  const results = trackingIDs.map(function (trackingID) {
+    const singlePayload = Object.assign({}, payload, {
+      trackingID: trackingID,
+      skipRateLimit: true,
+      idempotencyKey: ""
+    });
+    const result = parseJsonTextOutput(handleStartDelivery(singlePayload));
+    return {
+      trackingID: trackingID,
+      success: !!result.success,
+      error: result.error || "",
+      alreadyStarted: !!result.alreadyStarted,
+      assignedToId: result.assignedToId || "",
+      assignedToName: result.assignedToName || "",
+      autoPickedUp: !!result.autoPickedUp
+    };
+  });
+
+  const successCount = results.filter(function (item) { return item.success; }).length;
+  const failedCount = results.length - successCount;
+  writeAuditLog(payload.employeeId, "BATCH_START_DELIVERY", trackingIDs.join(","), "success=" + successCount + " failed=" + failedCount);
+  return createJsonResponse({
+    success: successCount > 0,
+    successCount: successCount,
+    failedCount: failedCount,
+    results: results
+  });
+}
+
 function handleStartDelivery(payload) {
   if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER'])) {
     return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
   }
 
-  const rl = checkWriteRateLimit(payload.employeeId, 'startDelivery');
-  if (!rl.allowed) {
-    return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+  if (!payload.skipRateLimit) {
+    const rl = checkWriteRateLimit(payload.employeeId, 'startDelivery');
+    if (!rl.allowed) {
+      return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
+    }
   }
 
   if (!validateTrackingID(payload.trackingID)) {

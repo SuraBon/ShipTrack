@@ -15,7 +15,7 @@ function doPost(e) {
     }
 
     // --- Token Signature Verification ---
-    const protectedActions = ['confirmReceipt', 'startDelivery', 'releaseDelivery', 'syncRouteSamples', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs'];
+    const protectedActions = ['confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
       if (parts.length === 5) {
@@ -61,7 +61,7 @@ function doPost(e) {
       payload.role = 'GUEST';
     }
 
-    const writeActions = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery', 'syncRouteSamples', 'login', 'setupPin', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const writeActions = ['createParcel', 'confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'login', 'setupPin', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile'];
     const isWrite = writeActions.includes(action);
 
     let result;
@@ -101,7 +101,9 @@ function routeAction(action, payload) {
   if (action === 'getParcel') return handleGetParcel(payload);
   if (action === 'exportSummary') return handleExportSummary(payload);
   if (action === 'confirmReceipt') return handleConfirmReceipt(payload);
+  if (action === 'batchConfirmReceipt') return handleBatchConfirmReceipt(payload);
   if (action === 'startDelivery') return handleStartDelivery(payload);
+  if (action === 'batchStartDelivery') return handleBatchStartDelivery(payload);
   if (action === 'releaseDelivery') return handleReleaseDelivery(payload);
   if (action === 'syncRouteSamples') return handleSyncRouteSamples(payload);
   if (action === 'searchParcels') return handleSearchParcels(payload);

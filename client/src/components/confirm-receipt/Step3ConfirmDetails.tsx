@@ -1,7 +1,7 @@
 import NativeSelect, { resolveSelectValue } from '@/components/NativeSelect';
 import { sanitizeTextInput } from '@/lib/validation';
 import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
-import { ParcelJobSummary } from './ConfirmReceiptShared';
+import { confirmNavButtonClass, embeddedStepBodyClass, ParcelJobSummary } from './ConfirmReceiptShared';
 
 interface Step3ConfirmDetailsProps {
   embedded: boolean;
@@ -90,8 +90,8 @@ export function Step3ConfirmDetails({
             </div>
           </div>
         )}
-        <div className={embedded ? 'p-5 space-y-4' : 'p-6 sm:p-8 space-y-6'}>
-          {checkedParcel && <ParcelJobSummary parcel={checkedParcel} />}
+        <div className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
+          {checkedParcel && <ParcelJobSummary parcel={checkedParcel} compact={embedded} />}
 
           <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-sm sm:grid-cols-2">
             <div className="flex items-center gap-2.5 text-slate-600">
@@ -389,15 +389,17 @@ export function Step3ConfirmDetails({
             </div>
           </div>
 
-          <div className="grid grid-cols-[0.9fr_1.4fr] gap-2.5 sm:gap-3">
+          <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-[0.9fr_1.4fr] sm:gap-3">
             <button
+              type="button"
               onClick={() => setCurrentStep(2)}
-              className="flex h-13 min-w-0 items-center justify-center gap-1.5 rounded-2xl border border-outline-variant/70 bg-white px-2 font-display text-sm font-black text-on-surface-variant shadow-sm transition-all hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary active:scale-[0.98] sm:text-base"
+              className={`${confirmNavButtonClass} border border-outline-variant/70 bg-white text-on-surface-variant shadow-sm hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary`}
             >
               <span className="material-symbols-outlined text-lg sm:text-xl" aria-hidden="true">arrow_back</span>
               ย้อนกลับ
             </button>
             <button
+              type="button"
               onClick={executeConfirm}
               disabled={
                 isLoading ||
@@ -406,7 +408,7 @@ export function Step3ConfirmDetails({
                 (isProxy && !proxyName.trim()) ||
                 (!isForwarding && deliveryMatchStatus === 'DELIVERED_ELSEWHERE' && !deliveryMismatchReason.trim())
               }
-              className="group flex h-13 min-w-0 items-center justify-center gap-2 rounded-2xl bg-primary px-3 font-display text-sm font-black text-white shadow-lg shadow-primary/20 transition-all hover:scale-[1.01] hover:bg-primary/95 active:scale-[0.98] disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none sm:text-base"
+              className={`${confirmNavButtonClass} group gap-2 bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.01] hover:bg-primary/95 disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none`}
             >
               ยืนยันส่ง
               <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl" aria-hidden="true">verified</span>

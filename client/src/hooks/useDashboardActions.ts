@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParcelStore } from '@/hooks/useParcelStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { deleteParcel, editParcel, releaseDelivery, startDelivery, syncRouteSamples } from '@/lib/parcelService';
+import { batchConfirmReceipt, batchStartDelivery, deleteParcel, editParcel, releaseDelivery, startDelivery, syncRouteSamples } from '@/lib/parcelService';
 import { startRouteTracking, stopRouteTracking } from '@/lib/routeTracking';
 import { getActiveDeliveryAssignment, buildAssignmentNote } from '@/lib/deliveryAssignment';
 import type { Parcel } from '@/types/parcel';
@@ -10,6 +10,13 @@ import { toast } from 'sonner';
 import { GeoPosition, GeoStatus } from '@/hooks/useGeolocation';
 
 export type MessengerView = 'waiting' | 'mine' | 'done';
+export type DashboardBatchResult = {
+  success: boolean;
+  queued?: boolean;
+  successCount: number;
+  failedCount: number;
+  failedIds: string[];
+};
 
 export function useDashboardActions({
   messengerPosition,
@@ -105,6 +112,76 @@ export function useDashboardActions({
     }
 
     return { successCount: uniqueIds.length - failed.length, failedCount: failed.length };
+  };
+
+  const executeBatchStartDelivery = async (
+    parcelsToStart: Parcel[],
+    latitude?: number,
+    longitude?: number,
+  ): Promise<DashboardBatchResult> => {
+    const trackingIds = Array.from(new Set(parcelsToStart.map(parcel => parcel.TrackingID))).filter(Boolean);
+    if (trackingIds.length === 0) return { success: false, successCount: 0, failedCount: 0, failedIds: [] };
+    toast.success(`กำลังรับงาน ${trackingIds.length} รายการ...`);
+    const res = await batchStartDelivery(trackingIds, latitude, longitude);
+    if (res.queued) {
+      toast.info(`บันทึกรับงาน ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`);
+      return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
+    }
+    if (!res.success) {
+      toast.error(res.error || 'รับงานพร้อมกันไม่สำเร็จ');
+      return { success: false, successCount: 0, failedCount: trackingIds.length, failedIds: trackingIds };
+    }
+    const results = res.results || [];
+    const successIds = new Set(results.length ? results.filter(item => item.success).map(item => item.trackingID) : trackingIds);
+    const failedIds = results.filter(item => !item.success).map(item => item.trackingID);
+    parcelsToStart.forEach(parcel => {
+      if (successIds.has(parcel.TrackingID)) {
+        updateParcelLocally(parcel.TrackingID, { 'สถานะ': 'กำลังจัดส่ง' });
+        startRouteTracking(parcel.TrackingID);
+      }
+    });
+    const successCount = res.successCount ?? successIds.size;
+    const failedCount = res.failedCount ?? failedIds.length;
+    toast.success(`รับงานสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`);
+    loadParcels(undefined, true).catch(() => {});
+    setMessengerView('mine');
+    return { success: successCount > 0, successCount, failedCount, failedIds };
+  };
+
+  const executeBatchConfirmDelivery = async (
+    parcelsToConfirm: Parcel[],
+    photoUrl: string,
+    note?: string,
+    latitude?: number,
+    longitude?: number,
+  ): Promise<DashboardBatchResult> => {
+    const trackingIds = Array.from(new Set(parcelsToConfirm.map(parcel => parcel.TrackingID))).filter(Boolean);
+    if (trackingIds.length === 0) return { success: false, successCount: 0, failedCount: 0, failedIds: [] };
+    toast.success(`กำลังยืนยันส่ง ${trackingIds.length} รายการ...`);
+    const res = await batchConfirmReceipt(trackingIds, photoUrl, note, latitude, longitude);
+    if (res.queued) {
+      toast.info(`บันทึกยืนยันส่ง ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`);
+      return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
+    }
+    if (!res.success) {
+      toast.error(res.error || 'ยืนยันส่งพร้อมกันไม่สำเร็จ');
+      return { success: false, successCount: 0, failedCount: trackingIds.length, failedIds: trackingIds };
+    }
+    const results = res.results || [];
+    const successIds = new Set(results.length ? results.filter(item => item.success).map(item => item.trackingID) : trackingIds);
+    const failedIds = results.filter(item => !item.success).map(item => item.trackingID);
+    parcelsToConfirm.forEach(parcel => {
+      if (successIds.has(parcel.TrackingID)) {
+        updateParcelLocally(parcel.TrackingID, { 'สถานะ': 'ส่งสำเร็จ', 'รูปยืนยัน': res.sharedPhotoUrl });
+        stopRouteTracking(parcel.TrackingID);
+        void syncRouteSamples(parcel.TrackingID);
+      }
+    });
+    const successCount = res.successCount ?? successIds.size;
+    const failedCount = res.failedCount ?? failedIds.length;
+    toast.success(`ยืนยันส่งสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`);
+    loadParcels(undefined, true).catch(() => {});
+    return { success: successCount > 0, successCount, failedCount, failedIds };
   };
 
   const openConfirmFlow = (trackingId: string) => {
@@ -246,6 +323,8 @@ export function useDashboardActions({
     openEditParcel,
     submitParcelEdit,
     executeBatchDelete,
+    executeBatchStartDelivery,
+    executeBatchConfirmDelivery,
     executeDelete,
     openConfirmFlow,
     handleStartDelivery,

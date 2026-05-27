@@ -69,7 +69,7 @@ const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 // Write rate limit: max 30 creates per user per 10 minutes
 const MAX_WRITE_PER_WINDOW = 30;
 const WRITE_WINDOW_SECONDS = 600; // 10 minutes
-const IDEMPOTENT_ACTIONS = ["createParcel", "confirmReceipt", "startDelivery", "releaseDelivery", "syncRouteSamples"];
+const IDEMPOTENT_ACTIONS = ["createParcel", "confirmReceipt", "batchConfirmReceipt", "startDelivery", "batchStartDelivery", "releaseDelivery", "syncRouteSamples"];
 const IDEMPOTENCY_TTL_SECONDS = 21600; // 6 hours
 
 function getIdempotencyCacheKey(action, payload) {

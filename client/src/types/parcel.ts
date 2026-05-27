@@ -165,6 +165,26 @@ export interface StartDeliveryResponse {
   autoPickedUp?: boolean;
 }
 
+export interface BatchActionItemResult {
+  trackingID: string;
+  success: boolean;
+  error?: string;
+  alreadyStarted?: boolean;
+  assignedToId?: string;
+  assignedToName?: string;
+  autoPickedUp?: boolean;
+}
+
+export interface BatchParcelActionResponse {
+  success: boolean;
+  error?: string;
+  queued?: boolean;
+  successCount?: number;
+  failedCount?: number;
+  sharedPhotoUrl?: string;
+  results?: BatchActionItemResult[];
+}
+
 export interface ReleaseDeliveryPayload {
   action: 'releaseDelivery';
   trackingID: string;

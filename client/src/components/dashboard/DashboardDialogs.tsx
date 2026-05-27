@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { LazyPanelFallback } from './DashboardComponents';
 import { DeliveryJobDetailsModal } from './DeliveryJobDetailsModal';
 import { AdminEditParcelDialog } from './AdminEditParcelDialog';
+import { BatchConfirmDeliveryDialog } from './BatchConfirmDeliveryDialog';
 
 const ParcelTimelineModal = lazy(() => import('@/components/ParcelTimelineModal'));
 const ConfirmReceipt = lazy(() => import('@/pages/ConfirmReceipt'));
@@ -40,6 +41,16 @@ type DashboardDialogsProps = {
   setIsEditParcelOpen: Dispatch<SetStateAction<boolean>>;
   isSavingParcelEdit: boolean;
   submitParcelEdit: (updates: Partial<Record<string, string>>) => Promise<void>;
+  isBatchConfirmOpen: boolean;
+  setIsBatchConfirmOpen: Dispatch<SetStateAction<boolean>>;
+  batchConfirmParcels: Parcel[];
+  isBatchConfirming: boolean;
+  submitBatchConfirm: (input: {
+    photoUrl: string;
+    note: string;
+    latitude?: number;
+    longitude?: number;
+  }) => Promise<boolean>;
 };
 
 export function DashboardDialogs({
@@ -63,9 +74,22 @@ export function DashboardDialogs({
   setIsEditParcelOpen,
   isSavingParcelEdit,
   submitParcelEdit,
+  isBatchConfirmOpen,
+  setIsBatchConfirmOpen,
+  batchConfirmParcels,
+  isBatchConfirming,
+  submitBatchConfirm,
 }: DashboardDialogsProps) {
   return (
     <>
+      <BatchConfirmDeliveryDialog
+        open={isBatchConfirmOpen}
+        parcels={batchConfirmParcels}
+        submitting={isBatchConfirming}
+        onOpenChange={setIsBatchConfirmOpen}
+        onSubmit={submitBatchConfirm}
+      />
+
       <AdminEditParcelDialog
         parcel={selectedParcel}
         open={isEditParcelOpen}
@@ -108,10 +132,10 @@ export function DashboardDialogs({
       >
         <DialogContent
           showCloseButton={false}
-          className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-[1.75rem] border border-gray-100 bg-white p-0 shadow-2xl"
+          className="flex max-h-[min(92dvh,100vh)] w-[calc(100vw-0.75rem)] max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-2xl sm:w-[calc(100vw-1rem)] sm:rounded-[1.75rem]"
         >
           <DialogTitle className="sr-only">ยืนยันการส่ง</DialogTitle>
-          <div className="modal-scroll relative max-h-[92vh] overflow-y-auto p-0">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             <Suspense fallback={<LazyPanelFallback label="กำลังโหลดหน้ายืนยันส่ง..." />}>
               <ConfirmReceipt
                 key={confirmTrackingId ?? 'confirm-flow'}
