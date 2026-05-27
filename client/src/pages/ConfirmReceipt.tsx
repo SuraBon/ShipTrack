@@ -20,7 +20,6 @@ import { buildDeliveryActionPayload, getCurrentBranchFromParcel, isParcelTrulyDe
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { stopRouteTracking } from '@/lib/routeTracking';
 import { ParcelJobSummary } from '@/components/confirm-receipt/ConfirmReceiptShared';
-import { ConfirmReceiptReviewDialog } from '@/components/confirm-receipt/ConfirmReceiptReviewDialog';
 import { useProofImage } from '@/hooks/useProofImage';
 
 export default function ConfirmReceipt({
@@ -76,7 +75,6 @@ export default function ConfirmReceipt({
   const [isChecking, setIsChecking] = useState(false);
   const [isAutoPreparingCamera, setIsAutoPreparingCamera] = useState(false);
   const [checkedParcel, setCheckedParcel] = useState<Parcel | null>(null);
-  const [isConfirmDialogOpen, setIsConfirmDialogOpen] = useState(false);
   const [isDelivered, setIsDelivered] = useState(false);
   const pendingOfflineCount = offlineQueue.filter(item => item.status === 'pending' || item.status === 'failed').length;
   const resetFormState = () => {
@@ -96,7 +94,6 @@ export default function ConfirmReceipt({
     setGpsOverrideReason('');
     setShowAdvancedOptions(false);
     setCheckedParcel(null);
-    setIsConfirmDialogOpen(false);
     setIsDelivered(false);
     resetGeo();
   };
@@ -223,7 +220,6 @@ export default function ConfirmReceipt({
     setDeliveryMismatchReason('');
     setCheckedParcel(null);
     setIsDelivered(false);
-    setIsConfirmDialogOpen(false);
     setIsGpsBypassed(false);
     initialTriggerRef.current.resetGeo();
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -264,7 +260,6 @@ export default function ConfirmReceipt({
 
   const executeConfirm = async () => {
     if (isLoading) return;
-    setIsConfirmDialogOpen(false);
     setIsLoading(true);
     try {
       const safeGpsOverrideReason = sanitizeTextInput(gpsOverrideReason, 300);
@@ -875,7 +870,7 @@ export default function ConfirmReceipt({
                 ย้อนกลับ
               </button>
               <button
-                onClick={() => setIsConfirmDialogOpen(true)}
+                onClick={executeConfirm}
                 disabled={isLoading
                   || (isForwarding && (
                     !forwardSender.trim()
@@ -893,28 +888,6 @@ export default function ConfirmReceipt({
         </div>
       </div>
       )}
-
-      {/* Confirmation Modal */}
-      <ConfirmReceiptReviewDialog
-        isConfirmDialogOpen={isConfirmDialogOpen}
-        setIsConfirmDialogOpen={setIsConfirmDialogOpen}
-        isForwarding={isForwarding}
-        isProxy={isProxy}
-        forwardSender={forwardSender}
-        forwardFromBranch={forwardFromBranch}
-        forwardToBranch={forwardToBranch}
-        proxyName={proxyName}
-        checkedParcel={checkedParcel}
-        deliveryMatchStatus={deliveryMatchStatus}
-        deliveryMismatchReason={deliveryMismatchReason}
-        photoPreview={photoPreview}
-        position={position}
-        gpsOverrideReason={gpsOverrideReason}
-        note={note}
-        trackingId={trackingId}
-        executeConfirm={executeConfirm}
-        isLoading={isLoading}
-      />
     </div>
   );
 }
