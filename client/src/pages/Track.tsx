@@ -15,6 +15,7 @@ import { UI_COPY } from '@/lib/uiCopy';
 import { translateSystemNote } from '@/lib/translationUtils';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { useRealtimeParcel } from '@/hooks/useRealtimeParcel';
 import {
   clearCreatedParcelHistory,
   getCreatedParcelProofPhoto,
@@ -239,6 +240,16 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       return () => clearTimeout(delayDebounceFn);
     }
   }, [trackingId]);
+
+  const { parcel: realtimeParcel } = useRealtimeParcel(
+    parcel?.TrackingID,
+    Boolean(parcel && parcel['สถานะ'] === 'กำลังจัดส่ง'),
+    parcel,
+  );
+  useEffect(() => {
+    if (!realtimeParcel) return;
+    setParcel(current => current?.TrackingID === realtimeParcel.TrackingID ? realtimeParcel : current);
+  }, [realtimeParcel]);
 
   const timelineEvents = useMemo(() => parcel ? parseParcelTimeline(parcel) : [], [parcel]);
   const visibleSearchResults = searchResults.slice(0, visibleSearchResultCount);

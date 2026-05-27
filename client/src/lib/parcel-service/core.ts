@@ -62,6 +62,7 @@ let isSyncing = false;
 let isRouteSyncing = false;
 const ROUTE_SYNC_BATCH_SIZE = 100;
 const QUEUEABLE_ACTIONS = ['createParcel', 'confirmReceipt', 'startDelivery', 'releaseDelivery'];
+const ROUTE_BACKGROUND_SYNC_MS = 30_000;
 
 // ── Status normalizer ────────────────────────────────────────────────────────
 type CallApiOptions = {
@@ -755,4 +756,7 @@ if (typeof window !== 'undefined') {
       void syncRouteSamples();
     }
   });
+  window.setInterval(() => {
+    if (navigator.onLine) void syncRouteSamples();
+  }, ROUTE_BACKGROUND_SYNC_MS);
 }

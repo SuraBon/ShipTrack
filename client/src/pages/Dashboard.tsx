@@ -10,6 +10,7 @@ import { startRouteTracking, stopRouteTracking } from '@/lib/routeTracking';
 import { useDebounce } from '@/hooks/useDebounce';
 import { useDashboardLists } from '@/hooks/useDashboardLists';
 import { useGeolocation } from '@/hooks/useGeolocation';
+import { useRealtimeParcel } from '@/hooks/useRealtimeParcel';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 import {
@@ -204,16 +205,34 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     toast.success('อัปเดตข้อมูลเรียบร้อย');
   };
 
+  const shouldRefreshSelectedParcel = Boolean(
+    selectedParcel &&
+    (isTimelineOpen || isDeliveryDetailsOpen) &&
+    selectedParcel['สถานะ'] === 'กำลังจัดส่ง',
+  );
+  const { parcel: realtimeSelectedParcel } = useRealtimeParcel(
+    selectedParcel?.TrackingID,
+    shouldRefreshSelectedParcel,
+    selectedParcel,
+  );
+  const liveSelectedParcel = realtimeSelectedParcel ?? selectedParcel;
+
+  useEffect(() => {
+    if (!realtimeSelectedParcel || realtimeSelectedParcel === selectedParcel) return;
+    setSelectedParcel(current => current?.TrackingID === realtimeSelectedParcel.TrackingID ? realtimeSelectedParcel : current);
+    updateParcelLocally(realtimeSelectedParcel.TrackingID, realtimeSelectedParcel);
+  }, [realtimeSelectedParcel, selectedParcel, updateParcelLocally]);
+
   const selectedTimelineEvents = useMemo(() =>
-    selectedParcel ? getTimelineEvents(selectedParcel) : [], [selectedParcel]);
+    liveSelectedParcel ? getTimelineEvents(liveSelectedParcel) : [], [liveSelectedParcel]);
 
   /** True when the selected parcel has at least one known-coordinate branch. */
   const selectedParcelHasKnownBranches = useMemo(() => {
-    if (!selectedParcel) return false;
+    if (!liveSelectedParcel) return false;
     return selectedTimelineEvents.some(
       event => typeof event.latitude === 'number' && typeof event.longitude === 'number'
-    ) || Boolean(selectedParcel.routeSamples?.some(sample => typeof sample.latitude === 'number' && typeof sample.longitude === 'number'));
-  }, [selectedParcel, selectedTimelineEvents]);
+    ) || Boolean(liveSelectedParcel.routeSamples?.some(sample => typeof sample.latitude === 'number' && typeof sample.longitude === 'number'));
+  }, [liveSelectedParcel, selectedTimelineEvents]);
 
   const clearFilters = () => { setSearchTerm(''); setStatusFilter(defaultStatusFilter); setCurrentPage(1); };
   const hasFilters = !!(searchTerm || statusFilter !== defaultStatusFilter);
@@ -923,7 +942,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       {(isDeliveryDetailsOpen || isTimelineOpen || isConfirmFlowOpen || isDeleteConfirmOpen) && (
         <Suspense fallback={null}>
           <DashboardDialogs
-            selectedParcel={selectedParcel}
+            selectedParcel={liveSelectedParcel}
             isDeliveryDetailsOpen={isDeliveryDetailsOpen}
             setIsDeliveryDetailsOpen={setIsDeliveryDetailsOpen}
             isTimelineOpen={isTimelineOpen}

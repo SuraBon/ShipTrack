@@ -44,7 +44,6 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
   const mapRef      = useRef<L.Map | null>(null);
   const markersRef  = useRef<L.Marker[]>([]);
   const polylineRef = useRef<L.Polyline | null>(null);
-  const polylineHaloRef = useRef<L.Polyline | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
   const routeSamples = useRouteSamples(trackingID);
 
@@ -52,8 +51,15 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
   // ใช้เฉพาะ GPS จริงจาก events — ไม่ fallback ไปหา branch coordinates
   const { pathEntries, hasUnresolved } = useMemo(() => {
     const entries: { lat: number; lng: number; label: string; isGps: boolean; isLast: boolean; isRouteSample?: boolean; event: TimelineEvent }[] = [];
+    const hasSyncedRouteSamples = syncedRouteSamples.some(sample =>
+      typeof sample.latitude === 'number' &&
+      typeof sample.longitude === 'number' &&
+      Number.isFinite(sample.latitude) &&
+      Number.isFinite(sample.longitude),
+    );
 
     for (const e of events) {
+      if (e.kind === 'routeSample' && hasSyncedRouteSamples) continue;
       // ใช้เฉพาะ GPS จริงเท่านั้น
       if (
         typeof e.latitude === 'number' &&
@@ -150,8 +156,6 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
     markersRef.current = [];
     polylineRef.current?.remove();
     polylineRef.current = null;
-    polylineHaloRef.current?.remove();
-    polylineHaloRef.current = null;
 
     if (!hasRouteData) {
       map.setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 7);
@@ -260,13 +264,9 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
     });
 
     const coords = pathEntries.map(e => [e.lat, e.lng] as [number, number]);
-    polylineHaloRef.current = L.polyline(
-      coords,
-      { color: '#ffffff', opacity: 0.95, weight: 10, lineCap: 'round', lineJoin: 'round' },
-    ).addTo(map);
     polylineRef.current = L.polyline(
       coords,
-      { color: '#2563eb', opacity: 0.9, weight: 4, lineCap: 'round', lineJoin: 'round', dashArray: '8, 10' },
+      { color: '#2563eb', opacity: 0.9, weight: 5, lineCap: 'round', lineJoin: 'round' },
     ).addTo(map);
 
     if (coords.length > 1) {
@@ -282,8 +282,6 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
       markersRef.current = [];
       polylineRef.current?.remove();
       polylineRef.current = null;
-      polylineHaloRef.current?.remove();
-      polylineHaloRef.current = null;
     };
   }, [hasRouteData, isMapReady, pathEntries]);
 
