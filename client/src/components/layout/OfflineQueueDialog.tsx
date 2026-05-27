@@ -1,5 +1,10 @@
 import React, { useState } from 'react';
-import { type OfflineQueueItem, removeOfflineAction } from '@/lib/offlineQueue';
+import {
+  type OfflineQueueItem,
+  removeOfflineAction,
+  resetFailedOfflineActions,
+  resetOfflineActionForRetry,
+} from '@/lib/offlineQueue';
 import { syncOfflineQueue } from '@/lib/parcelService';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertCircle, AlertTriangle, Loader2, Package, RefreshCw, Trash2, Truck } from 'lucide-react';
@@ -24,6 +29,22 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
     } finally {
       setIsSyncing(false);
     }
+  };
+
+  const handleRetryFailed = async () => {
+    const count = await resetFailedOfflineActions();
+    if (count === 0) {
+      toast.info('ไม่มีรายการที่ล้มเหลวให้ลองใหม่');
+      return;
+    }
+    toast.info(`ตั้งรายการ ${count} รายการให้ลองซิงค์ใหม่`);
+    await handleSyncAll();
+  };
+
+  const handleRetryItem = async (id: string) => {
+    const ok = await resetOfflineActionForRetry(id);
+    if (!ok) return;
+    await handleSyncAll();
   };
 
   const handleDeleteItem = async (id: string, e: React.MouseEvent) => {
@@ -147,7 +168,25 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
                       <span className="font-bold">สาเหตุ:</span> {item.lastError}
                     </div>
                   )}
+                  {item.status === 'pending' && item.nextRetryAt && item.nextRetryAt > Date.now() && (
+                    <p className="mt-1 text-[10px] text-amber-700">
+                      จะลองซิงค์อีกครั้งโดยอัตโนมัติ
+                    </p>
+                  )}
                 </div>
+
+                {item.status === 'failed' && (
+                  <button
+                    type="button"
+                    onClick={() => handleRetryItem(item.id)}
+                    disabled={isSyncing}
+                    className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-blue-600 hover:bg-blue-50 transition-colors disabled:opacity-50"
+                    aria-label="ลองซิงค์ใหม่"
+                    title="ลองซิงค์ใหม่"
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -173,6 +212,17 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
           >
             ปิด
           </button>
+          {failedItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleRetryFailed}
+              disabled={isSyncing}
+              className="app-secondary-button flex-1 rounded-xl text-xs h-10 gap-1.5"
+            >
+              <RefreshCw className="h-3.5 w-3.5" />
+              ลองรายการที่ล้มเหลว
+            </button>
+          )}
           {queue.length > 0 && (
             <button
               type="button"

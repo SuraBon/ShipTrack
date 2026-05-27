@@ -21,7 +21,14 @@ export function MapView({
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
+  const onMapReadyRef = useRef<MapViewProps["onMapReady"]>(onMapReady);
+  const tileErrorCountRef = useRef(0);
+  const tileSuccessRef = useRef(0);
   const [tileError, setTileError] = useState(false);
+
+  useEffect(() => {
+    onMapReadyRef.current = onMapReady;
+  }, [onMapReady]);
 
   useEffect(() => {
     if (!mapContainer.current || map.current) return;
@@ -38,12 +45,23 @@ export function MapView({
       maxZoom: 19,
       subdomains: "abcd",
     });
-    tileLayer.on("tileerror", () => setTileError(true));
-    tileLayer.on("tileload", () => setTileError(false));
+    tileLayer.on("tileerror", () => {
+      tileErrorCountRef.current += 1;
+      if (tileErrorCountRef.current >= 4 && tileSuccessRef.current === 0) {
+        setTileError(true);
+      }
+    });
+    tileLayer.on("tileload", () => {
+      tileSuccessRef.current += 1;
+      if (tileSuccessRef.current >= 1) {
+        tileErrorCountRef.current = 0;
+        setTileError(false);
+      }
+    });
     tileLayer.addTo(map.current);
     L.control.zoom({ position: "bottomright" }).addTo(map.current);
 
-    if (onMapReady) onMapReady(map.current);
+    onMapReadyRef.current?.(map.current);
 
     return () => {
       if (map.current) {
@@ -51,7 +69,7 @@ export function MapView({
         map.current = null;
       }
     };
-  }, [initialCenter.lat, initialCenter.lng, initialZoom, onMapReady]);
+  }, [initialCenter.lat, initialCenter.lng, initialZoom]);
 
   return (
     <div className={cn("relative w-full h-[500px]", className)}>

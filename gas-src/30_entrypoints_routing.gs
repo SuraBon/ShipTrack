@@ -1,11 +1,22 @@
 function doPost(e) {
   try {
+    const requestId = Utilities.getUuid();
+    const startMs = Date.now();
     const rawBody = e && e.postData && e.postData.contents ? String(e.postData.contents) : "";
     if (!rawBody || rawBody.length > MAX_REQUEST_LENGTH) {
       return createJsonResponse({ success: false, error: "Invalid request size" });
     }
     const payload = JSON.parse(rawBody);
     const action = payload.action;
+    const clientRequestId = payload.requestId ? String(payload.requestId) : requestId;
+    console.info(JSON.stringify({
+      level: 'info',
+      event: 'api.request',
+      requestId: clientRequestId,
+      action: action,
+      employeeId: payload.employeeId || null,
+      trackingID: payload.trackingID || null,
+    }));
     const configuredKey = getApiKey();
     if (!configuredKey) {
       return createJsonResponse({ success: false, error: "API key is not configured on script properties" });
@@ -84,7 +95,18 @@ function doPost(e) {
       result = routeAction(action, payload);
     }
 
-    if (result) return result;
+    if (result) {
+      // Add request context for client-side correlation (best-effort).
+      try {
+        const raw = JSON.parse(result.getContent());
+        raw.requestId = payload.requestId || requestId;
+        raw.serverTime = new Date().toISOString();
+        raw.elapsedMs = Date.now() - startMs;
+        return createJsonResponse(raw);
+      } catch {
+        return result;
+      }
+    }
 
     return createJsonResponse({ success: false, error: "Invalid action" });
   } catch (error) {

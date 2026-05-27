@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, useMemo, memo } from 'react';
+import { useEffect, useRef, useState, useCallback, useMemo, memo, type MouseEvent } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './mapStyles.css';
@@ -42,9 +42,12 @@ function thinRouteSamples<T extends { latitude?: number; longitude?: number; tim
 
 function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = [], className = '', mapClassName = 'h-[250px] sm:h-[300px] md:h-[400px] max-h-[50vh]' }: TrackingMapProps) {
   const mapRef      = useRef<L.Map | null>(null);
-  const markersRef  = useRef<L.Marker[]>([]);
+  const markerGroupRef = useRef<L.LayerGroup | null>(null);
+  const markersByIdRef = useRef<Map<string, L.Marker>>(new Map());
   const polylineRef = useRef<L.Polyline | null>(null);
+  const didFitBoundsRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [followLatest, setFollowLatest] = useState(false);
   const routeSamples = useRouteSamples(trackingID);
 
   // Derive the ordered list of coordinate-bearing events from the timeline.
@@ -153,16 +156,23 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
     if (!mapRef.current || !isMapReady) return;
     const map = mapRef.current;
 
-    // Clear previous markers and polyline
-    markersRef.current.forEach(m => m.remove());
-    markersRef.current = [];
-    polylineRef.current?.remove();
-    polylineRef.current = null;
+    if (!markerGroupRef.current) {
+      markerGroupRef.current = L.layerGroup().addTo(map);
+    }
 
     if (!hasRouteData) {
+      // Clear layers when no route data
+      markersByIdRef.current.forEach(marker => marker.remove());
+      markersByIdRef.current.clear();
+      polylineRef.current?.remove();
+      polylineRef.current = null;
+      didFitBoundsRef.current = false;
       map.setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 7);
       return;
     }
+
+    const nextIds = new Set<string>();
+    const makeMarkerId = (entry: typeof pathEntries[number]) => `${entry.event.id ?? `${entry.lat},${entry.lng},${entry.event.timestamp}`}`;
 
     pathEntries.forEach((entry, index) => {
       const { lat, lng, label, isGps, isLast, event } = entry;
@@ -194,15 +204,24 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
         ${isLast ? `<div style="position:absolute;left:50%;top:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:16px;border:2px solid ${isLatestRoutePoint ? 'rgba(8,145,178,.38)' : 'rgba(15,23,42,.22)'};animation:logitrack-pin-pulse 1.6s infinite;"></div>` : ''}
       </div>`;
 
-      const marker = L.marker([lat, lng], {
-        icon: L.divIcon({
-          html,
-          className: 'branch-marker bg-transparent',
-          iconSize: [42, 50],
-          iconAnchor: [21, 46],
-          popupAnchor: [0, -42],
-        }),
+      const markerId = makeMarkerId(entry);
+      nextIds.add(markerId);
+      const existingMarker = markersByIdRef.current.get(markerId);
+      const nextIcon = L.divIcon({
+        html,
+        className: 'branch-marker bg-transparent',
+        iconSize: [42, 50],
+        iconAnchor: [21, 46],
+        popupAnchor: [0, -42],
       });
+
+      if (existingMarker) {
+        existingMarker.setLatLng([lat, lng]);
+        existingMarker.setIcon(nextIcon);
+        return;
+      }
+
+      const marker = L.marker([lat, lng], { icon: nextIcon });
 
       // Safe popup — use textContent via DOM, not innerHTML
       const popupEl = document.createElement('div');
@@ -260,37 +279,59 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
       footer.textContent = isRouteSample ? 'บันทึกจาก GPS ระหว่างพนักงานนำส่ง' : 'คลิกหมุดอื่นเพื่อดูรายละเอียดจุดนั้น';
 
       popupEl.appendChild(footer);
-      marker.bindPopup(popupEl, {
-        autoPanPadding: [20, 20],
-        className: 'logitrack-popup',
-        closeButton: true,
-        maxWidth: 300,
+      marker.on('click', () => {
+        if (!marker.getPopup()) {
+          marker.bindPopup(popupEl, {
+            autoPanPadding: [20, 20],
+            className: 'logitrack-popup',
+            closeButton: true,
+            maxWidth: 300,
+          });
+        }
+        marker.openPopup();
       });
-      marker.addTo(map);
-      markersRef.current.push(marker);
+      marker.addTo(markerGroupRef.current!);
+      markersByIdRef.current.set(markerId, marker);
     });
 
     const coords = pathEntries.map(e => [e.lat, e.lng] as [number, number]);
-    polylineRef.current = L.polyline(
-      coords,
-      { color: '#2563eb', opacity: 0.9, weight: 5, lineCap: 'round', lineJoin: 'round' },
-    ).addTo(map);
-
-    if (coords.length > 1) {
-      const bounds = L.latLngBounds(coords);
-      map.fitBounds(bounds, { padding: [40, 40] });
-      if (map.getZoom() > 14) map.setZoom(14);
+    if (!polylineRef.current) {
+      polylineRef.current = L.polyline(
+        coords,
+        { color: '#2563eb', opacity: 0.9, weight: 5, lineCap: 'round', lineJoin: 'round' },
+      ).addTo(map);
     } else {
-      map.setView(coords[0], 13);
+      polylineRef.current.setLatLngs(coords);
     }
 
-    return () => {
-      markersRef.current.forEach(m => m.remove());
-      markersRef.current = [];
-      polylineRef.current?.remove();
-      polylineRef.current = null;
-    };
-  }, [hasRouteData, isMapReady, pathEntries]);
+    // Remove stale markers
+    markersByIdRef.current.forEach((marker, id) => {
+      if (!nextIds.has(id)) {
+        marker.remove();
+        markersByIdRef.current.delete(id);
+      }
+    });
+
+    // Fit bounds only once per dataset (avoid annoying map jumps when new samples stream in)
+    if (!didFitBoundsRef.current) {
+      if (coords.length > 1) {
+        const bounds = L.latLngBounds(coords);
+        map.fitBounds(bounds, { padding: [40, 40] });
+        if (map.getZoom() > 14) map.setZoom(14);
+      } else if (coords.length === 1) {
+        map.setView(coords[0], 13);
+      }
+      didFitBoundsRef.current = true;
+    } else if (followLatest && coords.length > 0) {
+      const latest = coords[coords.length - 1];
+      map.panTo(latest, { animate: true });
+    }
+  }, [followLatest, hasRouteData, isMapReady, pathEntries]);
+
+  useEffect(() => {
+    // Reset bounds fitting when tracking changes
+    didFitBoundsRef.current = false;
+  }, [trackingID]);
 
   useEffect(() => {
     if (!mapRef.current) return;
@@ -306,8 +347,13 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
     };
   }, [isMapReady]);
 
+  const toggleFollowLatest = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    setFollowLatest(value => !value);
+  };
+
   return (
-    <div className={`relative flex w-full flex-col overflow-hidden rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#050915] shadow-sm ${className}`}>
+    <div className={`tracking-map relative flex w-full flex-col overflow-hidden rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#050915] shadow-sm ${className}`}>
       {!hasRouteData && (
         <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/10 bg-blue-50 dark:bg-blue-950/40 px-4 py-2.5 text-[11px] font-semibold text-blue-700 dark:text-blue-200">
           <span className="material-symbols-outlined text-base" aria-hidden="true">info</span>
@@ -358,7 +404,22 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
             <span className="h-2 w-2 rounded-full bg-green-600" /> ปลายทาง
           </span>
         </div>
-        <span className="hidden text-slate-300 sm:inline dark:text-slate-200">ShipTrack Maps</span>
+        <div className="flex items-center gap-2">
+          {hasRouteData && (
+            <button
+              type="button"
+              onClick={toggleFollowLatest}
+              className={`rounded-lg px-2.5 py-1 text-[10px] font-bold transition-colors ${
+                followLatest
+                  ? 'bg-cyan-600 text-white'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200'
+              }`}
+            >
+              {followLatest ? 'หยุดติดตาม' : 'ติดตามล่าสุด'}
+            </button>
+          )}
+          <span className="hidden text-slate-300 sm:inline dark:text-slate-200">ShipTrack Maps</span>
+        </div>
       </div>
     </div>
   );

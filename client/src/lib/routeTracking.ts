@@ -2,16 +2,19 @@ import {
   OFFLINE_ROUTE_STORE,
   idbDelete,
   idbGetAll,
+  idbGetByIndex,
   idbPut,
   isIndexedDbAvailable,
   type RouteSampleRecord,
 } from './offlineDb';
+import { logTelemetry } from './telemetry';
 
 export type { RouteSampleRecord } from './offlineDb';
 
 const ACTIVE_ROUTES_KEY = 'shiptrack_active_routes';
 const ROUTE_UPDATED_EVENT = 'shiptrack-route-samples-updated';
 const ROUTE_TRACKING_UPDATED_EVENT = 'shiptrack-route-tracking-updated';
+export const ROUTE_TRACKING_ERROR_EVENT = 'shiptrack-route-tracking-error';
 const MIN_SAMPLE_INTERVAL_MS = 15_000;
 const BACKGROUND_MIN_SAMPLE_INTERVAL_MS = 60_000;
 const MIN_SAMPLE_DISTANCE_M = 25;
@@ -141,7 +144,28 @@ export function startRouteTracking(trackingID: string): boolean {
         lastSamples.set(trackingID, sample);
         void saveRouteSample(sample);
       },
-      () => undefined,
+      error => {
+        const code = (error as GeolocationPositionError)?.code;
+        const message = code === 1
+          ? 'ไม่ได้รับอนุญาตให้ใช้ GPS'
+          : code === 2
+            ? 'ไม่สามารถระบุตำแหน่งได้'
+            : code === 3
+              ? 'หมดเวลาในการรับตำแหน่ง GPS'
+              : 'เกิดข้อผิดพลาด GPS';
+        logTelemetry({
+          level: 'warn',
+          name: 'route.tracking.geo_error',
+          trackingID,
+          message,
+          data: { code },
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent(ROUTE_TRACKING_ERROR_EVENT, {
+            detail: { trackingID, code, message },
+          }));
+        }
+      },
       {
         enableHighAccuracy: true,
         maximumAge: 10_000,
@@ -166,12 +190,20 @@ export function stopRouteTracking(trackingID: string): void {
   setActiveRoute(trackingID, false);
 }
 
-export async function getRouteSamples(trackingID: string): Promise<RouteSampleRecord[]> {
-  const records = await idbGetAll<RouteSampleRecord>(OFFLINE_ROUTE_STORE);
-  const source = records ?? readFallbackSamples();
-  return source
+async function readRouteSamplesForTracking(trackingID: string): Promise<RouteSampleRecord[]> {
+  if (isIndexedDbAvailable()) {
+    const indexed = await idbGetByIndex<RouteSampleRecord>(OFFLINE_ROUTE_STORE, 'trackingID', trackingID);
+    if (indexed) {
+      return indexed.sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+    }
+  }
+  return readFallbackSamples()
     .filter(sample => sample.trackingID === trackingID)
     .sort((a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp));
+}
+
+export async function getRouteSamples(trackingID: string): Promise<RouteSampleRecord[]> {
+  return readRouteSamplesForTracking(trackingID);
 }
 
 export async function getUnsyncedRouteSamples(trackingID?: string): Promise<RouteSampleRecord[]> {
@@ -233,6 +265,37 @@ export function resumeActiveRouteTracking(): void {
   }
 }
 
+export type RouteSyncSnapshot = {
+  pendingRouteSampleCount: number;
+  latestRouteSampleAt: string | null;
+};
+
+/** Lightweight status for header popover (avoids loading all samples per active route). */
+export async function getRouteSyncSnapshot(): Promise<RouteSyncSnapshot> {
+  const unsynced = await getUnsyncedRouteSamples();
+  const latest = unsynced
+    .map(sample => sample.timestamp)
+    .filter(Boolean)
+    .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
+  return { pendingRouteSampleCount: unsynced.length, latestRouteSampleAt: latest };
+}
+
+export async function migrateRouteSamplesToIndexedDb(): Promise<void> {
+  if (!isIndexedDbAvailable()) return;
+  const fallback = readFallbackSamples();
+  if (fallback.length === 0) return;
+  const existing = await idbGetAll<RouteSampleRecord>(OFFLINE_ROUTE_STORE);
+  if (existing && existing.length > 0) return;
+  for (const sample of fallback) {
+    await idbPut(OFFLINE_ROUTE_STORE, sample);
+  }
+  saveFallbackSamples([]);
+  logTelemetry({ level: 'info', name: 'route.samples.migrated', data: { count: fallback.length } });
+}
+
 if (typeof window !== 'undefined') {
-  window.addEventListener('load', resumeActiveRouteTracking);
+  window.addEventListener('load', () => {
+    void migrateRouteSamplesToIndexedDb();
+    resumeActiveRouteTracking();
+  });
 }

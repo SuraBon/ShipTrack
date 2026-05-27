@@ -1,4 +1,6 @@
 import { toast } from 'sonner';
+import { computeRetryDelayMs, isReadyForRetry, MAX_OFFLINE_ATTEMPTS } from './retryBackoff';
+import { logTelemetry } from './telemetry';
 import {
   LEGACY_QUEUE_KEY,
   OFFLINE_MEDIA_STORE,
@@ -50,6 +52,7 @@ function normalizeQueueItem(raw: any): OfflineQueueItem | null {
     lastError: typeof raw.lastError === 'string' ? raw.lastError : undefined,
     status: ['pending', 'syncing', 'failed', 'synced'].includes(raw.status) ? raw.status : 'pending',
     localMediaId: typeof raw.localMediaId === 'string' ? raw.localMediaId : undefined,
+    nextRetryAt: typeof raw.nextRetryAt === 'number' ? raw.nextRetryAt : undefined,
   };
 }
 
@@ -160,6 +163,27 @@ export async function updateOfflineAction(item: OfflineQueueItem): Promise<void>
   dispatchQueueUpdated();
 }
 
+export async function resetOfflineActionForRetry(id: string): Promise<boolean> {
+  const queue = await getOfflineQueue();
+  const item = queue.find(entry => entry.id === id);
+  if (!item) return false;
+  await updateOfflineAction({
+    ...item,
+    status: 'pending',
+    nextRetryAt: undefined,
+    lastError: undefined,
+  });
+  logTelemetry({ level: 'info', name: 'offline.queue.retry', data: { id, action: item.action } });
+  return true;
+}
+
+export async function resetFailedOfflineActions(): Promise<number> {
+  const queue = await getOfflineQueue();
+  const failed = queue.filter(item => item.status === 'failed');
+  await Promise.all(failed.map(item => resetOfflineActionForRetry(item.id)));
+  return failed.length;
+}
+
 export async function removeOfflineAction(id: string): Promise<void> {
   if (isIndexedDbAvailable() && await idbDelete(OFFLINE_QUEUE_STORE, id)) {
     dispatchQueueUpdated();
@@ -194,15 +218,33 @@ export async function getOfflineProofImage(localMediaId: string): Promise<string
   return localStorage.getItem(`shiptrack_offline_media_${localMediaId}`);
 }
 
+const resolvedBlobUrls = new Map<string, string>();
+
 export async function resolveOfflineProofImageUrl(url: string): Promise<string | null> {
   if (!url.startsWith(OFFLINE_MEDIA_URL_PREFIX)) return url;
   const mediaId = url.slice(OFFLINE_MEDIA_URL_PREFIX.length);
   const media = await getOfflineProofImage(mediaId);
   if (!media) return null;
-  return typeof media === 'string' ? media : URL.createObjectURL(media);
+  if (typeof media === 'string') return media;
+  const previous = resolvedBlobUrls.get(mediaId);
+  if (previous) URL.revokeObjectURL(previous);
+  const objectUrl = URL.createObjectURL(media);
+  resolvedBlobUrls.set(mediaId, objectUrl);
+  return objectUrl;
+}
+
+export function revokeResolvedProofUrl(mediaId: string): void {
+  const url = resolvedBlobUrls.get(mediaId);
+  if (url) {
+    URL.revokeObjectURL(url);
+    resolvedBlobUrls.delete(mediaId);
+  }
 }
 
 export async function deleteOfflineProofImage(localMediaId: string): Promise<void> {
+  revokeResolvedProofUrl(localMediaId);
   await idbDelete(OFFLINE_MEDIA_STORE, localMediaId);
   localStorage.removeItem(`shiptrack_offline_media_${localMediaId}`);
 }
+
+export { isReadyForRetry, MAX_OFFLINE_ATTEMPTS };

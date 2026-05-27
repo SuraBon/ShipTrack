@@ -4,6 +4,7 @@ import { useRouteSyncStatus } from '@/hooks/useRouteSyncStatus';
 import { normalizeRole, type AppRole } from '@/lib/roles';
 import { toast } from 'sonner';
 import { UI_COPY } from '@/lib/uiCopy';
+import { ROUTE_TRACKING_ERROR_EVENT } from '@/lib/routeTracking';
 import { ProfileDialog } from '@/components/layout/ProfileDialog';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { OfflineQueueDialog } from '@/components/layout/OfflineQueueDialog';
@@ -148,6 +149,16 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   const canCollapseMobileNav = currentRole === 'ADMIN' && navItems.length > 3;
   const currentNavItem = navItems.find(n => n.id === currentPage);
   const mobileBottomPadding = canCollapseMobileNav && isMobileNavCollapsed ? 'pb-16' : 'pb-24';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handleRouteError = (event: Event) => {
+      const detail = (event as CustomEvent<{ message?: string }>).detail;
+      if (detail?.message) toast.warning(detail.message);
+    };
+    window.addEventListener(ROUTE_TRACKING_ERROR_EVENT, handleRouteError);
+    return () => window.removeEventListener(ROUTE_TRACKING_ERROR_EVENT, handleRouteError);
+  }, []);
 
   useEffect(() => {
     if (!canCollapseMobileNav) setIsMobileNavCollapsed(false);

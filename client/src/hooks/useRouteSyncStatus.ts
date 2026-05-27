@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getActiveRouteIds, getRouteSamples, getUnsyncedRouteSamples } from '@/lib/routeTracking';
+import { getActiveRouteIds, getRouteSyncSnapshot } from '@/lib/routeTracking';
 
 const ROUTE_SYNC_STATUS_EVENT = 'shiptrack-route-sync-status';
 
@@ -14,19 +14,11 @@ export function useRouteSyncStatus() {
   useEffect(() => {
     let active = true;
     const refresh = () => {
-      void getUnsyncedRouteSamples().then(samples => {
-        if (active) setPendingRouteSampleCount(samples.length);
-      });
-      const activeRouteIds = getActiveRouteIds();
-      setActiveRouteCount(activeRouteIds.length);
-      void Promise.all(activeRouteIds.map(id => getRouteSamples(id))).then(sampleGroups => {
+      setActiveRouteCount(getActiveRouteIds().length);
+      void getRouteSyncSnapshot().then(snapshot => {
         if (!active) return;
-        const latest = sampleGroups
-          .flat()
-          .map(sample => sample.timestamp)
-          .filter(Boolean)
-          .sort((a, b) => Date.parse(b) - Date.parse(a))[0] ?? null;
-        setLatestRouteSampleAt(latest);
+        setPendingRouteSampleCount(snapshot.pendingRouteSampleCount);
+        setLatestRouteSampleAt(snapshot.latestRouteSampleAt);
       });
     };
 

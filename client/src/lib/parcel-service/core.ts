@@ -25,18 +25,23 @@ import { normalizeRole } from '../roles';
 import { getDeviceId } from '../createdParcelHistory';
 import { getErrorMessage, getServerErrorMessage, isAuthErrorMessage, isNetworkErrorMessage } from '../apiErrorHelper';
 import { createIdempotencyKey } from '../idempotency';
+import { createRequestId, logTelemetry } from '../telemetry';
 import {
   OFFLINE_MEDIA_URL_PREFIX,
   deleteOfflineProofImage,
   enqueueOfflineAction,
   getOfflineProofImage,
   getOfflineQueue,
+  isReadyForRetry,
+  MAX_OFFLINE_ATTEMPTS,
   removeOfflineAction,
   saveOfflineProofImage,
   updateOfflineAction,
   type OfflineQueueItem,
   type SyncResult,
 } from '../offlineQueue';
+import { computeRetryDelayMs } from '../retryBackoff';
+import { initSyncManager, registerSyncRunner } from '../syncManager';
 import {
   getActiveRouteIds,
   getUnsyncedRouteSamples,
@@ -71,7 +76,6 @@ let isSyncing = false;
 let isRouteSyncing = false;
 const ROUTE_SYNC_BATCH_SIZE = 100;
 const QUEUEABLE_ACTIONS = ['createParcel', 'confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery'];
-const ROUTE_BACKGROUND_SYNC_MS = 30_000;
 const ROUTE_SYNC_STATUS_EVENT = 'shiptrack-route-sync-status';
 
 // ── Status normalizer ────────────────────────────────────────────────────────
@@ -135,7 +139,11 @@ async function callAPI<T>(
     throw new Error('ไม่มีการเชื่อมต่ออินเทอร์เน็ต กรุณาตรวจสอบสัญญาณแล้วลองใหม่');
   }
 
+  const requestId = createRequestId('api');
   let lastError: Error = new Error('เกิดข้อผิดพลาด');
+  const action = (payload as any)?.action as string | undefined;
+  const trackingID = (payload as any)?.trackingID as string | undefined;
+  logTelemetry({ level: 'info', name: 'api.call.start', requestId, action, trackingID });
 
   for (let attempt = 0; attempt <= retries; attempt++) {
     // Exponential backoff with random jitter to stagger retry requests
@@ -165,7 +173,13 @@ async function callAPI<T>(
       try {
         response = await fetch(GAS_URL, {
           method: 'POST',
-          body: JSON.stringify({ ...authData, ...payload, apiKey: GAS_API_KEY }),
+          body: JSON.stringify({
+            ...authData,
+            ...payload,
+            apiKey: GAS_API_KEY,
+            requestId,
+            clientTime: new Date().toISOString(),
+          }),
           // GAS requires text/plain to avoid CORS preflight
           headers: { 'Content-Type': 'text/plain' },
           signal: controller.signal,
@@ -178,6 +192,15 @@ async function callAPI<T>(
       lastError = new Error(isAbort
         ? 'การเชื่อมต่อใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง'
         : 'ไม่สามารถเชื่อมต่อระบบได้ ตรวจสอบอินเทอร์เน็ตแล้วลองใหม่');
+      logTelemetry({
+        level: 'warn',
+        name: 'api.call.network_error',
+        requestId,
+        action,
+        trackingID,
+        message: lastError.message,
+        data: { attempt },
+      });
       // Network error — retry
       continue;
     }
@@ -193,6 +216,15 @@ async function callAPI<T>(
         // Server error — retry
         continue;
       }
+      logTelemetry({
+        level: response.status >= 500 ? 'warn' : 'error',
+        name: 'api.call.http_error',
+        requestId,
+        action,
+        trackingID,
+        message: `HTTP ${response.status}: ${response.statusText}`,
+        data: { attempt, status: response.status },
+      });
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
     }
 
@@ -201,6 +233,15 @@ async function callAPI<T>(
       data = await response.json() as Record<string, unknown>;
     } catch {
       lastError = new Error('ระบบตอบกลับไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง');
+      logTelemetry({
+        level: 'warn',
+        name: 'api.call.bad_json',
+        requestId,
+        action,
+        trackingID,
+        message: lastError.message,
+        data: { attempt },
+      });
       continue;
     }
     if (dispatchAuthError && data && data['success'] === false) {
@@ -210,6 +251,20 @@ async function callAPI<T>(
       }
       data['error'] = getServerErrorMessage(data['error']);
     }
+    logTelemetry({
+      level: (data as any)?.success === false ? 'warn' : 'info',
+      name: 'api.call.finish',
+      requestId,
+      action,
+      trackingID,
+      data: {
+        attempt,
+        success: (data as any)?.success,
+        queued: (data as any)?.queued,
+        savedCount: (data as any)?.savedCount,
+        skippedCount: (data as any)?.skippedCount,
+      },
+    });
     return data as T;
   }
 
@@ -218,9 +273,11 @@ async function callAPI<T>(
   const isNetworkError = isNetworkErrorMessage(lastError.message);
   if (isQueueable && isNetworkError) {
     await enqueuePayload(p);
+    logTelemetry({ level: 'info', name: 'api.call.queued', requestId, action, trackingID, message: lastError.message });
     return { success: true, queued: true } as any;
   }
 
+  logTelemetry({ level: 'error', name: 'api.call.fail', requestId, action, trackingID, message: lastError.message });
   throw lastError;
 }
 
@@ -735,11 +792,15 @@ export async function syncRouteSamples(trackingID?: string): Promise<SyncRouteSa
   });
   try {
     for (const [groupTrackingID, groupSamples] of Object.entries(groups)) {
+      const batch = groupSamples.slice(0, ROUTE_SYNC_BATCH_SIZE);
+      const batchKey = batch.length <= 8
+        ? batch.map(sample => sample.id).join(',')
+        : `${batch.length}:${batch[0]?.id}:${batch[batch.length - 1]?.id}`;
       const res = await callAPI<SyncRouteSamplesResponse>({
         action: 'syncRouteSamples',
         trackingID: groupTrackingID,
-        samples: groupSamples.slice(0, ROUTE_SYNC_BATCH_SIZE),
-        idempotencyKey: createIdempotencyKey('syncRouteSamples'),
+        samples: batch,
+        idempotencyKey: createIdempotencyKey(`syncRouteSamples:${groupTrackingID}:${batchKey}`),
       }, {}, NO_RETRY);
 
       if (!res.success) {
@@ -748,8 +809,8 @@ export async function syncRouteSamples(trackingID?: string): Promise<SyncRouteSa
         return { success: false, error, savedCount, skippedCount };
       }
 
-      await markRouteSamplesSynced(groupSamples.slice(0, ROUTE_SYNC_BATCH_SIZE).map(sample => sample.id));
-      savedCount += res.savedCount ?? Math.min(groupSamples.length, ROUTE_SYNC_BATCH_SIZE);
+      await markRouteSamplesSynced(batch.map(sample => sample.id));
+      savedCount += res.savedCount ?? batch.length;
       skippedCount += res.skippedCount ?? 0;
     }
   } catch (err) {
@@ -803,7 +864,9 @@ async function runQueuedAction(item: OfflineQueueItem): Promise<any> {
 
 export async function syncOfflineQueue(): Promise<SyncResult> {
   if (isSyncing) return { total: 0, synced: 0, failed: 0 };
-  const queue = (await getOfflineQueue()).filter(item => item.status !== 'syncing');
+  const queue = (await getOfflineQueue()).filter(
+    item => item.status === 'pending' && isReadyForRetry(item.nextRetryAt),
+  );
   if (queue.length === 0) return { total: 0, synced: 0, failed: 0 };
 
   isSyncing = true;
@@ -824,33 +887,43 @@ export async function syncOfflineQueue(): Promise<SyncResult> {
         }
 
         const errorMsg = String(res?.error || 'ซิงค์รายการไม่สำเร็จ');
+        const nextAttempt = item.attemptCount + 1;
         if (isNetworkErrorMessage(errorMsg)) {
           await updateOfflineAction({
             ...item,
             status: 'pending',
-            attemptCount: item.attemptCount + 1,
+            attemptCount: nextAttempt,
             lastError: errorMsg,
+            nextRetryAt: Date.now() + computeRetryDelayMs(nextAttempt),
           });
           toast.warning('การเชื่อมต่อขัดข้องชั่วคราว ระบบจะซิงค์ใหม่เมื่อสัญญาณเสถียร');
           break;
         }
 
+        const exhausted = nextAttempt >= MAX_OFFLINE_ATTEMPTS || isAuthErrorMessage(errorMsg);
         await updateOfflineAction({
           ...item,
-          status: 'failed',
-          attemptCount: item.attemptCount + 1,
+          status: exhausted ? 'failed' : 'pending',
+          attemptCount: nextAttempt,
           lastError: errorMsg,
+          nextRetryAt: exhausted ? undefined : Date.now() + computeRetryDelayMs(nextAttempt),
         });
         failed++;
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'ซิงค์รายการไม่สำเร็จ';
+        const nextAttempt = item.attemptCount + 1;
+        const network = isNetworkErrorMessage(errorMsg);
+        const exhausted = !network && (nextAttempt >= MAX_OFFLINE_ATTEMPTS || isAuthErrorMessage(errorMsg));
         await updateOfflineAction({
           ...item,
-          status: isNetworkErrorMessage(errorMsg) ? 'pending' : 'failed',
-          attemptCount: item.attemptCount + 1,
+          status: network || !exhausted ? 'pending' : 'failed',
+          attemptCount: nextAttempt,
           lastError: errorMsg,
+          nextRetryAt: network || !exhausted
+            ? Date.now() + computeRetryDelayMs(nextAttempt)
+            : undefined,
         });
-        if (isNetworkErrorMessage(errorMsg)) break;
+        if (network) break;
         failed++;
       }
     }
@@ -869,20 +942,13 @@ export async function syncOfflineQueue(): Promise<SyncResult> {
 }
 
 if (typeof window !== 'undefined') {
-  window.addEventListener('online', () => {
-    void syncOfflineQueue();
-    void syncRouteSamples();
-  });
-  window.addEventListener('load', () => {
-    if (navigator.onLine) {
-      void syncOfflineQueue();
-      void syncRouteSamples();
-    }
-  });
-  window.setInterval(async () => {
-    if (!navigator.onLine) return;
+  registerSyncRunner(async () => {
+    await syncOfflineQueue();
     const activeRouteCount = getActiveRouteIds().length;
     const pendingCount = (await getUnsyncedRouteSamples()).length;
-    if (activeRouteCount > 0 || pendingCount > 0) void syncRouteSamples();
-  }, ROUTE_BACKGROUND_SYNC_MS);
+    if (activeRouteCount > 0 || pendingCount > 0) {
+      await syncRouteSamples();
+    }
+  });
+  initSyncManager();
 }

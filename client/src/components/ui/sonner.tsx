@@ -1,12 +1,15 @@
+import { useEffect, type CSSProperties } from "react";
 import { useTheme } from "next-themes";
 import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
   const { theme = "system" } = useTheme();
 
-  // Add CSS to hide scrollbars
-  if (typeof document !== 'undefined') {
+  useEffect(() => {
+    const styleId = 'data-sonner-scrollbar-fix';
+    if (document.head.querySelector(`style[${styleId}]`)) return;
     const style = document.createElement('style');
+    style.setAttribute(styleId, 'true');
     style.textContent = `
       .toaster [data-sonner-toast]::-webkit-scrollbar {
         display: none;
@@ -20,11 +23,8 @@ const Toaster = ({ ...props }: ToasterProps) => {
         display: none !important;
       }
     `;
-    if (!document.head.querySelector('style[data-sonner-scrollbar-fix]')) {
-      style.setAttribute('data-sonner-scrollbar-fix', 'true');
-      document.head.appendChild(style);
-    }
-  }
+    document.head.appendChild(style);
+  }, []);
 
   return (
     <Sonner
@@ -40,7 +40,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-bg": "var(--popover)",
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
-        } as React.CSSProperties
+        } as CSSProperties
       }
       toastOptions={{
         style: {

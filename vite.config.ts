@@ -17,6 +17,7 @@ const plugins = [
     ],
     workbox: {
       globIgnores: ["**/fonts/**", "**/map-*.js", "**/map-*.css"],
+      importScripts: ["shiptrack-sw-sync.js"],
     },
     manifest: {
       name: "ShipTrack — ระบบติดตามรายการส่ง",
