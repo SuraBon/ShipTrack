@@ -19,6 +19,7 @@ import {
   Loader2,
   PackageCheck,
   RotateCcw,
+  ChevronDown,
   Search,
   Undo2,
   FilterX,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react';
 import { convertParcelsToCSV, downloadCSV } from '@/lib/csvHelper';
 import { Skeleton } from '@/components/ui/skeleton';
+import AppLoading from '@/components/AppLoading';
 import EmptyState from '@/components/EmptyState';
 import {
   canConfirmMessengerJob,
@@ -91,6 +93,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [adminSort, setAdminSort] = useState<AdminSortMode>('newest');
+  const [isRouteCardExpanded, setIsRouteCardExpanded] = useState(false);
   
   const isFetchingRef = useRef(false);
   const hasSetInitialView = useRef(false);
@@ -133,6 +136,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       await loadParcelsRef.current();
       setLastUpdatedAt(Date.now());
     } catch {
+      setLastUpdatedAt(Date.now());
       toast.error('ไม่สามารถโหลดข้อมูลได้');
     } finally {
       isFetchingRef.current = false;
@@ -287,6 +291,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [selectedAdminParcelIds, setSelectedAdminParcelIds] = useState<Set<string>>(new Set());
   const [selectedMessengerParcelIds, setSelectedMessengerParcelIds] = useState<Set<string>>(new Set());
   const [isBatchDeleting, setIsBatchDeleting] = useState(false);
+  const [isBatchStarting, setIsBatchStarting] = useState(false);
   const [isBatchConfirmOpen, setIsBatchConfirmOpen] = useState(false);
   const [isBatchConfirming, setIsBatchConfirming] = useState(false);
 
@@ -345,6 +350,13 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     () => selectedMessengerParcels.filter(parcel => isAvailableForMessenger(parcel)).length,
     [selectedMessengerParcels],
   );
+  const messengerBatchMode = messengerView === 'waiting'
+    ? 'start'
+    : messengerView === 'mine'
+      ? 'confirm'
+      : null;
+  const messengerBatchActionCount = messengerBatchMode === 'start' ? eligibleMessengerStartCount : batchConfirmParcels.length;
+  const isInitialDashboardLoad = !lastUpdatedAt && filteredParcels.length === 0;
 
   const handleBatchDelete = useCallback(async () => {
     const trackingIds = Array.from(selectedAdminParcelIds);
@@ -358,15 +370,21 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   }, [clearSelectedAdminParcels, executeBatchDelete, isBatchDeleting, selectedAdminParcelIds]);
 
   const handleBatchStartDelivery = useCallback(async () => {
+    if (isBatchStarting) return;
     const parcelsToStart = selectedMessengerParcels.filter(parcel => isAvailableForMessenger(parcel));
     if (parcelsToStart.length === 0) return;
-    const result = await executeBatchStartDelivery(parcelsToStart, messengerPosition?.latitude, messengerPosition?.longitude);
-    if (result.queued || result.failedCount === 0) {
-      clearSelectedMessengerParcels();
-      return;
+    setIsBatchStarting(true);
+    try {
+      const result = await executeBatchStartDelivery(parcelsToStart, messengerPosition?.latitude, messengerPosition?.longitude);
+      if (result.queued || result.failedCount === 0) {
+        clearSelectedMessengerParcels();
+        return;
+      }
+      setSelectedMessengerParcelIds(new Set(result.failedIds));
+    } finally {
+      setIsBatchStarting(false);
     }
-    setSelectedMessengerParcelIds(new Set(result.failedIds));
-  }, [clearSelectedMessengerParcels, executeBatchStartDelivery, messengerPosition, selectedMessengerParcels]);
+  }, [clearSelectedMessengerParcels, executeBatchStartDelivery, isBatchStarting, messengerPosition, selectedMessengerParcels]);
 
   const submitBatchConfirm = useCallback(async (input: {
     photoUrl: string;
@@ -408,6 +426,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   }, [debouncedSearch]);
 
   useEffect(() => {
+    clearSelectedMessengerParcels();
+  }, [clearSelectedMessengerParcels, messengerView]);
+
+  useEffect(() => {
     setSelectedAdminParcelIds(current => {
       const availableIds = new Set(filteredParcels.map(parcel => parcel.TrackingID));
       const next = new Set(Array.from(current).filter(id => availableIds.has(id)));
@@ -445,6 +467,14 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     );
   }
 
+  if (isInitialDashboardLoad) {
+    return (
+      <div className="mx-auto max-w-[390px] md:max-w-none">
+        <AppLoading label={isMessengerDashboard ? 'กำลังโหลดงานจัดส่ง' : 'กำลังโหลดรายการส่ง'} />
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {error && (
@@ -468,18 +498,21 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
       {/* ── Stats ── */}
       {isMessengerDashboard && (
-        <div className="rounded-2xl border border-blue-100 bg-white px-4 py-3 shadow-sm">
-          <div className="flex items-start gap-3">
+        <div className="overflow-hidden rounded-2xl border border-blue-100 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={() => setIsRouteCardExpanded(value => !value)}
+            className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-slate-50"
+            aria-expanded={isRouteCardExpanded}
+          >
             <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${
               routeSyncStatus.activeRouteCount > 0 ? 'bg-blue-50 text-blue-600' : 'bg-slate-50 text-slate-400'
             }`}>
               <DashboardIcon icon={routeSyncStatus.activeRouteCount > 0 ? 'my_location' : 'location_searching'} className="h-5 w-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-sm font-black text-slate-900">
-                  {routeSyncStatus.activeRouteCount > 0 ? 'กำลังบันทึกพิกัดงานส่ง' : 'ยังไม่มีงานที่กำลังบันทึกพิกัด'}
-                </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-black text-slate-900">บันทึกเส้นทาง</p>
                 <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${
                   routeSyncStatus.isRouteSyncing
                     ? 'bg-blue-100 text-blue-700'
@@ -490,7 +523,17 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   {routeSyncStatus.isRouteSyncing ? 'กำลังซิงค์' : routeSyncStatus.lastRouteSyncError ? 'ซิงค์ไม่สำเร็จ' : 'พร้อมซิงค์'}
                 </span>
               </div>
-              <div className="mt-2 grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-500">
+              <p className="mt-0.5 truncate text-xs font-semibold text-slate-500">
+                {routeSyncStatus.activeRouteCount > 0
+                  ? `กำลังบันทึกพิกัด ${routeSyncStatus.activeRouteCount} งาน`
+                  : 'ยังไม่มีงานที่กำลังบันทึกพิกัด'}
+              </p>
+            </div>
+            <ChevronDown className={`h-5 w-5 shrink-0 text-slate-400 transition-transform ${isRouteCardExpanded ? 'rotate-180' : ''}`} aria-hidden="true" />
+          </button>
+          {isRouteCardExpanded && (
+            <div className="border-t border-blue-50 px-4 pb-4 pt-3">
+              <div className="grid grid-cols-3 gap-2 text-[11px] font-semibold text-slate-500">
                 <div className="rounded-xl bg-slate-50 px-3 py-2">
                   <p className="text-[10px] font-black text-slate-400">พิกัดค้างส่ง</p>
                   <p className="mt-0.5 text-sm font-black text-slate-900">{routeSyncStatus.pendingRouteSampleCount}</p>
@@ -508,7 +551,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 <p className="mt-2 text-[11px] font-semibold text-red-600">{routeSyncStatus.lastRouteSyncError}</p>
               )}
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -683,33 +726,38 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
           </div>
         ) : isMessengerDashboard ? (
           <div className="space-y-4 p-0 pb-20">
-            {selectedMessengerParcelIds.size > 0 && (
+            {messengerBatchMode && selectedMessengerParcelIds.size > 0 && (
               <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
                 <span className="text-sm font-bold text-slate-700">
-                  เลือกแล้ว {selectedMessengerParcelIds.size} รายการ • รับได้ {eligibleMessengerStartCount} • ส่งได้ {batchConfirmParcels.length}
+                  {messengerBatchMode === 'start'
+                    ? `เลือกแล้ว ${selectedMessengerParcelIds.size} รายการ • รับได้ ${messengerBatchActionCount}`
+                    : `เลือกแล้ว ${selectedMessengerParcelIds.size} รายการ • ส่งได้ ${messengerBatchActionCount}`}
                 </span>
                 <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <button type="button" onClick={clearSelectedMessengerParcels} className="app-secondary-button h-10 px-3 text-xs">
                     ยกเลิกเลือก
                   </button>
-                  <button
-                    type="button"
-                    onClick={handleBatchStartDelivery}
-                    disabled={!selectedMessengerParcels.some(isAvailableForMessenger)}
-                    className="app-secondary-button h-10 px-3 text-xs disabled:opacity-60"
-                  >
-                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    รับพร้อมกัน
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsBatchConfirmOpen(true)}
-                    disabled={batchConfirmParcels.length === 0}
-                    className="app-primary-button col-span-2 h-10 px-3 text-xs disabled:opacity-60 sm:col-span-1"
-                  >
-                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    ส่งพร้อมกัน
-                  </button>
+                  {messengerBatchMode === 'start' ? (
+                    <button
+                      type="button"
+                      onClick={handleBatchStartDelivery}
+                      disabled={messengerBatchActionCount === 0 || isBatchStarting}
+                      className="app-primary-button h-10 px-3 text-xs disabled:opacity-60"
+                    >
+                      {isBatchStarting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />}
+                      {isBatchStarting ? 'กำลังรับงาน...' : 'รับพร้อมกัน'}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => setIsBatchConfirmOpen(true)}
+                      disabled={messengerBatchActionCount === 0}
+                      className="app-primary-button h-10 px-3 text-xs disabled:opacity-60"
+                    >
+                      <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
+                      ส่งพร้อมกัน
+                    </button>
+                  )}
                 </div>
               </div>
             )}
@@ -815,10 +863,25 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                 <MessengerViewBanner
                   icon="check_circle"
                   title="ส่งสำเร็จแล้ว"
-                  subtitle="ประวัติงานทั้งหมดที่คุณยืนยันส่งสำเร็จแล้ว"
+                  subtitle="ประวัติงานที่ยืนยันส่งเรียบร้อยแล้ว"
                   count={messengerDoneParcels.length}
                   tone="emerald"
                 />
+                {messengerDoneParcels.length > 0 && (
+                  <div className="mb-4 rounded-2xl border border-emerald-100 bg-emerald-50/60 p-4 text-emerald-950 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white text-emerald-700 shadow-sm">
+                        <DashboardIcon icon="check_circle" className="h-5 w-5" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-black">ส่งงานสำเร็จ {messengerDoneParcels.length} รายการ</p>
+                        <p className="mt-1 text-xs font-semibold leading-relaxed text-emerald-800/80">
+                          แตะ “ดู Milestone” เพื่อดูรูปหลักฐานและประวัติการส่งของแต่ละรายการ
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 {messengerDoneParcels.length ? (
                   <>
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">

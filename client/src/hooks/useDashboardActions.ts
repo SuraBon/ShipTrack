@@ -121,14 +121,14 @@ export function useDashboardActions({
   ): Promise<DashboardBatchResult> => {
     const trackingIds = Array.from(new Set(parcelsToStart.map(parcel => parcel.TrackingID))).filter(Boolean);
     if (trackingIds.length === 0) return { success: false, successCount: 0, failedCount: 0, failedIds: [] };
-    toast.success(`กำลังรับงาน ${trackingIds.length} รายการ...`);
+    const toastId = toast.loading(`กำลังรับงาน ${trackingIds.length} รายการ...`);
     const res = await batchStartDelivery(trackingIds, latitude, longitude);
     if (res.queued) {
-      toast.info(`บันทึกรับงาน ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`);
+      toast.info(`บันทึกรับงาน ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`, { id: toastId });
       return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
     }
     if (!res.success) {
-      toast.error(res.error || 'รับงานพร้อมกันไม่สำเร็จ');
+      toast.error(res.error || 'รับงานพร้อมกันไม่สำเร็จ', { id: toastId });
       return { success: false, successCount: 0, failedCount: trackingIds.length, failedIds: trackingIds };
     }
     const results = res.results || [];
@@ -142,7 +142,7 @@ export function useDashboardActions({
     });
     const successCount = res.successCount ?? successIds.size;
     const failedCount = res.failedCount ?? failedIds.length;
-    toast.success(`รับงานสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`);
+    toast.success(`รับงานสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`, { id: toastId });
     loadParcels(undefined, true).catch(() => {});
     setMessengerView('mine');
     return { success: successCount > 0, successCount, failedCount, failedIds };
@@ -157,14 +157,14 @@ export function useDashboardActions({
   ): Promise<DashboardBatchResult> => {
     const trackingIds = Array.from(new Set(parcelsToConfirm.map(parcel => parcel.TrackingID))).filter(Boolean);
     if (trackingIds.length === 0) return { success: false, successCount: 0, failedCount: 0, failedIds: [] };
-    toast.success(`กำลังยืนยันส่ง ${trackingIds.length} รายการ...`);
+    const toastId = toast.loading(`กำลังยืนยันส่ง ${trackingIds.length} รายการ...`);
     const res = await batchConfirmReceipt(trackingIds, photoUrl, note, latitude, longitude);
     if (res.queued) {
-      toast.info(`บันทึกยืนยันส่ง ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`);
+      toast.info(`บันทึกยืนยันส่ง ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`, { id: toastId });
       return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
     }
     if (!res.success) {
-      toast.error(res.error || 'ยืนยันส่งพร้อมกันไม่สำเร็จ');
+      toast.error(res.error || 'ยืนยันส่งพร้อมกันไม่สำเร็จ', { id: toastId });
       return { success: false, successCount: 0, failedCount: trackingIds.length, failedIds: trackingIds };
     }
     const results = res.results || [];
@@ -179,7 +179,7 @@ export function useDashboardActions({
     });
     const successCount = res.successCount ?? successIds.size;
     const failedCount = res.failedCount ?? failedIds.length;
-    toast.success(`ยืนยันส่งสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`);
+    toast.success(`ยืนยันส่งสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`, { id: toastId });
     loadParcels(undefined, true).catch(() => {});
     return { success: successCount > 0, successCount, failedCount, failedIds };
   };
@@ -195,6 +195,7 @@ export function useDashboardActions({
     if (startingDeliveryId) return;
     if (!messengerPosition && messengerGeoStatus !== 'loading') requestMessengerLocation();
     setStartingDeliveryId(parcel.TrackingID);
+    const toastId = toast.loading('กำลังรับงาน...');
     const res = await startDelivery(
       parcel.TrackingID,
       messengerPosition?.latitude,
@@ -206,7 +207,7 @@ export function useDashboardActions({
       const message = res.error?.includes('มีผู้รับงานแล้ว')
         ? 'งานนี้มีผู้รับแล้ว กรุณารีเฟรช'
         : res.error || 'รับงานไม่ได้ กรุณาลองใหม่';
-      toast.error(message);
+      toast.error(message, { id: toastId });
       return;
     }
 
@@ -245,7 +246,7 @@ export function useDashboardActions({
     });
     startRouteTracking(parcel.TrackingID);
     setMessengerView('mine');
-    toast.success(res.autoPickedUp ? 'รับงานและบันทึกรับของแล้ว' : (res.alreadyStarted ? 'งานนี้อยู่ในรายการที่ต้องส่งแล้ว' : 'รับงานสำเร็จ'));
+    toast.success(res.autoPickedUp ? 'รับงานและบันทึกรับของแล้ว' : (res.alreadyStarted ? 'งานนี้อยู่ในรายการที่ต้องส่งแล้ว' : 'รับงานสำเร็จ'), { id: toastId });
     loadParcels(undefined, true).catch(() => {});
   };
 

@@ -154,7 +154,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] font-body text-on-background">
+    <div className="min-h-screen bg-background font-body text-on-background">
       {/* ── Main content ── */}
       <div className="flex min-h-screen flex-col">
         {/* Top bar */}
