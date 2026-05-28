@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -55,6 +55,10 @@ export default function Login() {
   // For setup
   const [name, setName] = useState('');
 
+  // Cooldown rate limiting state
+  const [cooldown, setCooldown] = useState(0);
+  const [failCount, setFailCount] = useState(0);
+
   const [authDialog, setAuthDialog] = useState<AuthDialogState>({
     open: false,
     status: 'loading',
@@ -63,13 +67,25 @@ export default function Login() {
   });
 
   const isAuthSubmitting = authDialog.open && authDialog.status === 'loading';
-  const isLoginDisabled = loading || isAuthSubmitting;
+  const isLoginDisabled = loading || isAuthSubmitting || cooldown > 0;
+
+  // Countdown timer effect
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((c) => c - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const showAuthError = (title: string, message: string) => {
     setAuthDialog({ open: true, status: 'error', title, message });
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldown > 0) return;
+
     if (!employeeId) {
       const message = 'กรุณากรอกรหัสพนักงานก่อนเข้าสู่ระบบ';
       showAuthError(DEFAULT_LOGIN_ERROR, message);
@@ -97,6 +113,7 @@ export default function Login() {
       });
       const res = await setupUserPin(employeeId, pin, name);
       if (res.success) {
+        setFailCount(0);
         setAuthDialog({
           open: true,
           status: 'success',
@@ -105,6 +122,9 @@ export default function Login() {
         });
         toast.success('ตั้งรหัสผ่านสำเร็จ');
       } else {
+        const nextFailCount = failCount + 1;
+        setFailCount(nextFailCount);
+        setCooldown(Math.min(30, 3 * Math.pow(2, nextFailCount - 1)));
         const message = res.error || 'เกิดข้อผิดพลาดในการตั้งค่า กรุณาลองใหม่อีกครั้ง';
         showAuthError('ตั้งค่าการเข้าใช้งานไม่สำเร็จ', message);
       }
@@ -129,6 +149,7 @@ export default function Login() {
       const res = await loginUser(employeeId, pin);
       
       if (res.success) {
+        setFailCount(0);
         if (res.needsSetup) {
           setIsSetup(true);
           setName(res.name !== 'Unknown' ? res.name! : '');
@@ -149,6 +170,9 @@ export default function Login() {
           toast.success('เข้าสู่ระบบสำเร็จ');
         }
       } else {
+        const nextFailCount = failCount + 1;
+        setFailCount(nextFailCount);
+        setCooldown(Math.min(30, 3 * Math.pow(2, nextFailCount - 1)));
         const message = getLoginErrorMessage(res.error);
         showAuthError('เข้าสู่ระบบไม่สำเร็จ', message);
       }
@@ -256,7 +280,9 @@ export default function Login() {
               disabled={isLoginDisabled}
               className="app-primary-button mt-2 flex w-full items-center justify-center gap-2"
             >
-              {isLoginDisabled ? (
+              {cooldown > 0 ? (
+                <span>ลองใหม่ใน {cooldown} วินาที</span>
+              ) : isLoginDisabled ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
                   <span>{isSetup ? 'กำลังบันทึกข้อมูล' : 'กำลังเข้าสู่ระบบ'}</span>

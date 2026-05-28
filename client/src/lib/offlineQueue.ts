@@ -12,6 +12,7 @@ import {
   idbGetAll,
   idbPut,
   isIndexedDbAvailable,
+  idbReplaceAll,
 } from './offlineDb';
 
 export type { OfflineQueueItem, OfflineQueueStatus } from './offlineDb';
@@ -110,10 +111,8 @@ export async function getOfflineQueue(): Promise<OfflineQueueItem[]> {
 
 export async function saveOfflineQueue(queue: OfflineQueueItem[]): Promise<boolean> {
   if (isIndexedDbAvailable()) {
-    const existing = await idbGetAll<OfflineQueueItem>(OFFLINE_QUEUE_STORE);
-    if (existing !== null) {
-      for (const item of existing) await idbDelete(OFFLINE_QUEUE_STORE, item.id);
-      for (const item of queue) await idbPut(OFFLINE_QUEUE_STORE, item);
+    const success = await idbReplaceAll<OfflineQueueItem>(OFFLINE_QUEUE_STORE, queue);
+    if (success) {
       dispatchQueueUpdated();
       return true;
     }

@@ -1,5 +1,6 @@
-import { Component, type ReactNode } from 'react';
+import { Component, type ReactNode, type ErrorInfo } from 'react';
 import { AlertTriangle, RotateCcw, RefreshCw } from 'lucide-react';
+import { logTelemetry } from '@/lib/telemetry';
 
 interface Props  { children: ReactNode; }
 interface State  { hasError: boolean; error: Error | null; }
@@ -14,10 +15,17 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error) {
-    if (import.meta.env.DEV) {
-      console.error('Unhandled application error:', error);
-    }
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('Unhandled application error:', error, errorInfo);
+    logTelemetry({
+      level: 'error',
+      name: 'app.crash',
+      data: {
+        message: error.message,
+        stack: error.stack,
+        componentStack: errorInfo?.componentStack
+      }
+    });
   }
 
   render() {

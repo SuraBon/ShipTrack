@@ -5,12 +5,13 @@ import { describe, expect, it } from 'vitest';
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const source = readFileSync(resolve(currentDir, 'ConfirmReceipt.tsx'), 'utf8');
+const step3Source = readFileSync(resolve(currentDir, '../components/confirm-receipt/Step3ConfirmDetails.tsx'), 'utf8');
 
 describe('ConfirmReceipt delivery flow', () => {
   it('submits from the final details step without opening a second review dialog', () => {
     expect(source).not.toContain('ConfirmReceiptReviewDialog');
     expect(source).not.toContain('isConfirmDialogOpen');
     expect(source).not.toContain('setIsConfirmDialogOpen');
-    expect(source).toContain('onClick={executeConfirm}');
+    expect(step3Source).toContain('onClick={executeConfirm}');
   });
 });

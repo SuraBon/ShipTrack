@@ -11,31 +11,23 @@ import { useGeolocation } from '@/hooks/useGeolocation';
 import { useRealtimeParcel } from '@/hooks/useRealtimeParcel';
 import { useRouteSyncStatus } from '@/hooks/useRouteSyncStatus';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
+import { formatSyncTime } from '@/lib/dateUtils';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 import {
   AlertTriangle,
-  ClipboardList,
   Loader2,
-  PackageCheck,
   RotateCcw,
-  ChevronDown,
-  Search,
-  Undo2,
-  FilterX,
   Download,
-  Trash2,
+  FilterX,
 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
 import { convertParcelsToCSV, downloadCSV } from '@/lib/csvHelper';
 import { getSystemHealth } from '@/lib/parcelService';
 import type { SystemHealth } from '@/lib/parcel-service/types';
-import { Skeleton } from '@/components/ui/skeleton';
 import AppLoading from '@/components/AppLoading';
-import EmptyState from '@/components/EmptyState';
 import {
   canConfirmMessengerJob,
-  canReleaseMessengerJob,
-  getActiveDeliveryAssignment,
   isAvailableForMessenger,
 } from '@/lib/deliveryAssignment';
 
@@ -44,34 +36,19 @@ import {
   MESSENGER_BATCH_SIZE,
   resolveDashboardRole,
   StatsCard,
-  TableSkeleton,
-  MessengerViewBanner,
-  getTimelineEvents,
   DashboardIcon,
-  DashboardActionButton,
   type MessengerView,
   type AdminSortMode,
+  STATS,
+  getTimelineEvents,
 } from '@/components/dashboard/DashboardComponents';
-import { MessengerDeliveryCard } from '@/components/dashboard/MessengerDeliveryCard';
 
-// Lazy load admin components to minimize bundle size for messengers
-const AdminParcelManagementCard = lazy(() =>
-  import('@/components/dashboard/AdminParcelManagementCard').then(m => ({ default: m.AdminParcelManagementCard }))
-);
-const AdminParcelManagementTable = lazy(() =>
-  import('@/components/dashboard/AdminParcelManagementTable').then(m => ({ default: m.AdminParcelManagementTable }))
-);
+import { MessengerDashboardView } from '@/components/dashboard/MessengerDashboardView';
+import { AdminDashboardView } from '@/components/dashboard/AdminDashboardView';
 
 interface DashboardProps { isConfigured: boolean; }
 
 const DashboardDialogs = lazy(() => import('@/components/dashboard/DashboardDialogs'));
-
-const formatSyncTime = (value: string | null) => {
-  if (!value) return '-';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '-';
-  return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-};
 
 export default function Dashboard({ isConfigured }: DashboardProps) {
   const { user } = useAuth();
@@ -328,16 +305,16 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     });
   }, []);
 
-  const toggleAllVisibleAdminParcels = useCallback((visibleParcels: Parcel[], checked: boolean) => {
+  const toggleAllVisibleAdminParcels = useCallback((checked: boolean) => {
     setSelectedAdminParcelIds(current => {
       const next = new Set(current);
-      visibleParcels.forEach(parcel => {
+      paginatedParcels.forEach(parcel => {
         if (checked) next.add(parcel.TrackingID);
         else next.delete(parcel.TrackingID);
       });
       return next;
     });
-  }, []);
+  }, [paginatedParcels]);
 
   const clearSelectedAdminParcels = useCallback(() => {
     setSelectedAdminParcelIds(new Set());
@@ -707,497 +684,71 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
       {/* ── Role Cards ── */}
       <section className="overflow-visible bg-transparent">
-        {loading && !filteredParcels.length ? (
-          <TableSkeleton />
-        ) : !filteredParcels.length ? (
-          <div className="p-3 sm:p-4">
-            <EmptyState
-              icon="search_off"
-              title="ไม่พบรายการส่ง"
-              description="ลองปรับคำค้นหาหรือล้างตัวกรอง"
-              action={hasFilters && !isMessengerDashboard ? (
-                <DashboardActionButton icon="filter_alt_off" onClick={clearFilters} variant="secondary" compact>
-                  ล้างตัวกรอง
-                </DashboardActionButton>
-              ) : undefined}
-            />
-          </div>
-        ) : isMessengerDashboard ? (
-          <div className="space-y-4 p-0 pb-20">
-            {messengerBatchMode && selectedMessengerParcelIds.size > 0 && (
-              <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm font-bold text-slate-700">
-                  {messengerBatchMode === 'start'
-                    ? `เลือกแล้ว ${selectedMessengerParcelIds.size} รายการ • รับได้ ${messengerBatchActionCount}`
-                    : `เลือกแล้ว ${selectedMessengerParcelIds.size} รายการ • ส่งได้ ${messengerBatchActionCount}`}
-                </span>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  <button type="button" onClick={clearSelectedMessengerParcels} className="app-secondary-button h-10 px-3 text-xs">
-                    ยกเลิกเลือก
-                  </button>
-                  {messengerBatchMode === 'start' ? (
-                    <button
-                      type="button"
-                      onClick={handleBatchStartDelivery}
-                      disabled={messengerBatchActionCount === 0 || isBatchStarting}
-                      className="app-primary-button h-10 px-3 text-xs disabled:opacity-60"
-                    >
-                      {isBatchStarting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />}
-                      {isBatchStarting ? 'กำลังรับงาน...' : 'รับพร้อมกัน'}
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setIsBatchConfirmOpen(true)}
-                      disabled={messengerBatchActionCount === 0}
-                      className="app-primary-button h-10 px-3 text-xs disabled:opacity-60"
-                    >
-                      <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                      ส่งพร้อมกัน
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
-            {messengerView === 'waiting' && (
-              <div>
-                <MessengerViewBanner
-                  icon="package_open"
-                  title="งานรอกดรับ"
-                  subtitle="รายการที่ยังไม่มีพนักงานรับงาน กดรับงานเพื่อเริ่มนำส่ง"
-                  count={messengerWaitingParcels.length}
-                  tone="amber"
-                />
-                {messengerWaitingParcels.length ? (
-                  <>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {visibleMessengerWaitingParcels.map(parcel => (
-                      <MessengerDeliveryCard
-                        key={parcel.TrackingID}
-                        parcel={parcel}
-                        assignment={null}
-                        canStartDelivery={isAvailableForMessenger(parcel)}
-                        canReleaseDelivery={false}
-                        canConfirmDelivery={false}
-                        onOpen={() => { setSelectedParcel(parcel); setIsDeliveryDetailsOpen(true); }}
-                        onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                        onStartDelivery={() => handleStartDelivery(parcel)}
-                        onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                        isStartingDelivery={startingDeliveryId === parcel.TrackingID}
-                        isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-                        selected={selectedMessengerParcelIds.has(parcel.TrackingID)}
-                        onSelectedChange={(checked) => toggleSelectedMessengerParcel(parcel.TrackingID, checked)}
-                      />
-                    ))}
-                  </div>
-                  {messengerWaitingParcels.length > messengerVisibleCounts.waiting && (
-                    <div className="mt-3 flex justify-center">
-                      <button type="button" onClick={() => showMoreMessenger('waiting')} className="app-secondary-button h-10 px-4 text-xs">
-                        แสดงเพิ่ม {Math.min(MESSENGER_BATCH_SIZE, messengerWaitingParcels.length - messengerVisibleCounts.waiting)} รายการ
-                      </button>
-                    </div>
-                  )}
-                  </>
-                ) : (
-                  <EmptyState icon="task_alt" title="ไม่มีงานให้รับในตอนนี้" description="เมื่อมีรายการส่งใหม่ งานจะแสดงที่นี่" tone="emerald" />
-                )}
-              </div>
-            )}
-
-            {messengerView === 'mine' && (
-              <div>
-                <MessengerViewBanner
-                  icon="local_shipping"
-                  title="งานที่ต้องส่ง"
-                  subtitle="งานที่คุณกำลังนำส่งในขณะนี้ กรุณายืนยันส่งเมื่อจัดส่งเสร็จ"
-                  count={messengerMineParcels.length}
-                  tone="blue"
-                />
-                {messengerMineParcels.length ? (
-                  <>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {visibleMessengerMineParcels.map(parcel => {
-                      const assignment = getActiveDeliveryAssignment(parcel);
-                      return (
-                        <MessengerDeliveryCard
-                          key={parcel.TrackingID}
-                          parcel={parcel}
-                          assignment={assignment}
-                          canStartDelivery={false}
-                          canReleaseDelivery={canReleaseMessengerJob(parcel, currentEmployeeId, role)}
-                          canConfirmDelivery={canConfirmMessengerJob(parcel, currentEmployeeId)}
-                          onOpen={() => { setSelectedParcel(parcel); setIsDeliveryDetailsOpen(true); }}
-                          onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                          onStartDelivery={() => handleStartDelivery(parcel)}
-                          onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                          isStartingDelivery={startingDeliveryId === parcel.TrackingID}
-                          isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-                          selected={selectedMessengerParcelIds.has(parcel.TrackingID)}
-                          onSelectedChange={(checked) => toggleSelectedMessengerParcel(parcel.TrackingID, checked)}
-                        />
-                      );
-                    })}
-                  </div>
-                  {messengerMineParcels.length > messengerVisibleCounts.mine && (
-                    <div className="mt-3 flex justify-center">
-                      <button type="button" onClick={() => showMoreMessenger('mine')} className="app-secondary-button h-10 px-4 text-xs">
-                        แสดงเพิ่ม {Math.min(MESSENGER_BATCH_SIZE, messengerMineParcels.length - messengerVisibleCounts.mine)} รายการ
-                      </button>
-                    </div>
-                  )}
-                  </>
-                ) : (
-                  <EmptyState 
-                    icon="local_shipping" 
-                    title="ไม่มีงานค้างส่งในขณะนี้" 
-                    description="สามารถไปรับงานใหม่ได้ที่แท็บ 'งานรอรับ'" 
-                  />
-                )}
-              </div>
-            )}
-
-            {messengerView === 'done' && (
-              <div>
-                <MessengerViewBanner
-                  icon="check_circle"
-                  title="ส่งสำเร็จแล้ว"
-                  subtitle="ประวัติงานที่ยืนยันส่งเรียบร้อยแล้ว"
-                  count={messengerDoneParcels.length}
-                  tone="emerald"
-                />
-                 {messengerDoneParcels.length ? (
-                  <>
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-                    {visibleMessengerDoneParcels.map(parcel => (
-                      <MessengerDeliveryCard
-                        key={parcel.TrackingID}
-                        parcel={parcel}
-                        assignment={null}
-                        canStartDelivery={false}
-                        canReleaseDelivery={false}
-                        canConfirmDelivery={false}
-                        onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                        onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                        onStartDelivery={() => handleStartDelivery(parcel)}
-                        onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                        isStartingDelivery={startingDeliveryId === parcel.TrackingID}
-                        isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-                      />
-                    ))}
-                  </div>
-                  {messengerDoneParcels.length > messengerVisibleCounts.done && (
-                    <div className="mt-3 flex justify-center">
-                      <button type="button" onClick={() => showMoreMessenger('done')} className="app-secondary-button h-10 px-4 text-xs">
-                        แสดงเพิ่ม {Math.min(MESSENGER_BATCH_SIZE, messengerDoneParcels.length - messengerVisibleCounts.done)} รายการ
-                      </button>
-                    </div>
-                  )}
-                  </>
-                ) : (
-                  <EmptyState icon="history" title="ยังไม่มีประวัติการส่งสำเร็จ" description="ประวัติงานที่คุณยืนยันส่งแล้วจะแสดงที่นี่" />
-                )}
-              </div>
-            )}
-            <div className="fixed inset-x-0 bottom-0 z-50 border-t border-gray-100 bg-white/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] backdrop-blur md:hidden">
-              <div className="mx-auto grid max-w-[390px] grid-cols-3 gap-1">
-                {[
-                  { id: 'waiting' as const, label: 'งานรอรับ', icon: 'package_open', count: messengerWaitingParcels.length },
-                  { id: 'mine' as const, label: 'งานที่ต้องส่ง', icon: 'local_shipping', count: messengerMineParcels.length },
-                  { id: 'done' as const, label: 'ส่งสำเร็จ', icon: 'check_circle', count: messengerDoneParcels.length },
-                ].map(item => {
-                  const active = messengerView === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setMessengerView(item.id)}
-                      aria-pressed={active}
-                      className={`flex h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${
-                        active ? 'bg-slate-900 text-white' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <DashboardIcon icon={item.icon} className="h-4 w-4 shrink-0" />
-                        {item.count > 0 && (
-                          <span className={`rounded px-1.5 py-0.5 text-[10px] leading-none ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{item.count}</span>
-                        )}
-                      </div>
-                      <span className="w-full truncate px-1 text-center">{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-            <div className="sticky bottom-3 z-20 hidden gap-2 rounded-2xl border border-gray-100 bg-white/95 p-1 shadow-lg backdrop-blur md:grid md:grid-cols-3 xl:mx-auto xl:max-w-3xl">
-              {[
-                { id: 'waiting' as const, label: 'งานรอรับ', icon: 'package_open', count: messengerWaitingParcels.length },
-                { id: 'mine' as const, label: 'งานที่ต้องส่ง', icon: 'local_shipping', count: messengerMineParcels.length },
-                { id: 'done' as const, label: 'ส่งสำเร็จ', icon: 'check_circle', count: messengerDoneParcels.length },
-              ].map(item => {
-                const active = messengerView === item.id;
-                return (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => setMessengerView(item.id)}
-                    aria-pressed={active}
-                    className={`flex h-10 items-center justify-center gap-2 rounded-xl px-3 text-xs font-semibold transition-all ${
-                      active ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'
-                    }`}
-                  >
-                    <DashboardIcon icon={item.icon} className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{item.label}</span>
-                    <span className={`rounded px-1.5 py-0.5 text-[10px] leading-none ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>{item.count}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        ) : hasFilters ? (
-          <div className="space-y-4 pb-4 animate-in fade-in duration-300">
-            {selectedAdminParcelIds.size > 0 && (
-              <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm font-bold text-slate-700">
-                  เลือกแล้ว {selectedAdminParcelIds.size} รายการ (ส่งได้ {batchConfirmParcels.length})
-                </span>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs">
-                    ยกเลิกเลือก
-                  </button>
-                  <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs disabled:opacity-60">
-                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    ส่งพร้อมกัน
-                  </button>
-                  <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60 sm:col-span-1">
-                    {isBatchDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                    ลบพร้อมกัน
-                  </button>
-                </div>
-              </div>
-            )}
-            <MessengerViewBanner
-              icon="search"
-              title="รายการที่ค้นพบ"
-              subtitle="ผลการค้นหาตามตัวกรองที่เลือกไว้"
-              count={adminTotalCount}
-              tone="blue"
-            />
-            {paginatedParcels.length ? (
-              <Suspense fallback={<TableSkeleton />}>
-                <div className="grid grid-cols-1 gap-3 md:hidden">
-                  {paginatedParcels.map(parcel => (
-                    <AdminParcelManagementCard
-                      key={parcel.TrackingID}
-                      parcel={parcel}
-                      assignment={getActiveDeliveryAssignment(parcel)}
-                      onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                      onEdit={() => openEditParcel(parcel)}
-                      onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                      onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                      onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                      isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-                      selected={selectedAdminParcelIds.has(parcel.TrackingID)}
-                      onSelectedChange={(checked) => toggleSelectedAdminParcel(parcel.TrackingID, checked)}
-                    />
-                  ))}
-                </div>
-                <AdminParcelManagementTable
-                  parcels={paginatedParcels}
-                  onOpen={(parcel) => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                  onEdit={openEditParcel}
-                  onConfirm={(parcel) => openConfirmFlow(parcel.TrackingID)}
-                  onDelete={(parcel) => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                  onReleaseDelivery={handleReleaseDelivery}
-                  releasingDeliveryId={releasingDeliveryId}
-                  selectedIds={selectedAdminParcelIds}
-                  onToggleSelected={toggleSelectedAdminParcel}
-                  onToggleAllVisible={toggleAllVisibleAdminParcels}
-                />
-              </Suspense>
-            ) : (
-              <EmptyState
-                icon="search_off"
-                title="ไม่พบรายการตรงตามที่ค้นหา"
-                description="ลองตรวจสอบการสะกดคำ หรือเปลี่ยนตัวกรอง"
-                tone="default"
-              />
-            )}
-          </div>
+        {isMessengerDashboard ? (
+          <MessengerDashboardView
+            messengerView={messengerView}
+            setMessengerView={setMessengerView}
+            messengerWaitingParcels={messengerWaitingParcels}
+            messengerMineParcels={messengerMineParcels}
+            messengerDoneParcels={messengerDoneParcels}
+            visibleMessengerWaitingParcels={visibleMessengerWaitingParcels}
+            visibleMessengerMineParcels={visibleMessengerMineParcels}
+            visibleMessengerDoneParcels={visibleMessengerDoneParcels}
+            messengerVisibleCounts={messengerVisibleCounts}
+            showMoreMessenger={showMoreMessenger}
+            selectedMessengerParcelIds={selectedMessengerParcelIds}
+            toggleSelectedMessengerParcel={toggleSelectedMessengerParcel}
+            clearSelectedMessengerParcels={clearSelectedMessengerParcels}
+            messengerBatchMode={messengerBatchMode}
+            messengerBatchActionCount={messengerBatchActionCount}
+            isBatchStarting={isBatchStarting}
+            handleBatchStartDelivery={handleBatchStartDelivery}
+            setIsBatchConfirmOpen={setIsBatchConfirmOpen}
+            setSelectedParcel={setSelectedParcel}
+            setIsDeliveryDetailsOpen={setIsDeliveryDetailsOpen}
+            setIsTimelineOpen={setIsTimelineOpen}
+            openConfirmFlow={openConfirmFlow}
+            handleStartDelivery={handleStartDelivery}
+            handleReleaseDelivery={handleReleaseDelivery}
+            startingDeliveryId={startingDeliveryId}
+            releasingDeliveryId={releasingDeliveryId}
+            currentEmployeeId={currentEmployeeId}
+            role={role}
+          />
         ) : (
-          <div className="space-y-4 pb-4">
-            {selectedAdminParcelIds.size > 0 && (
-              <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-                <span className="text-sm font-bold text-slate-700">
-                  เลือกแล้ว {selectedAdminParcelIds.size} รายการ (ส่งได้ {batchConfirmParcels.length})
-                </span>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs">
-                    ยกเลิกเลือก
-                  </button>
-                  <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs disabled:opacity-60">
-                    <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
-                    ส่งพร้อมกัน
-                  </button>
-                  <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60 sm:col-span-1">
-                    {isBatchDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
-                    ลบพร้อมกัน
-                  </button>
-                </div>
-              </div>
-            )}
-            {adminNeedsAttentionParcels.length > 0 && (
-              <div>
-                <MessengerViewBanner
-                  icon="package_check"
-                  title="รอยืนยันส่ง"
-                  subtitle="รายการที่ยังไม่ส่งสำเร็จหรือค้างนาน กดยืนยันส่งเมื่อปิดงานแล้ว"
-                  count={adminNeedsAttentionParcels.length}
-                  tone="amber"
-                />
-                <Suspense fallback={<TableSkeleton />}>
-                  <div className="grid grid-cols-1 gap-3 md:hidden">
-                    {adminNeedsAttentionParcels.map(parcel => (
-                      <AdminParcelManagementCard
-                        key={`attention-${parcel.TrackingID}`}
-                        parcel={parcel}
-                        assignment={getActiveDeliveryAssignment(parcel)}
-                        onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                        onEdit={() => openEditParcel(parcel)}
-                        onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                        onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                        onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                        isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-                        selected={selectedAdminParcelIds.has(parcel.TrackingID)}
-                        onSelectedChange={(checked) => toggleSelectedAdminParcel(parcel.TrackingID, checked)}
-                      />
-                    ))}
-                  </div>
-                  <AdminParcelManagementTable
-                    parcels={adminNeedsAttentionParcels}
-                    onOpen={(parcel) => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                    onEdit={openEditParcel}
-                    onConfirm={(parcel) => openConfirmFlow(parcel.TrackingID)}
-                    onDelete={(parcel) => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                    onReleaseDelivery={handleReleaseDelivery}
-                    releasingDeliveryId={releasingDeliveryId}
-                    selectedIds={selectedAdminParcelIds}
-                    onToggleSelected={toggleSelectedAdminParcel}
-                    onToggleAllVisible={toggleAllVisibleAdminParcels}
-                  />
-                </Suspense>
-              </div>
-            )}
-            <MessengerViewBanner
-              icon="check_circle"
-              title="ส่งสำเร็จแล้ว"
-              subtitle="รายการที่ปิดงานแล้ว ดูรายละเอียดหรือประวัติการส่งได้จากปุ่มรายละเอียด"
-              count={adminRegularParcels.length}
-            />
-            {adminRegularParcels.length ? (
-              <Suspense fallback={<TableSkeleton />}>
-                <div className="grid grid-cols-1 gap-3 md:hidden">
-                  {adminRegularParcels.map(parcel => (
-                    <AdminParcelManagementCard
-                      key={parcel.TrackingID}
-                      parcel={parcel}
-                      assignment={getActiveDeliveryAssignment(parcel)}
-                      onOpen={() => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                      onEdit={() => openEditParcel(parcel)}
-                      onConfirm={() => openConfirmFlow(parcel.TrackingID)}
-                      onDelete={() => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                      onReleaseDelivery={() => handleReleaseDelivery(parcel)}
-                      isReleasingDelivery={releasingDeliveryId === parcel.TrackingID}
-                      selected={selectedAdminParcelIds.has(parcel.TrackingID)}
-                      onSelectedChange={(checked) => toggleSelectedAdminParcel(parcel.TrackingID, checked)}
-                    />
-                  ))}
-                </div>
-                <AdminParcelManagementTable
-                  parcels={adminRegularParcels}
-                  onOpen={(parcel) => { setSelectedParcel(parcel); setIsTimelineOpen(true); }}
-                  onEdit={openEditParcel}
-                  onConfirm={(parcel) => openConfirmFlow(parcel.TrackingID)}
-                  onDelete={(parcel) => { setSelectedParcel(parcel); setIsDeleteConfirmOpen(true); }}
-                  onReleaseDelivery={handleReleaseDelivery}
-                  releasingDeliveryId={releasingDeliveryId}
-                  selectedIds={selectedAdminParcelIds}
-                  onToggleSelected={toggleSelectedAdminParcel}
-                  onToggleAllVisible={toggleAllVisibleAdminParcels}
-                />
-              </Suspense>
-            ) : (
-              <EmptyState
-                icon="check_circle"
-                title="ยังไม่มีรายการส่งสำเร็จในหน้านี้"
-                description="รายการที่ยังต้องยืนยันส่งแสดงอยู่ด้านบนแล้ว"
-                tone="emerald"
-              />
-            )}
-          </div>
-        )}
-
-        {!isMessengerDashboard && filteredParcels.length > 0 && (
-          <div className="flex flex-col gap-3 rounded-2xl border border-gray-100 bg-white/95 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-5">
-            <span className="text-xs text-on-surface-variant/60">
-              แสดง <span className="font-bold text-primary">{startIndex}–{endIndex}</span> จาก <span className="font-bold text-primary">{adminTotalCount}</span> รายการ
-              {filteredParcels.length !== parcels.length && <span className="text-on-surface-variant/40"> (กรองจาก {parcels.length})</span>}
-            </span>
-
-            <div className="flex flex-wrap items-center justify-between gap-2 sm:justify-end">
-            {totalPages > 1 && (
-              <>
-              <div className="flex w-full flex-col gap-2 sm:hidden">
-                <div className="flex w-full items-center justify-between gap-2 rounded-xl border border-gray-100 bg-white p-1">
-                  <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
-                    ก่อนหน้า
-                  </button>
-                  <span className="px-2 text-xs font-black text-primary">{currentPage}/{totalPages}</span>
-                  <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="h-9 rounded-lg px-3 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-30">
-                    ถัดไป
-                  </button>
-                </div>
-                <button
-                  onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-                  className="flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 text-xs font-bold text-slate-700 transition-all active:scale-[0.98]"
-                >
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">arrow_upward</span>
-                  กลับขึ้นด้านบน
-                </button>
-              </div>
-              <div className="hidden items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 sm:flex">
-                <button onClick={() => setCurrentPage(1)} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าแรก">
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">first_page</span>
-                </button>
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าก่อนหน้า">
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_left</span>
-                </button>
-                <span className="px-2 text-xs font-black text-primary">{currentPage}/{totalPages}</span>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าถัดไป">
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_right</span>
-                </button>
-                <button onClick={() => setCurrentPage(totalPages)} disabled={currentPage === totalPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าสุดท้าย">
-                  <span className="material-symbols-outlined text-base" aria-hidden="true">last_page</span>
-                </button>
-              </div>
-              </>
-            )}
-
-            {hasMore && (
-              <button
-                onClick={loadMoreParcels}
-                disabled={loading}
-                className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-bold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
-              >
-                {loading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                ) : (
-                  <span className="material-symbols-outlined text-sm" aria-hidden="true">download</span>
-                )}
-                โหลดข้อมูลเพิ่ม
-              </button>
-            )}
-            </div>
-          </div>
+          <AdminDashboardView
+            selectedAdminParcelIds={selectedAdminParcelIds}
+            batchConfirmParcels={batchConfirmParcels}
+            clearSelectedAdminParcels={clearSelectedAdminParcels}
+            setIsBatchConfirmOpen={setIsBatchConfirmOpen}
+            handleBatchDelete={handleBatchDelete}
+            isBatchDeleting={isBatchDeleting}
+            adminTotalCount={adminTotalCount}
+            filteredParcels={filteredParcels}
+            parcels={parcels}
+            paginatedParcels={paginatedParcels}
+            setSelectedParcel={setSelectedParcel}
+            setIsTimelineOpen={setIsTimelineOpen}
+            openEditParcel={openEditParcel}
+            openConfirmFlow={openConfirmFlow}
+            setIsDeleteConfirmOpen={setIsDeleteConfirmOpen}
+            handleReleaseDelivery={handleReleaseDelivery}
+            releasingDeliveryId={releasingDeliveryId}
+            toggleSelectedAdminParcel={toggleSelectedAdminParcel}
+            toggleAllVisibleAdminParcels={toggleAllVisibleAdminParcels}
+            adminNeedsAttentionParcels={adminNeedsAttentionParcels}
+            adminRegularParcels={adminRegularParcels}
+            startIndex={startIndex}
+            endIndex={endIndex}
+            currentPage={currentPage}
+            setCurrentPage={setCurrentPage}
+            totalPages={totalPages}
+            loadMoreParcels={loadMoreParcels}
+            loading={loading}
+            hasMore={hasMore}
+            hasFilters={hasFilters}
+            clearFilters={clearFilters}
+          />
         )}
       </section>
 

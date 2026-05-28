@@ -5,9 +5,12 @@ import { normalizeRole, type AppRole } from '@/lib/roles';
 import { toast } from 'sonner';
 import { UI_COPY } from '@/lib/uiCopy';
 import { ROUTE_TRACKING_ERROR_EVENT } from '@/lib/routeTracking';
+import { formatSyncTime } from '@/lib/dateUtils';
 import { ProfileDialog } from '@/components/layout/ProfileDialog';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { OfflineQueueDialog } from '@/components/layout/OfflineQueueDialog';
+import { pagePaths } from '@/hooks/useAppRouter';
+import type { PageId } from '@/lib/permissionHelper';
 import {
   BarChart3,
   ClipboardList,
@@ -31,24 +34,11 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 
-type PageId = "dashboard" | "create" | "track" | "parcelActivity" | "auditLogs" | "users" | "branches" | "login";
-
 interface LayoutProps {
   children: React.ReactNode;
   currentPage: PageId;
   setCurrentPage: (page: PageId) => void;
 }
-
-const pagePaths: Record<PageId, string> = {
-  dashboard: "/dashboard",
-  create: "/create",
-  track: "/track",
-  parcelActivity: "/parcel-activity",
-  auditLogs: "/audit-logs",
-  users: "/users",
-  branches: "/branches",
-  login: "/login",
-};
 
 type NavItem = {
   id: PageId;
@@ -87,12 +77,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   const [isRoutePopoverOpen, setIsRoutePopoverOpen] = useState(false);
   const routePopoverRef = useRef<HTMLDivElement>(null);
 
-  const formatSyncTime = (value: string | null) => {
-    if (!value) return '-';
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '-';
-    return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-  };
+
 
   // ปิด popover เมื่อคลิกนอก
   useEffect(() => {
@@ -149,7 +134,10 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   const navItems = allNavItems.filter(item => item.roles.includes(currentRole));
   const canCollapseMobileNav = currentRole === 'ADMIN' && navItems.length > 3;
   const currentNavItem = navItems.find(n => n.id === currentPage);
-  const mobileBottomPadding = canCollapseMobileNav && isMobileNavCollapsed ? 'pb-16' : 'pb-24';
+  const hideBottomNav = currentPage === 'dashboard' && currentRole === 'MESSENGER';
+  const mobileBottomPadding = hideBottomNav
+    ? 'pb-20'
+    : (canCollapseMobileNav && isMobileNavCollapsed ? 'pb-16' : 'pb-24');
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -415,7 +403,7 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
         </main>
       </div>
 
-      {navItems.length > 1 && (
+      {navItems.length > 1 && !hideBottomNav && (
         <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-gray-100 dark:border-white/[0.06] bg-white/95 dark:bg-[#091325]/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] pt-2 shadow-[0_-8px_24px_rgba(15,23,42,0.08)] dark:shadow-[0_-8px_24px_rgba(0,0,0,0.3)] backdrop-blur md:hidden">
           {canCollapseMobileNav && isMobileNavCollapsed ? (
             <div className="mx-auto flex h-11 max-w-md items-center justify-between gap-3 rounded-2xl bg-slate-50 dark:bg-white/5 px-3">
@@ -458,8 +446,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
                       aria-current={active ? 'page' : undefined}
                       className={`flex h-14 min-w-[72px] flex-1 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-xl text-[11px] font-semibold transition-colors ${
                         active
-                          ? 'bg-white/10 text-white'
-                          : 'text-muted-foreground hover:bg-white/5 hover:text-foreground'
+                          ? 'bg-slate-900 dark:bg-white/10 text-white'
+                          : 'text-muted-foreground hover:bg-slate-50 dark:hover:bg-white/5 hover:text-foreground'
                       }`}
                     >
                       <NavIcon icon={item.icon} active={active} />

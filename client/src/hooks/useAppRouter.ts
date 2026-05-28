@@ -74,7 +74,7 @@ export function useAppRouter() {
 
   return {
     currentPage,
-    setCurrentPage,
+    forceSetPage: setCurrentPage,
     navigateToPage,
   };
 }

@@ -209,6 +209,22 @@ export async function idbClear(storeName: string): Promise<boolean> {
   });
 }
 
+export async function idbReplaceAll<T>(storeName: string, items: T[]): Promise<boolean> {
+  const db = await openDb();
+  if (!db) return false;
+  return new Promise(resolve => {
+    const tx = db.transaction(storeName, 'readwrite');
+    const store = tx.objectStore(storeName);
+    store.clear();
+    items.forEach(item => {
+      store.put(item);
+    });
+    tx.oncomplete = () => resolve(true);
+    tx.onerror = () => resolve(false);
+    tx.onabort = () => resolve(false);
+  });
+}
+
 export async function cacheParcelsLocally(parcels: Parcel[]): Promise<boolean> {
   const db = await openDb();
   if (!db) return false;

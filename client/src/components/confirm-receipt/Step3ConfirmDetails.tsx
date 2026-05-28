@@ -3,77 +3,51 @@ import { sanitizeTextInput } from '@/lib/validation';
 import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
 import { confirmNavButtonClass, embeddedStepBodyClass, ParcelJobSummary } from './ConfirmReceiptShared';
 
+import { useConfirmReceiptContext } from '@/contexts/ConfirmReceiptContext';
+
 interface Step3ConfirmDetailsProps {
   embedded: boolean;
-  checkedParcel: Parcel | null;
-  trackingId: string;
-  needsGpsOverrideReason: boolean;
-  gpsOverrideReason: string;
-  setGpsOverrideReason: (val: string) => void;
-  showAdvancedOptions: boolean;
-  setShowAdvancedOptions: (val: boolean | ((prev: boolean) => boolean)) => void;
-  isProxy: boolean;
-  setIsProxy: (val: boolean) => void;
-  setIsForwarding: (val: boolean) => void;
-  setDeliveryMatchStatus: (val: DeliveryMatchStatus) => void;
-  setDeliveryMismatchReason: (val: string) => void;
-  proxyName: string;
-  setProxyName: (val: string) => void;
-  deliveryMatchStatus: DeliveryMatchStatus;
-  deliveryMismatchReason: string;
-  isForwarding: boolean;
-  forwardSender: string;
-  setForwardSender: (val: string) => void;
-  forwardToBranch: string;
-  setForwardToBranch: (val: string) => void;
-  branches: string[];
-  note: string;
-  setNote: (val: string) => void;
-  isLoading: boolean;
-  executeConfirm: () => void;
-  setCurrentStep: (step: number) => void;
-  isOfflineFallback?: boolean;
-  tempReceiverName?: string;
-  setTempReceiverName?: (val: string) => void;
-  tempReceiverBranch?: string;
-  setTempReceiverBranch?: (val: string) => void;
 }
 
 export function Step3ConfirmDetails({
   embedded,
-  checkedParcel,
-  trackingId,
-  needsGpsOverrideReason,
-  gpsOverrideReason,
-  setGpsOverrideReason,
-  showAdvancedOptions,
-  setShowAdvancedOptions,
-  isProxy,
-  setIsProxy,
-  setIsForwarding,
-  setDeliveryMatchStatus,
-  setDeliveryMismatchReason,
-  proxyName,
-  setProxyName,
-  deliveryMatchStatus,
-  deliveryMismatchReason,
-  isForwarding,
-  forwardSender,
-  setForwardSender,
-  forwardToBranch,
-  setForwardToBranch,
-  branches,
-  note,
-  setNote,
-  isLoading,
-  executeConfirm,
-  setCurrentStep,
-  isOfflineFallback = false,
-  tempReceiverName = '',
-  setTempReceiverName = () => {},
-  tempReceiverBranch = '',
-  setTempReceiverBranch = () => {},
 }: Step3ConfirmDetailsProps) {
+  const {
+    checkedParcel,
+    trackingId,
+    needsGpsOverrideReason,
+    gpsOverrideReason,
+    setGpsOverrideReason,
+    showAdvancedOptions,
+    setShowAdvancedOptions,
+    isProxy,
+    setIsProxy,
+    setIsForwarding,
+    setDeliveryMatchStatus,
+    setDeliveryMismatchReason,
+    proxyName,
+    setProxyName,
+    deliveryMatchStatus,
+    deliveryMismatchReason,
+    isForwarding,
+    forwardSender,
+    setForwardSender,
+    forwardFromBranch,
+    setForwardFromBranch,
+    forwardToBranch,
+    setForwardToBranch,
+    branches,
+    note,
+    setNote,
+    isLoading,
+    executeConfirm,
+    setCurrentStep,
+    isOfflineFallback = false,
+    tempReceiverName = '',
+    setTempReceiverName = () => {},
+    tempReceiverBranch = '',
+    setTempReceiverBranch = () => {},
+  } = useConfirmReceiptContext();
   return (
     <div className="animate-in slide-in-from-right-4 duration-500">
       <div className={embedded ? '' : 'app-panel overflow-hidden'}>
@@ -362,6 +336,15 @@ export function Step3ConfirmDetails({
                         />
                       </div>
                       <NativeSelect
+                        value={forwardFromBranch}
+                        onChange={setForwardFromBranch}
+                        options={branches}
+                        placeholder="ส่งต่อจากแผนก/สาขา"
+                        icon="flag"
+                        otherLabel="อื่นๆ"
+                        otherPlaceholder="ระบุแผนก/สาขาต้นทาง"
+                      />
+                      <NativeSelect
                         value={forwardToBranch}
                         onChange={setForwardToBranch}
                         options={branches}
@@ -404,7 +387,7 @@ export function Step3ConfirmDetails({
               disabled={
                 isLoading ||
                 (isOfflineFallback && (!tempReceiverName.trim() || !resolveSelectValue(tempReceiverBranch))) ||
-                (isForwarding && (!forwardSender.trim() || !resolveSelectValue(forwardToBranch))) ||
+                (isForwarding && (!forwardSender.trim() || !resolveSelectValue(forwardFromBranch) || !resolveSelectValue(forwardToBranch))) ||
                 (isProxy && !proxyName.trim()) ||
                 (!isForwarding && deliveryMatchStatus === 'DELIVERED_ELSEWHERE' && !deliveryMismatchReason.trim())
               }

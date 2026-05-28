@@ -1,33 +1,26 @@
 import { Spinner } from '@/components/ui/spinner';
 import { sanitizeTextInput } from '@/lib/validation';
-import type { Parcel } from '@/types/parcel';
 import { embeddedStepBodyClass } from './ConfirmReceiptShared';
+import { useConfirmReceiptContext } from '@/contexts/ConfirmReceiptContext';
 
 interface Step1CheckTrackingProps {
-  trackingId: string;
-  setTrackingId: (val: string) => void;
-  handlePasteTrackingID: () => void;
-  checkedParcel: Parcel | null;
-  isDelivered: boolean;
-  handleCheckParcel: () => void;
-  isChecking: boolean;
   embedded: boolean;
-  showOfflinePrompt?: boolean;
-  handleAcceptOfflineFallback?: () => void;
 }
 
 export function Step1CheckTracking({
-  trackingId,
-  setTrackingId,
-  handlePasteTrackingID,
-  checkedParcel,
-  isDelivered,
-  handleCheckParcel,
-  isChecking,
   embedded,
-  showOfflinePrompt = false,
-  handleAcceptOfflineFallback,
 }: Step1CheckTrackingProps) {
+  const {
+    trackingId,
+    setTrackingId,
+    handlePasteTrackingID,
+    checkedParcel,
+    isDelivered,
+    handleCheckParcel,
+    isChecking,
+    showOfflinePrompt,
+    handleAcceptOfflineFallback,
+  } = useConfirmReceiptContext();
   return (
     <div className="animate-in slide-in-from-right-4 duration-500">
       <div className={embedded ? '' : 'app-panel overflow-hidden'}>

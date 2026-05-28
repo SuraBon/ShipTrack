@@ -112,3 +112,9 @@ temp/
 client/public/__manus__/version.json
 
 .vercel
+
+# Vite temporary timestamp files
+vite.config.ts.timestamp-*
+
+# Codex agent log files
+codex-*.log

@@ -1,49 +1,34 @@
 import { Spinner } from '@/components/ui/spinner';
 import { sanitizeTextInput } from '@/lib/validation';
-import type { Parcel } from '@/types/parcel';
 import { confirmNavButtonClass, embeddedStepBodyClass, ParcelJobSummary } from './ConfirmReceiptShared';
-
-import { GeoPosition, GeoStatus } from '@/hooks/useGeolocation';
+import { useConfirmReceiptContext } from '@/contexts/ConfirmReceiptContext';
 
 interface Step2PhotoEvidenceProps {
   embedded: boolean;
-  checkedParcel: Parcel | null;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
-  handleFileSelect: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  photoPreview: string | null;
-  isProcessingImage: boolean;
-  effectiveGeoStatus: GeoStatus;
-  position: GeoPosition | null;
-  geoError: string | null;
-  isGpsBypassed: boolean;
-  setIsGpsBypassed: (val: boolean) => void;
-  requestLocation: () => void;
-  needsGpsOverrideReason: boolean;
-  gpsOverrideReason: string;
-  setGpsOverrideReason: (val: string) => void;
-  setCurrentStep: (step: number) => void;
-  canProceedFromPhoto: boolean;
 }
 
 export function Step2PhotoEvidence({
   embedded,
-  checkedParcel,
   fileInputRef,
-  handleFileSelect,
-  photoPreview,
-  isProcessingImage,
-  effectiveGeoStatus,
-  position,
-  geoError,
-  isGpsBypassed,
-  setIsGpsBypassed,
-  requestLocation,
-  needsGpsOverrideReason,
-  gpsOverrideReason,
-  setGpsOverrideReason,
-  setCurrentStep,
-  canProceedFromPhoto,
 }: Step2PhotoEvidenceProps) {
+  const {
+    checkedParcel,
+    handleFileSelect,
+    photoPreview,
+    isProcessingImage,
+    effectiveGeoStatus,
+    position,
+    geoError,
+    isGpsBypassed,
+    setIsGpsBypassed,
+    requestLocation,
+    needsGpsOverrideReason,
+    gpsOverrideReason,
+    setGpsOverrideReason,
+    setCurrentStep,
+    canProceedFromPhoto,
+  } = useConfirmReceiptContext();
   return (
     <div className="animate-in slide-in-from-right-4 duration-500">
       <div className={embedded ? '' : 'app-panel overflow-hidden'}>

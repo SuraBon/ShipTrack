@@ -86,3 +86,14 @@ export function formatThaiDateTime(dateStr: string): string {
     return dateStr;
   }
 }
+
+/**
+ * Format a date/ISO string to a short Thai time string (HH:MM).
+ * Returns '-' for null/invalid input.
+ */
+export function formatSyncTime(value: string | null): string {
+  if (!value) return '-';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '-';
+  return date.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
+}
