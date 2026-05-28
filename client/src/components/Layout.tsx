@@ -210,11 +210,21 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
           className="sticky top-0 z-40 border-b border-gray-100 dark:border-white/[0.06] bg-white/95 dark:bg-[#091325]/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/85 dark:supports-[backdrop-filter]:bg-[#091325]/85"
         >
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-3 px-4 sm:px-6 lg:px-8">
-            <div className="min-w-0">
-              <p className="hidden text-[10px] font-bold uppercase tracking-[0.18em] text-on-surface-variant/55 sm:block">{UI_COPY.appName}</p>
-              <h1 className="truncate text-base font-semibold leading-tight text-primary dark:text-white sm:text-lg">
-                {navItems.find(n => n.id === currentPage)?.label ?? currentPage}
-              </h1>
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#091426] p-1 shadow-sm shrink-0">
+                <svg className="h-full w-full" viewBox="0 0 64 64" role="img" aria-label="ShipTrack">
+                  <path d="M 35.0 9.2 A 23 23 0 0 1 53.2 40.8" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
+                  <path d="M 50.3 46.0 A 23 23 0 0 1 13.7 46.0" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
+                  <path d="M 10.8 40.8 A 23 23 0 0 1 29.0 9.2" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
+                  <path d="M 18.5 41.5 L 32 20 L 45.5 41.5" fill="none" stroke="#06b6d4" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="butt" />
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="hidden text-[9px] font-black uppercase tracking-[0.18em] text-on-surface-variant/55 leading-none sm:block">{UI_COPY.appName}</p>
+                <h1 className="truncate mt-0.5 text-sm font-semibold leading-none text-primary dark:text-white sm:text-lg sm:mt-1">
+                  {navItems.find(n => n.id === currentPage)?.label ?? currentPage}
+                </h1>
+              </div>
             </div>
 
             {navItems.length > 1 && (

@@ -3,7 +3,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   ArrowRight,
-  BadgeCheck,
   CheckCircle2,
   KeyRound,
   Loader2,
@@ -12,6 +11,7 @@ import {
   XCircle,
   Eye,
   EyeOff,
+  IdCard,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { isValidEmployeeId, normalizeEmployeeId, validatePassword, validateRequiredText } from '@/lib/validation';
@@ -187,7 +187,7 @@ export default function Login() {
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">รหัสพนักงาน</label>
               <div className="relative">
-                <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <IdCard className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <input
                   type="text"
                   value={employeeId}
@@ -205,7 +205,7 @@ export default function Login() {
                 <div>
                   <label className="mb-1.5 block text-sm font-medium text-foreground">ชื่อ-นามสกุล</label>
                   <div className="relative">
-                    <BadgeCheck className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                    <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                     <input
                       type="text"
                       value={name}

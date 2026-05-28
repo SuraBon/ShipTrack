@@ -79,11 +79,12 @@ export const MessengerDeliveryCard = ({
     statusLabel = 'กำลังส่ง';
     statusPillClass = 'bg-blue-500/15 text-blue-400';
   } else if (canStartDelivery) {
-    iconName = 'person';
-    accentClass = 'bg-surface-container text-on-surface-variant';
+    iconName = 'inventory_2';
+    accentClass = 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
     statusLabel = 'งานใหม่';
-    statusPillClass = 'bg-surface-container text-on-surface-variant';
+    statusPillClass = 'bg-amber-500/15 text-amber-600 dark:text-amber-400';
   } else if (isAssignedElsewhere) {
+    iconName = 'person';
     statusLabel = 'มีผู้รับงานแล้ว';
     statusPillClass = 'bg-surface-container text-on-surface-variant';
   }
@@ -127,6 +128,8 @@ export const MessengerDeliveryCard = ({
                   renderMaterialIcon('check_circle', 'text-xl')
                 ) : iconName === 'local_shipping' ? (
                   renderMaterialIcon('local_shipping', 'text-xl')
+                ) : iconName === 'inventory_2' ? (
+                  renderMaterialIcon('inventory_2', 'text-xl')
                 ) : (
                   renderMaterialIcon('person', 'text-xl')
                 )}
@@ -183,17 +186,17 @@ export const MessengerDeliveryCard = ({
 
                   <div 
                     onClick={() => note && setIsNoteExpanded(!isNoteExpanded)}
-                    className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-surface-container dark:bg-surface-container px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-surface-container-high dark:hover:bg-surface-container-high' : 'opacity-40'}`}
+                    className={`flex min-w-0 items-start gap-2.5 rounded-xl bg-orange-50/70 dark:bg-amber-900/20 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70 dark:hover:bg-amber-900/30' : 'opacity-40'}`}
                   >
-                    {renderMaterialIcon('sticky_note_2', 'mt-0.5 text-on-surface-variant dark:text-muted-foreground text-base leading-none')}
+                    {renderMaterialIcon('sticky_note_2', 'mt-0.5 text-orange-500 text-base leading-none')}
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
-                        <p className="text-[10px] font-bold leading-none text-on-surface-variant dark:text-muted-foreground">หมายเหตุ</p>
+                        <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
                         {translatedNote.length > 25 && (
-                          <span className="text-[8px] text-on-surface-variant dark:text-muted-foreground font-bold uppercase">{isNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
+                          <span className="text-[8px] text-orange-600 font-bold uppercase">{isNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
                         )}
                       </div>
-                      <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-on-surface dark:text-foreground ${isNoteExpanded ? 'break-words' : 'truncate'}`}>
+                      <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 dark:text-foreground ${isNoteExpanded ? 'break-words' : 'truncate'}`}>
                         {translatedNote || '-'}
                       </p>
                     </div>
