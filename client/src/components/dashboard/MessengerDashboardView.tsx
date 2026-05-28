@@ -117,8 +117,8 @@ export function MessengerDashboardView({
         <div>
           <MessengerViewBanner
             icon="package_open"
-            title="งานรอกดรับ"
-            subtitle="รายการที่ยังไม่มีพนักงานรับงาน กดรับงานเพื่อเริ่มนำส่ง"
+            title="งานรอรับ"
+            subtitle="งานที่ไม่มีคนรับ กดรับเพื่อเริ่มส่ง"
             count={messengerWaitingParcels.length}
             tone="amber"
           />
@@ -163,7 +163,7 @@ export function MessengerDashboardView({
           <MessengerViewBanner
             icon="local_shipping"
             title="งานที่ต้องส่ง"
-            subtitle="งานที่คุณกำลังนำส่งในขณะนี้ กรุณายืนยันส่งเมื่อจัดส่งเสร็จ"
+            subtitle="งานที่กำลังส่ง กดยืนยันส่งเมื่อส่งเสร็จ"
             count={messengerMineParcels.length}
             tone="blue"
           />
@@ -214,8 +214,8 @@ export function MessengerDashboardView({
         <div>
           <MessengerViewBanner
             icon="check_circle"
-            title="ส่งสำเร็จแล้ว"
-            subtitle="ประวัติงานที่ยืนยันส่งเรียบร้อยแล้ว"
+            title="ส่งสำเร็จ"
+            subtitle="ประวัติงานที่ยืนยันส่งแล้ว"
             count={messengerDoneParcels.length}
             tone="emerald"
           />
@@ -248,7 +248,7 @@ export function MessengerDashboardView({
               )}
             </>
           ) : (
-            <EmptyState icon="history" title="ยังไม่มีประวัติการส่งสำเร็จ" description="ประวัติงานที่คุณยืนยันส่งแล้วจะแสดงที่นี่" />
+            <EmptyState icon="history" title="ยังไม่มีประวัติการส่งสำเร็จ" description="ประวัติงานที่ยืนยันส่งแล้วจะแสดงที่นี่" />
           )}
         </div>
       )}

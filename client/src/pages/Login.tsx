@@ -200,7 +200,7 @@ export default function Login() {
             </div>
             <p className="mb-2 text-xs font-bold uppercase text-primary">Staff access</p>
             <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
-              {isSetup ? 'ตั้งค่าการเข้าใช้งาน' : 'เข้าสู่ระบบพนักงานส่ง'}
+              {isSetup ? 'ตั้งค่าเข้าใช้งาน' : 'เข้าสู่ระบบพนักงาน'}
             </h1>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {isSetup ? 'ยืนยันข้อมูลผู้ใช้งานครั้งแรกและตั้งรหัสผ่านสำหรับเข้าใช้งานครั้งต่อไป' : 'เข้าสู่ระบบสำหรับผู้ดูแลระบบและพนักงานส่ง หรือสร้างรายการแบบไม่เข้าสู่ระบบ'}

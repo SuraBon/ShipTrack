@@ -33,7 +33,7 @@ function App() {
     const handleUpdateAvailable = (event: Event) => {
       const updateServiceWorker = (event as CustomEvent<{ updateServiceWorker?: (reloadPage?: boolean) => Promise<void> }>).detail?.updateServiceWorker;
       toast.info("มีเวอร์ชันใหม่พร้อมใช้งาน", {
-        description: "กดเตรียมอัปเดต แล้วเปิดแอพใหม่เมื่อสะดวก",
+        description: "กดเตรียมอัปเดต แล้วเปิดแอปใหม่เมื่อสะดวก",
         duration: 15000,
         action: {
           label: "เตรียมอัปเดต",

@@ -104,7 +104,7 @@ export function AdminDashboardView({
           <MessengerViewBanner
             icon="search"
             title="รายการที่ค้นพบ"
-            subtitle="ผลการค้นหาตามตัวกรองที่เลือกไว้"
+            subtitle="ผลการค้นหาพัสดุตามตัวกรอง"
             count={adminTotalCount}
             tone="blue"
           />
@@ -176,7 +176,7 @@ export function AdminDashboardView({
               <MessengerViewBanner
                 icon="package_check"
                 title="รอยืนยันส่ง"
-                subtitle="รายการที่ยังไม่ส่งสำเร็จหรือค้างนาน กดยืนยันส่งเมื่อปิดงานแล้ว"
+                subtitle="รายการค้างส่งหรือค้างนาน กดยืนยันส่งเพื่อปิดงาน"
                 count={adminNeedsAttentionParcels.length}
                 tone="amber"
               />
@@ -215,8 +215,8 @@ export function AdminDashboardView({
           )}
           <MessengerViewBanner
             icon="check_circle"
-            title="ส่งสำเร็จแล้ว"
-            subtitle="รายการที่ปิดงานแล้ว ดูรายละเอียดหรือประวัติการส่งได้จากปุ่มรายละเอียด"
+            title="ส่งสำเร็จ"
+            subtitle="รายการส่งสำเร็จ สามารถดูรายละเอียดและประวัติส่งได้"
             count={adminRegularParcels.length}
           />
           {adminRegularParcels.length ? (
@@ -255,7 +255,7 @@ export function AdminDashboardView({
             <EmptyState
               icon="check_circle"
               title="ยังไม่มีรายการส่งสำเร็จในหน้านี้"
-              description="รายการที่ยังต้องยืนยันส่งแสดงอยู่ด้านบนแล้ว"
+              description="รายการที่ต้องยืนยันส่งแสดงด้านบนแล้ว"
               tone="emerald"
             />
           )}

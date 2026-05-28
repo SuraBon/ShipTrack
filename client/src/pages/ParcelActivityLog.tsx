@@ -46,7 +46,7 @@ function ActivityCard({ activity }: { activity: ParcelActivityLogRow }) {
         </div>
         <div className="grid gap-2 sm:grid-cols-2">
         <div className="min-w-0 rounded-xl bg-gray-50 p-3">
-            <p className="text-[11px] font-semibold text-muted-foreground">ผู้ทำเหตุการณ์ / ผู้เกี่ยวข้อง</p>
+            <p className="text-[11px] font-semibold text-muted-foreground">ผู้ทำรายการ / ผู้เกี่ยวข้อง</p>
             <p className="mt-1 break-words text-xs font-medium text-foreground">{activity.person || '-'}</p>
           </div>
           <div className="min-w-0 rounded-xl bg-gray-50 p-3">
@@ -243,7 +243,7 @@ export default function ParcelActivityLog() {
         <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาสถานที่ ผู้ทำเหตุการณ์ หรือหมายเหตุ..." className="app-input w-full pl-10" />
+            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาสถานที่ ผู้ทำรายการ หรือหมายเหตุ..." className="app-input w-full pl-10" />
           </div>
           <select value={eventType} onChange={event => setEventType(event.target.value)} className="app-input w-full">
             {EVENT_TYPES.map(type => <option key={type || 'ALL'} value={type}>{type ? EVENT_LABELS[type] || type : 'ทุกเหตุการณ์พัสดุ'}</option>)}

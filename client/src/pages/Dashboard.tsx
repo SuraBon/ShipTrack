@@ -115,7 +115,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       setLastUpdatedAt(Date.now());
     } catch {
       setLastUpdatedAt(Date.now());
-      toast.error('ไม่สามารถโหลดข้อมูลได้');
+      toast.error('ไม่สามารถโหลดข้อมูลพัสดุได้');
     } finally {
       isFetchingRef.current = false;
     }
@@ -123,16 +123,16 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   const handleExportCSV = useCallback(() => {
     if (!filteredParcels || filteredParcels.length === 0) {
-      toast.error('ไม่มีข้อมูลให้ออกรายงาน');
+      toast.error('ไม่มีข้อมูลสำหรับการส่งออกรายงาน');
       return;
     }
     try {
       const csv = convertParcelsToCSV(filteredParcels);
       downloadCSV(csv, `shiptrack-parcels-${new Date().toISOString().slice(0, 10)}.csv`);
-      toast.success('ดาวน์โหลดรายงาน CSV สำเร็จ');
+      toast.success('ดาวน์โหลดรายงานรูปแบบ CSV สำเร็จเรียบร้อยแล้ว');
     } catch (err) {
       console.error(err);
-      toast.error('ไม่สามารถส่งออกรายงานได้');
+      toast.error('เกิดข้อผิดพลาด ไม่สามารถส่งออกรายงานได้');
     }
   }, [filteredParcels]);
 
@@ -285,7 +285,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
         setSystemHealth(res.health);
         setSystemHealthError(null);
       } else {
-        setSystemHealthError(res.error || 'ไม่สามารถตรวจสถานะระบบได้');
+        setSystemHealthError(res.error || 'ไม่สามารถตรวจสอบสถานะระบบได้');
       }
     };
     void loadHealth();

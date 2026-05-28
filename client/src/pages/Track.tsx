@@ -80,9 +80,9 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     toast.promise(
       refreshPromise,
       {
-        loading: 'กำลังอัปเดตสถานะล่าสุด...',
-        success: (count) => `อัปเดตสถานะสำเร็จ ${count} รายการ`,
-        error: 'เกิดข้อผิดพลาดในการอัปเดตสถานะ',
+        loading: 'กำลังอัปเดตสถานะการจัดส่งล่าสุด...',
+        success: (count) => `อัปเดตสถานะการจัดส่งสำเร็จจำนวน ${count} รายการ`,
+        error: 'เกิดข้อผิดพลาดในการอัปเดตสถานะการจัดส่ง',
       }
     );
 
@@ -150,7 +150,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     if (e) e.preventDefault();
     const id = sanitizeTextInput(searchId ?? trackingId, 100).toUpperCase();
     if (!id) {
-      toast.error('กรุณากรอกหมายเลขติดตาม ชื่อผู้รับ หรือสถานที่ปลายทาง');
+      toast.error('กรุณาระบุหมายเลขติดตาม ชื่อผู้รับ หรือแผนก/สาขาปลายทาง');
       return;
     }
     lastSearchedIdRef.current = id;
@@ -167,7 +167,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         setSearchResults([]);
         addToRecent(hydratedParcel.TrackingID);
         setNotFoundQuery(null);
-        toast.success('พบรายการส่ง');
+        toast.success('พบข้อมูลการจัดส่งพัสดุ');
       } else {
         const directTrackingLookup = isValidTrackingId(id);
         const lookupMiss = (res.error ?? '').includes('ไม่พบ') || (res.error ?? '').includes('รูปแบบ');
@@ -191,17 +191,17 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
             setParcel(null);
           }
           setNotFoundQuery(null);
-          toast.success(`พบข้อมูล ${results.length} รายการ`);
+          toast.success(`พบข้อมูลการจัดส่งทั้งหมด ${results.length} รายการ`);
         } else {
           setParcel(null);
           setSearchResults([]);
           setNotFoundQuery(id);
-          toast.error(res.error && directTrackingLookup ? res.error : 'ไม่พบรายการส่ง');
+          toast.error(res.error && directTrackingLookup ? res.error : 'ไม่พบข้อมูลการจัดส่ง');
         }
       }
     } catch {
       setNotFoundQuery(null);
-      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+      toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อเครือข่าย');
     } finally {
       setIsLoading(false);
     }
@@ -209,7 +209,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
 
   const handlePaste = async () => {
     if (!navigator.clipboard || !navigator.clipboard.readText) {
-      toast.error('เบราว์เซอร์ไม่รองรับการวางอัตโนมัติ (กรุณาใช้ Ctrl+V หรือกดค้างเพื่อวาง)');
+      toast.error('เบราว์เซอร์นี้ไม่รองรับการวางข้อความอัตโนมัติ (กรุณาใช้ปุ่มลัด Ctrl+V หรือกดค้างเพื่อวาง)');
       return;
     }
     try {
@@ -217,10 +217,10 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
       const safeText = sanitizeTextInput(t, 100).toUpperCase();
       if (safeText) {
         setTrackingId(safeText);
-        toast.success('วางหมายเลขติดตามเรียบร้อย');
+        toast.success('วางหมายเลขติดตามเรียบร้อยแล้ว');
       }
     } catch {
-      toast.error('ไม่สามารถวางข้อมูลได้ (กรุณาอนุญาตการเข้าถึง Clipboard หรือใช้ Ctrl+V แทน)');
+      toast.error('ไม่สามารถวางข้อมูลได้ (กรุณาอนุญาตให้แอปพลิเคชันเข้าถึงคลิปบอร์ด หรือกด Ctrl+V แทน)');
     }
   };
 
@@ -349,12 +349,12 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 <div className="pr-12">
                   <div className="min-w-0">
                     <DialogTitle className="font-display text-2xl font-black leading-tight text-white">
-                       Milestone การจัดส่ง
+                       ประวัติสถานะการจัดส่ง
                     </DialogTitle>
                     <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
                       <p className="min-w-0 break-all font-mono text-sm font-black tracking-wide text-blue-200">{parcel.TrackingID}</p>
                       <button
-                        onClick={() => { navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอก ${parcel.TrackingID}`); }}
+                        onClick={() => { navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอกหมายเลขติดตาม ${parcel.TrackingID} เรียบร้อยแล้ว`); }}
                         className="grid size-7 place-items-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
                         aria-label="คัดลอกหมายเลขติดตาม"
                       >
@@ -376,7 +376,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                         <span className="material-symbols-outlined text-2xl" aria-hidden="true">route</span>
                       </div>
                       <div>
-                        <p className="font-display text-base font-black text-slate-900 dark:text-foreground">Milestone การจัดส่ง</p>
+                        <p className="font-display text-base font-black text-slate-900 dark:text-foreground">ประวัติสถานะการจัดส่ง</p>
                         <p className="text-xs font-semibold text-slate-400 dark:text-muted-foreground">สถานะล่าสุดอยู่ด้านบน พร้อมเวลาและจุดที่บันทึก</p>
                       </div>
                     </div>

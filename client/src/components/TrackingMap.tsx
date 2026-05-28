@@ -276,7 +276,7 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
 
       const footer = document.createElement('div');
       footer.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid #eef1f6;font-size:11px;color:#855300;font-weight:900';
-      footer.textContent = isRouteSample ? 'บันทึกจาก GPS ระหว่างพนักงานนำส่ง' : 'คลิกหมุดอื่นเพื่อดูรายละเอียดจุดนั้น';
+      footer.textContent = isRouteSample ? 'บันทึกจาก GPS ระหว่างพนักงานส่ง' : 'คลิกหมุดอื่นเพื่อดูรายละเอียดจุดนั้น';
 
       popupEl.appendChild(footer);
       marker.on('click', () => {
@@ -357,7 +357,7 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
       {!hasRouteData && (
         <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/10 bg-blue-50 dark:bg-blue-950/40 px-4 py-2.5 text-[11px] font-semibold text-blue-700 dark:text-blue-200">
           <span className="material-symbols-outlined text-base" aria-hidden="true">info</span>
-          ยังไม่มีตำแหน่ง GPS — แผนที่จะแสดงเมื่อมีการสร้างรายการหรือยืนยันส่ง
+          ยังไม่มีตำแหน่ง GPS — แผนที่จะแสดงเมื่อมีการสร้างรายการหรือยืนยันการจัดส่ง
         </div>
       )}
       {hasRouteData && hasUnresolved && (
@@ -389,7 +389,7 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
         <div className="pointer-events-none absolute inset-x-4 top-1/2 z-[500] mx-auto max-w-sm -translate-y-1/2 rounded-2xl border border-white/80 dark:border-white/10 bg-white/95 dark:bg-[#020617]/95 p-4 text-center shadow-sm backdrop-blur">
           <span className="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-500" aria-hidden="true">location_off</span>
           <p className="mt-2 text-sm font-black text-slate-800 dark:text-slate-100">ยังไม่มีพิกัดสำหรับแสดงบนแผนที่</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">ระบบจะแสดงเส้นทางเมื่อมีข้อมูล GPS จากการสร้างรายการหรือยืนยันส่ง</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">ระบบจะแสดงเส้นทางเมื่อมีข้อมูล GPS จากการสร้างรายการหรือยืนยันการจัดส่ง</p>
         </div>
       )}
       <div className="flex items-center justify-between gap-3 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#020617] px-4 py-2.5 text-[10px] font-semibold text-slate-400 dark:text-slate-400">

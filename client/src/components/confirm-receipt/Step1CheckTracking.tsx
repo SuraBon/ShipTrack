@@ -59,8 +59,8 @@ export function Step1CheckTracking({
               <div className="p-4 bg-error-container/30 border border-error/10 rounded-2xl text-error text-sm flex items-start gap-3 animate-in shake duration-300">
                 <span className="material-symbols-outlined text-xl" aria-hidden="true">block</span>
                 <div>
-                  <p className="font-bold">รายการนี้ถูกส่งถึงที่หมายแล้ว</p>
-                  <p className="opacity-80">ไม่สามารถยืนยันซ้ำได้ กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
+                  <p className="font-bold">รายการพัสดุนี้ถูกจัดส่งถึงปลายทางเรียบร้อยแล้ว</p>
+                  <p className="opacity-80">ไม่สามารถทำการยืนยันการจัดส่งซ้ำได้ กรุณาตรวจสอบหมายเลขติดตามพัสดุอีกครั้ง</p>
                 </div>
               </div>
             )}
@@ -70,8 +70,8 @@ export function Step1CheckTracking({
                 <div className="flex items-start gap-3">
                   <span className="material-symbols-outlined text-amber-600 mt-0.5" aria-hidden="true">wifi_off</span>
                   <div>
-                    <p className="font-bold">ระบบอยู่ในโหมดออฟไลน์ / เครือข่ายขัดข้อง</p>
-                    <p className="opacity-90 leading-normal">ไม่พบข้อมูลพัสดุในเครื่อง คุณสามารถทำรายการบันทึกส่งแบบออฟไลน์สำหรับหมายเลขนี้ได้ โดยข้อมูลจะซิงค์เมื่อเชื่อมต่อเน็ตได้</p>
+                    <p className="font-bold">ระบบอยู่ในโหมดออฟไลน์ หรือเครือข่ายขัดข้อง</p>
+                    <p className="opacity-90 leading-normal">ไม่พบข้อมูลพัสดุบนอุปกรณ์ คุณสามารถบันทึกข้อมูลการจัดส่งแบบออฟไลน์สำหรับหมายเลขนี้ได้ โดยข้อมูลจะถูกซิงค์เข้าระบบอัตโนมัติเมื่อเชื่อมต่ออินเท็อร์เน็ต</p>
                   </div>
                 </div>
                 <button
@@ -80,7 +80,7 @@ export function Step1CheckTracking({
                   className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-display font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-lg" aria-hidden="true">offline_pin</span>
-                  ยืนยันทำรายการแบบออฟไลน์
+                  ยืนยันบันทึกข้อมูลแบบออฟไลน์
                 </button>
               </div>
             )}
@@ -98,7 +98,7 @@ export function Step1CheckTracking({
               </>
             ) : (
               <>
-                ดูงานส่งนี้
+                ดูรายละเอียดการจัดส่ง
                 <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
               </>
             )}

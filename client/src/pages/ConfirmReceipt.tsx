@@ -60,7 +60,7 @@ export default function ConfirmReceipt({
         {!embedded && (
           <div className="app-page-header">
             <div>
-              <h1 className="app-page-title">งานส่ง</h1>
+              <h1 className="app-page-title">งานจัดส่ง</h1>
               <p className="app-page-subtitle">สแกนหรือกรอกหมายเลข แล้วดูต้นทาง ปลายทาง และผู้รับทันที</p>
             </div>
             {pendingOfflineCount > 0 && (
@@ -106,7 +106,7 @@ export default function ConfirmReceipt({
             <div className="w-20 h-20 bg-primary/10 rounded-3xl flex items-center justify-center mb-4">
               <Spinner className="h-12 w-12 text-primary" />
             </div>
-            <p className="text-lg font-bold text-primary font-display">กำลังยืนยันส่ง...</p>
+            <p className="text-lg font-bold text-primary font-display">กำลังยืนยันการจัดส่ง...</p>
             <p className="text-on-surface-variant text-sm">กรุณารอสักครู่ ระบบกำลังประมวลผล</p>
           </div>,
           document.body

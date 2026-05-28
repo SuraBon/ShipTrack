@@ -40,7 +40,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
       return `${description} (ส่งคนละจุดหรือฝากไว้ที่อื่น)${reason}`;
     }
     if (evt.deliveryMatchStatus === 'MATCHED_DECLARED_DESTINATION') {
-      return `${description} (ยืนยันส่งตรงตามปลายทางที่ระบุ)`;
+      return `${description} (ส่งตรงตามปลายทางที่ระบุ)`;
     }
     return description;
   };

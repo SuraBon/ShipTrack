@@ -52,7 +52,7 @@ export default function ParcelTimelineModal({
             >
               <span className="material-symbols-outlined text-sm" aria-hidden="true">close</span>
             </button>
-            <DialogTitle className="pr-8 text-sm font-semibold leading-tight text-white">Milestone การจัดส่ง</DialogTitle>
+            <DialogTitle className="pr-8 text-sm font-semibold leading-tight text-white">ประวัติสถานะการจัดส่ง</DialogTitle>
             <p className="mt-1 min-w-0 pr-8 text-[10px] tracking-wide text-slate-400">
               <code className="font-mono font-semibold text-slate-400 break-all">{selectedParcel.TrackingID}</code>
             </p>
@@ -66,7 +66,7 @@ export default function ParcelTimelineModal({
                     <span className="material-symbols-outlined text-sm" aria-hidden="true">route</span>
                   </div>
                   <div className="min-w-0">
-                    <p className="text-xs font-black text-gray-800 dark:text-foreground">Milestone การจัดส่ง</p>
+                    <p className="text-xs font-black text-gray-800 dark:text-foreground">ประวัติสถานะการจัดส่ง</p>
                     <p className="mt-0.5 truncate text-[10px] font-semibold text-gray-400 dark:text-muted-foreground">ล่าสุดอยู่ด้านบน</p>
                   </div>
                 </div>

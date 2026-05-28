@@ -135,17 +135,17 @@ export function Step2PhotoEvidence({
                 <div className="space-y-0.5">
                   <p className="font-display text-sm font-black text-primary">
                     {effectiveGeoStatus === 'success'
-                      ? 'ระบุตำแหน่งสำเร็จ'
+                      ? 'ระบุตำแหน่งปัจจุบันสำเร็จ'
                       : effectiveGeoStatus === 'loading'
-                        ? 'กำลังดึงตำแหน่ง...'
-                        : 'ไม่พบตำแหน่ง'}
+                        ? 'กำลังระบุตำแหน่งปัจจุบัน...'
+                        : 'ไม่สามารถระบุตำแหน่งได้'}
                   </p>
                   <p className="text-xs text-on-surface-variant/70 font-semibold leading-normal">
                     {effectiveGeoStatus === 'success'
-                      ? `ตำแหน่งแม่นยำ ~${Math.round(position?.accuracy || 0)} เมตร`
+                      ? `ความแม่นยำพิกัดประมาณ ~${Math.round(position?.accuracy || 0)} เมตร`
                       : effectiveGeoStatus === 'loading'
-                        ? 'กรุณารอสักครู่ กำลังระบุตำแหน่งเพื่อใช้เป็นหลักฐานการส่ง'
-                        : geoError || 'ไม่สามารถดึงตำแหน่งได้'}
+                        ? 'กรุณารอสักครู่ กำลังระบุตำแหน่งพิกัดเพื่อใช้เป็นหลักฐานการจัดส่ง'
+                        : geoError || 'ไม่สามารถระบุตำแหน่งพิกัดได้'}
                   </p>
                 </div>
               </div>
@@ -158,7 +158,7 @@ export function Step2PhotoEvidence({
                     onClick={() => setIsGpsBypassed(true)}
                     className="w-full min-h-11 font-display text-xs font-black text-amber-600 hover:text-amber-700 border border-amber-200 hover:bg-amber-50 px-3 py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer sm:w-auto"
                   >
-                    ข้ามระบุตำแหน่ง
+                    ข้ามการระบุตำแหน่ง
                   </button>
                 )}
 
@@ -172,7 +172,7 @@ export function Step2PhotoEvidence({
                     }}
                     className="w-full min-h-11 font-display text-xs font-black text-primary hover:text-primary/95 border border-primary/20 hover:bg-primary/5 px-3 py-2.5 rounded-xl transition-all active:scale-[0.98] cursor-pointer sm:w-auto"
                   >
-                    {isGpsBypassed ? 'เปิดระบุตำแหน่ง' : 'ลองดึงตำแหน่งใหม่'}
+                    {isGpsBypassed ? 'เปิดระบุตำแหน่งปัจจุบัน' : 'ลองระบุตำแหน่งใหม่อีกครั้ง'}
                   </button>
                 )}
               </div>
@@ -182,10 +182,10 @@ export function Step2PhotoEvidence({
             {needsGpsOverrideReason && (
               <div className="space-y-2 border-t border-outline-variant/10 pt-4 animate-in slide-in-from-top-2 duration-300">
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-error px-1">
-                  ระบุเหตุผลที่ยืนยันโดยไม่มีตำแหน่ง GPS <span className="text-error font-bold">*</span>
+                  กรุณาระบุเหตุผลที่ข้ามขั้นตอนการระบุตำแหน่ง GPS <span className="text-error font-bold">*</span>
                 </label>
                 <textarea
-                  placeholder="เช่น สัญญาณเน็ตล่ม, อยู่ในอาคารชั้นใต้ดิน, ลูกค้ามารับนอกพื้นที่..."
+                  placeholder="เช่น อยู่ในพื้นที่อับสัญญาณ, อยู่ภายในอาคาร/ชั้นใต้ดิน, ปฏิบัติงานนอกสถานที่พิกัด..."
                   value={gpsOverrideReason}
                   onChange={(e) => setGpsOverrideReason(sanitizeTextInput(e.target.value, 300))}
                   className="min-h-[72px] w-full resize-none rounded-2xl border-2 border-error/20 bg-white px-3.5 py-2.5 font-display text-sm outline-none transition-all focus:border-error focus:ring-4 focus:ring-error/5 text-primary placeholder:text-on-surface-variant/40"

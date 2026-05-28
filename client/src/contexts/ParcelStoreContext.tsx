@@ -180,7 +180,7 @@ export function ParcelStoreProvider({ children }: { children: ReactNode }) {
           // Only do a background refresh — don't block the UI.
           loadParcels().catch(() => {});
         } else {
-          setError(res.error ?? 'ไม่สามารถยืนยันส่งได้');
+          setError(res.error ?? 'ไม่สามารถยืนยันการจัดส่งได้');
         }
         return res;
       } catch (err) {

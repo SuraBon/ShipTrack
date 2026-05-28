@@ -130,12 +130,12 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
       return;
     }
     if (!position) {
-      toast.error('กรุณาอนุญาตตำแหน่ง GPS เพื่อบันทึกจุดรับของก่อนสร้างรายการ');
+      toast.error('กรุณาอนุญาตสิทธิ์การเข้าถึงตำแหน่ง GPS เพื่อบันทึกจุดรับพัสดุก่อนทำรายการ');
       if (geoStatus !== 'loading') requestLocation();
       return;
     }
     if (!proofPhotoUrl) {
-      toast.error('กรุณาแนบรูปสิ่งที่ส่ง');
+      toast.error('กรุณาแนบรูปภาพสิ่งของที่นำจัดส่ง');
       return;
     }
     setIsConfirmOpen(true);
@@ -144,12 +144,12 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
   const handleConfirmSubmit = async () => {
     if (isLoading) return;
     if (!position) {
-      toast.error('กรุณาอนุญาตตำแหน่ง GPS เพื่อบันทึกจุดรับของก่อนสร้างรายการ');
+      toast.error('กรุณาอนุญาตสิทธิ์การเข้าถึงตำแหน่ง GPS เพื่อบันทึกจุดรับพัสดุก่อนทำรายการ');
       if (geoStatus !== 'loading') requestLocation();
       return;
     }
     if (!proofPhotoUrl) {
-      toast.error('กรุณาแนบรูปสิ่งที่ส่ง');
+      toast.error('กรุณาแนบรูปภาพสิ่งของที่นำจัดส่ง');
       return;
     }
     setIsConfirmOpen(false);
@@ -165,7 +165,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
         proofPhotoUrl,
       );
       if (result.queued) {
-        toast.info('บันทึกรายการไว้ในเครื่องแล้ว ระบบจะซิงค์เมื่อเชื่อมต่อได้');
+        toast.info('บันทึกรายการไว้ในเครื่องเรียบร้อยแล้ว ระบบจะซิงค์ข้อมูลเมื่อเชื่อมต่ออินเทอร์เน็ตได้');
         clearCreateParcelDraft();
         setFormData(EMPTY_CREATE_PARCEL_DRAFT);
         clearProofPhoto();
@@ -176,7 +176,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
         setFormData(EMPTY_CREATE_PARCEL_DRAFT);
         clearProofPhoto();
       } else {
-        toast.error(result.error || 'ไม่สามารถสร้างรายการได้');
+        toast.error(result.error || 'ไม่สามารถสร้างรายการจัดส่งได้');
       }
     } finally {
       setIsLoading(false);
@@ -186,7 +186,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
   const handleCopyTrackingId = () => {
     if (createdTrackingId) {
       navigator.clipboard.writeText(createdTrackingId);
-      toast.success('คัดลอกหมายเลขติดตามแล้ว');
+      toast.success('คัดลอกหมายเลขติดตามพัสดุเรียบร้อยแล้ว');
     }
   };
 
@@ -388,7 +388,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
                         <span className="material-symbols-outlined text-2xl" aria-hidden="true">add_a_photo</span>
                       </span>
                       <span className="text-sm font-semibold text-foreground">ถ่ายหรือแนบรูปสิ่งที่ส่ง</span>
-                      <span className="text-xs text-muted-foreground">ใช้ยืนยันของที่พนักงานส่งต้องรับไปส่ง</span>
+                      <span className="text-xs text-muted-foreground">ใช้ยืนยันพัสดุตอนรับงาน</span>
                     </>
                   )}
                 </button>

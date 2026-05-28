@@ -159,7 +159,7 @@ export function useConfirmReceiptForm({
   const checkParcelByTrackingId = async (rawTrackingId: string, shouldOpenCamera = false) => {
     const safeTrackingId = sanitizeTextInput(rawTrackingId, 100).toUpperCase();
     if (!safeTrackingId) {
-      toast.error('กรุณากรอกหมายเลขติดตามก่อนตรวจสอบ');
+      toast.error('กรุณาระบุหมายเลขติดตามก่อน');
       return;
     }
     if (!isValidTrackingId(safeTrackingId)) {
@@ -183,9 +183,9 @@ export function useConfirmReceiptForm({
         setIsDelivered(actuallyDelivered);
 
         if (actuallyDelivered) {
-          toast.warning('รายการนี้ถูกส่งถึงที่หมายเรียบร้อยแล้ว');
+          toast.warning('รายการนี้ส่งถึงปลายทางแล้ว');
         } else {
-          toast.success(`พบรายการส่ง ต้องส่งไปที่: ${p['สาขาผู้รับ']}`);
+          toast.success(`พบรายการส่ง ปลายทาง: ${p['สาขาผู้รับ']}`);
           setCurrentStep(2); // Auto move to photo step
           requestLocation(); // Request GPS automatically on step 2
           if (shouldOpenCamera && fileInputRef) {
@@ -197,9 +197,9 @@ export function useConfirmReceiptForm({
         const isOffline = !navigator.onLine;
         if (isOffline || isNetworkErrorMessage(errorMsg)) {
           setShowOfflinePrompt(true);
-          toast.error('ไม่สามารถตรวจสอบออนไลน์ได้ในขณะนี้เนื่องจากเครือข่ายขัดข้อง');
+          toast.error('เครือข่ายขัดข้อง ไม่สามารถตรวจสอบได้');
         } else {
-          toast.error(res?.error || 'ไม่พบรายการส่ง หรือหมายเลขติดตามไม่ถูกต้อง');
+          toast.error(res?.error || 'ไม่พบรายการ หรือหมายเลขไม่ถูกต้อง');
         }
       }
     } catch (err) {
@@ -207,7 +207,7 @@ export function useConfirmReceiptForm({
       const isOffline = !navigator.onLine;
       if (isOffline || isNetworkErrorMessage(errorMsg)) {
         setShowOfflinePrompt(true);
-        toast.error('ไม่สามารถตรวจสอบออนไลน์ได้ในขณะนี้เนื่องจากเครือข่ายขัดข้อง');
+        toast.error('เครือข่ายขัดข้อง ไม่สามารถตรวจสอบได้');
       } else {
         toast.error('เกิดข้อผิดพลาดในการตรวจสอบ');
       }
@@ -259,7 +259,7 @@ export function useConfirmReceiptForm({
 
   const handlePasteTrackingID = async () => {
     if (!navigator.clipboard || !navigator.clipboard.readText) {
-      toast.error('เบราว์เซอร์ไม่รองรับการวางอัตโนมัติ (กรุณาใช้ Ctrl+V หรือกดค้างเพื่อวาง)');
+      toast.error('เบราว์เซอร์ไม่รองรับการวางอัตโนมัติ (กรุณากดวางเอง)');
       return;
     }
     try {
@@ -267,10 +267,10 @@ export function useConfirmReceiptForm({
       const safeText = sanitizeTextInput(text, 100).toUpperCase();
       if (safeText) {
         setTrackingId(safeText);
-        toast.success('วางหมายเลขติดตามเรียบร้อย');
+        toast.success('วางหมายเลขติดตามแล้ว');
       }
     } catch {
-      toast.error('ไม่สามารถวางข้อมูลได้ (กรุณาอนุญาตการเข้าถึง Clipboard หรือใช้ Ctrl+V แทน)');
+      toast.error('ไม่สามารถวางได้ กรุณากดวางเองหรือเปิดสิทธิ์เข้าถึง');
     }
   };
 
@@ -318,8 +318,8 @@ export function useConfirmReceiptForm({
 
       const validationError =
         !photoUrl ? 'กรุณาแนบรูปหลักฐาน' :
-        needsGpsOverrideReason && !safeGpsOverrideReason ? 'กรุณาระบุเหตุผลที่ยืนยันโดยไม่มีตำแหน่ง GPS' :
-        !actionPayload ? 'กรุณาตรวจสอบรายการส่งก่อนยืนยัน' :
+        needsGpsOverrideReason && !safeGpsOverrideReason ? 'กรุณาระบุเหตุผลที่ไม่ระบุตำแหน่ง GPS' :
+        !actionPayload ? 'กรุณาตรวจสอบรายการก่อนยืนยัน' :
         actionPayload.validationError || null;
 
       if (validationError) {
@@ -341,7 +341,7 @@ export function useConfirmReceiptForm({
         updateParcelLocally(finalTrackingId, { 'สถานะ': newStatus });
       }
 
-      toast.success('กำลังยืนยันส่ง...');
+      toast.info('กำลังยืนยันการจัดส่ง...');
       
       const finalNote = [
         actionPayload.note,
@@ -365,11 +365,11 @@ export function useConfirmReceiptForm({
       if (response && response.success) {
         stopRouteTracking(finalTrackingId);
         void syncRouteSamples(finalTrackingId);
-        toast.success(response.queued ? 'บันทึกไว้ในเครื่องแล้ว ระบบจะซิงค์เมื่อเชื่อมต่อได้' : 'ยืนยันส่งเรียบร้อยแล้ว');
+        toast.success(response.queued ? 'บันทึกออฟไลน์แล้ว ระบบจะซิงค์เมื่อเชื่อมต่อได้' : 'ยืนยันจัดส่งสำเร็จ');
         resetFormState();
         onComplete?.();
       } else {
-        toast.error(response?.error ? `ยืนยันส่งไม่สำเร็จ: ${response.error}` : 'ไม่สามารถยืนยันส่งได้ กรุณาลองใหม่');
+        toast.error(response?.error ? `ยืนยันจัดส่งไม่สำเร็จ: ${response.error}` : 'ยืนยันจัดส่งไม่สำเร็จ กรุณาลองใหม่');
         // Revert local update
         if (typeof loadParcels === 'function') loadParcels(undefined, true);
       }

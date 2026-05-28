@@ -57,9 +57,9 @@ export function Step3ConfirmDetails({
               <span className="material-symbols-outlined text-xl" aria-hidden="true">fact_check</span>
             </div>
             <div>
-              <h2 className="font-display text-base font-bold text-primary">เช็กปลายทางก่อนบันทึก</h2>
+              <h2 className="font-display text-base font-bold text-primary">ตรวจสอบปลายทางก่อนบันทึกข้อมูล</h2>
               <p className="text-xs text-on-surface-variant/60 mt-0.5">
-                ตรวจต้นทาง ปลายทาง และผู้รับก่อนยืนยัน (พัสดุ: {checkedParcel?.TrackingID})
+                กรุณาตรวจสอบต้นทาง ปลายทาง และผู้รับพัสดุก่อนยืนยัน (หมายเลขติดตาม: {checkedParcel?.TrackingID})
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export function Step3ConfirmDetails({
                       {checkedParcel?.['สาขาผู้รับ'] || '-'}
                     </p>
                     <p className="mt-1 text-xs leading-snug text-slate-500">
-                      ตำแหน่งด้านล่างเป็นหลักฐานตอนกดส่ง ไม่ได้ใช้ตัดสินอัตโนมัติว่าตรงปลายทาง
+                      พิกัดตำแหน่งด้านล่างใช้เป็นหลักฐานขณะนำส่งเท่านั้น ระบบไม่ได้ใช้พิกัดนี้ในการระบุความถูกต้องของปลายทางโดยอัตโนมัติ
                     </p>
                   </>
                 )}
@@ -130,10 +130,10 @@ export function Step3ConfirmDetails({
           {needsGpsOverrideReason && (
             <div className="space-y-2 border-t border-outline-variant/10 pt-4 animate-in slide-in-from-top-2 duration-300">
               <label className="block text-[10px] font-bold uppercase tracking-wider text-error px-1">
-                ระบุเหตุผลที่ยืนยันโดยไม่มีตำแหน่ง GPS <span className="text-error font-bold">*</span>
+                กรุณาระบุเหตุผลที่ข้ามขั้นตอนการระบุตำแหน่ง GPS <span className="text-error font-bold">*</span>
               </label>
               <textarea
-                placeholder="เช่น สัญญาณเน็ตล่ม, อยู่ในอาคารชั้นใต้ดิน, ลูกค้ามารับนอกพื้นที่..."
+                placeholder="เช่น อยู่ในพื้นที่อับสัญญาณ, อยู่ภายในอาคาร/ชั้นใต้ดิน, ปฏิบัติงานนอกสถานที่พิกัด..."
                 value={gpsOverrideReason}
                 onChange={(e) => setGpsOverrideReason(sanitizeTextInput(e.target.value, 300))}
                 className="min-h-[72px] w-full resize-none rounded-2xl border-2 border-error/20 bg-white px-3.5 py-2.5 font-display text-sm outline-none transition-all focus:border-error focus:ring-4 focus:ring-error/5 text-primary placeholder:text-on-surface-variant/40"
@@ -146,8 +146,8 @@ export function Step3ConfirmDetails({
               <div className="flex items-start gap-2.5">
                 <span className="material-symbols-outlined mt-0.5 text-xl" aria-hidden="true">task_alt</span>
                 <div>
-                  <p className="font-display text-sm font-black">ค่าเริ่มต้น: ยืนยันส่งตามปลายทาง</p>
-                  <p className="text-xs font-semibold leading-snug opacity-75">ถ้าส่งตามงานปกติ ไม่ต้องเลือกอะไรเพิ่ม กดยืนยันส่งได้เลย</p>
+                  <p className="font-display text-sm font-black">ส่งพัสดุตรงตามปลายทางที่กำหนด</p>
+                  <p className="text-xs font-semibold leading-snug opacity-75">หากต้องการบันทึกว่าจัดส่งถูกต้องตามปลายทางปกติ ไม่จำเป็นต้องระบุข้อมูลอื่นเพิ่มเติม สามารถกดยืนยันการจัดส่งด้านล่างได้ทันที</p>
                 </div>
               </div>
             </div>
@@ -194,8 +194,8 @@ export function Step3ConfirmDetails({
                         <span className="material-symbols-outlined text-xl" aria-hidden="true">account_circle</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="font-display text-sm font-black text-primary">มีผู้รับแทน</p>
-                        <p className="text-[11px] leading-tight text-on-surface-variant/60">ส่งถึงปลายทางแล้ว แต่คนอื่นรับแทนผู้รับตามรายการ</p>
+                        <p className="font-display text-sm font-black text-primary">มีผู้รับแทน (ผู้รับมอบอำนาจ/เพื่อนร่วมงาน)</p>
+                        <p className="text-[11px] leading-tight text-on-surface-variant/60">จัดส่งถึงปลายทางสำเร็จ แต่มีผู้อื่นเป็นผู้ลงชื่อรับแทนผู้รับจริง</p>
                       </div>
                     </div>
                     <div
@@ -213,7 +213,7 @@ export function Step3ConfirmDetails({
                           person
                         </span>
                         <input
-                          placeholder="ชื่อคนที่รับแทน"
+                          placeholder="กรอกชื่อผู้รับแทน"
                           value={proxyName}
                           onChange={(e) => setProxyName(sanitizeTextInput(e.target.value, 200))}
                           className="w-full rounded-2xl border border-outline-variant bg-white py-2.5 pl-10 pr-4 font-display text-sm outline-none focus:ring-1 focus:ring-blue-500"
@@ -252,8 +252,8 @@ export function Step3ConfirmDetails({
                           <span className="material-symbols-outlined text-xl" aria-hidden="true">move_location</span>
                         </div>
                         <div className="min-w-0">
-                          <p className="font-display text-sm font-black text-primary">ส่งคนละจุด / ฝากไว้ที่อื่น</p>
-                          <p className="text-[11px] leading-tight text-on-surface-variant/60">ใช้เมื่อปลายทางจริงไม่ตรงกับที่ระบุไว้ในงาน</p>
+                          <p className="font-display text-sm font-black text-primary">จัดส่งนอกสถานที่ / ฝากไว้ที่อื่น</p>
+                          <p className="text-[11px] leading-tight text-on-surface-variant/60">ใช้เมื่อพิกัดจัดส่งจริงไม่ตรงกับแผนก/สาขาปลายทางที่ระบุในรายการ</p>
                         </div>
                       </div>
                       <div
@@ -271,10 +271,10 @@ export function Step3ConfirmDetails({
                     {deliveryMatchStatus === 'DELIVERED_ELSEWHERE' && (
                       <div className="mt-3 animate-in slide-in-from-top-2 duration-300">
                         <label className="mb-1.5 block px-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
-                          เหตุผลที่ส่งคนละจุด
+                          เหตุผลที่จัดส่งนอกสถานที่ / ฝากไว้ที่อื่น
                         </label>
                         <textarea
-                          placeholder="เช่น ลูกค้าให้ฝากอีกแผนก, ฝากไว้ที่ป้อมยาม, ชื่อสถานที่ในระบบไม่ละเอียด..."
+                          placeholder="เช่น ผู้รับแจ้งให้ฝากไว้ที่แผนกอื่น, ฝากไว้ที่ป้อมยาม, ที่อยู่ปลายทางในระบบไม่ชัดเจน..."
                           value={deliveryMismatchReason}
                           onChange={(e) => setDeliveryMismatchReason(sanitizeTextInput(e.target.value, 500))}
                           className="min-h-[72px] w-full resize-none rounded-2xl border border-amber-200 bg-white px-4 py-2.5 font-display text-sm outline-none transition-all focus:ring-1 focus:ring-amber-500"
@@ -310,8 +310,8 @@ export function Step3ConfirmDetails({
                         <span className="material-symbols-outlined text-xl" aria-hidden="true">fork_right</span>
                       </div>
                       <div className="min-w-0">
-                        <p className="font-display text-sm font-black text-primary">ส่งต่อไปจุดถัดไป</p>
-                        <p className="text-[11px] leading-tight text-on-surface-variant/60">ยังไม่ถึงผู้รับ ต้องส่งต่อให้คนหรือแผนก/สาขาอื่น</p>
+                        <p className="font-display text-sm font-black text-primary">ส่งต่อไปยังปลายทางถัดไป</p>
+                        <p className="text-[11px] leading-tight text-on-surface-variant/60">พัสดุยังไม่ถึงผู้รับปลายทางสุดท้าย ต้องส่งต่อให้บุคคลหรือแผนก/สาขาอื่นดูแลต่อ</p>
                       </div>
                     </div>
                     <div
@@ -329,7 +329,7 @@ export function Step3ConfirmDetails({
                           person
                         </span>
                         <input
-                          placeholder="ชื่อคนที่รับช่วงต่อ"
+                          placeholder="กรอกชื่อผู้รับช่วงต่อ"
                           value={forwardSender}
                           onChange={(e) => setForwardSender(sanitizeTextInput(e.target.value, 200))}
                           className="w-full rounded-2xl border border-outline-variant bg-white py-2.5 pl-10 pr-4 font-display text-sm outline-none focus:ring-1 focus:ring-secondary"
@@ -339,7 +339,7 @@ export function Step3ConfirmDetails({
                         value={forwardFromBranch}
                         onChange={setForwardFromBranch}
                         options={branches}
-                        placeholder="ส่งต่อจากแผนก/สาขา"
+                        placeholder="ส่งต่อจากแผนก/สาขาต้นทาง"
                         icon="flag"
                         otherLabel="อื่นๆ"
                         otherPlaceholder="ระบุแผนก/สาขาต้นทาง"
@@ -348,7 +348,7 @@ export function Step3ConfirmDetails({
                         value={forwardToBranch}
                         onChange={setForwardToBranch}
                         options={branches}
-                        placeholder="ส่งต่อไปที่"
+                        placeholder="ส่งต่อไปยังแผนก/สาขาปลายทาง"
                         icon="fork_right"
                         otherLabel="อื่นๆ"
                         otherPlaceholder="ระบุจุดหมายถัดไป"
@@ -393,7 +393,7 @@ export function Step3ConfirmDetails({
               }
               className={`${confirmNavButtonClass} group gap-2 bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.01] hover:bg-primary/95 disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none`}
             >
-              ยืนยันส่ง
+              ยืนยันการจัดส่ง
               <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl" aria-hidden="true">verified</span>
             </button>
           </div>

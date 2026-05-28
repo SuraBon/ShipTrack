@@ -25,7 +25,7 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
     try {
       await syncOfflineQueue();
     } catch {
-      toast.error('เกิดข้อผิดพลาดในการซิงค์ข้อมูล');
+      toast.error('เกิดข้อผิดพลาดระหว่างการซิงค์ข้อมูล');
     } finally {
       setIsSyncing(false);
     }
@@ -34,10 +34,10 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
   const handleRetryFailed = async () => {
     const count = await resetFailedOfflineActions();
     if (count === 0) {
-      toast.info('ไม่มีรายการที่ล้มเหลวให้ลองใหม่');
+      toast.info('ไม่มีรายการจัดส่งที่ล้มเหลวให้ทดลองส่งใหม่');
       return;
     }
-    toast.info(`ตั้งรายการ ${count} รายการให้ลองซิงค์ใหม่`);
+    toast.info(`ตั้งค่ารายการจำนวน ${count} รายการเพื่อลองซิงค์ใหม่อีกครั้ง`);
     await handleSyncAll();
   };
 
@@ -49,12 +49,12 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
 
   const handleDeleteItem = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (window.confirm('คุณต้องการลบรายการนี้ออกจากคิวออฟไลน์หรือไม่? ข้อมูลนี้จะสูญหายและไม่ถูกส่งขึ้นระบบ')) {
+    if (window.confirm('คุณต้องการลบรายการนี้ออกจากคิวออฟไลน์หรือไม่? การดำเนินการนี้จะทำให้ข้อมูลสูญหายและไม่ถูกบันทึกเข้าระบบ')) {
       try {
         await removeOfflineAction(id);
-        toast.success('ลบรายการออกจากคิวแล้ว');
+        toast.success('ลบรายการออกจากคิวออฟไลน์เรียบร้อยแล้ว');
       } catch {
-        toast.error('ไม่สามารถลบรายการได้');
+        toast.error('ไม่สามารถลบรายการออกจากคิวออฟไลน์ได้');
       }
     }
   };
@@ -64,7 +64,7 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
       case 'createParcel':
         return 'สร้างรายการพัสดุใหม่';
       case 'confirmReceipt':
-        return 'ยืนยันส่งพัสดุ';
+        return 'ยืนยันการจัดส่งพัสดุ';
       case 'startDelivery':
         return 'เริ่มจัดส่งพัสดุ';
       case 'releaseDelivery':
@@ -104,7 +104,7 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
             รายการรอซิงค์ออฟไลน์ ({queue.length})
           </DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">
-            รายการส่งพัสดุที่ถูกบันทึกไว้ในขณะที่ไม่มีสัญญาณอินเทอร์เน็ต ระบบจะทำข้อมูลขึ้นคลาวด์อัตโนมัติเมื่อตรวจพบสัญญาณเน็ต
+            รายการจัดส่งพัสดุที่ถูกบันทึกไว้ในขณะที่ไม่มีสัญญาณอินเทอร์เน็ต ระบบจะทำข้อมูลขึ้นคลาวด์อัตโนมัติเมื่อตรวจพบสัญญาณเน็ต
           </DialogDescription>
         </DialogHeader>
 

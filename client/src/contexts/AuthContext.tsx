@@ -75,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const handleAuthError = () => {
       clearSession();
-      toast.error('บัญชีนี้ถูกใช้งานที่อื่น กรุณาเข้าสู่ระบบใหม่');
+      toast.error('บัญชีนี้ถูกเข้าใช้งานจากอุปกรณ์อื่น กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
     };
 
     window.addEventListener('auth_error', handleAuthError);
@@ -96,12 +96,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const msUntilExpiry = issuedAt + SESSION_MAX_AGE_MS - Date.now();
     if (msUntilExpiry <= 0) {
       clearSession();
-      toast.error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+      toast.error('เซสชันการใช้งานหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
       return;
     }
     const timer = window.setTimeout(() => {
       clearSession();
-      toast.error('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
+      toast.error('เซสชันการใช้งานหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
     }, msUntilExpiry);
     return () => window.clearTimeout(timer);
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps

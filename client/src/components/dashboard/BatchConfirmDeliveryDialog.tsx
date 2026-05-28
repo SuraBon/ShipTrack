@@ -96,7 +96,7 @@ export function BatchConfirmDeliveryDialog({
               <div className="min-w-0">
                 <DialogTitle className="font-display text-lg font-black text-white sm:text-xl">ยืนยันส่งพร้อมกัน</DialogTitle>
                 <DialogDescription className="mt-1 text-xs font-semibold text-slate-300 sm:text-sm">
-                  แนบรูปหลักฐานเดียวให้ {parcels.length} รายการ แล้วระบบจะบันทึกส่งสำเร็จพร้อมกัน
+                  แนบรูปหลักฐานเดียวเพื่อยืนยันส่งพร้อมกัน {parcels.length} รายการ
                 </DialogDescription>
               </div>
             </div>
@@ -234,7 +234,7 @@ export function BatchConfirmDeliveryDialog({
             >
               {submitting ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <PackageCheck className="h-4 w-4 shrink-0" aria-hidden="true" />}
               <span className="truncate">
-                {submitting ? 'กำลังยืนยัน...' : geoStatus === 'loading' ? 'รอ GPS...' : `ยืนยันส่ง ${parcels.length} รายการ`}
+                {submitting ? 'กำลังยืนยันส่ง...' : geoStatus === 'loading' ? 'รอ GPS...' : `ยืนยันส่ง ${parcels.length} รายการ`}
               </span>
             </button>
           </DialogFooter>

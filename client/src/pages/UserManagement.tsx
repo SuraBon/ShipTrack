@@ -31,7 +31,7 @@ type PendingUserAction = {
 const ROLE_CONFIG: Record<AppRole, { label: string; icon: React.ReactNode }> = {
   ADMIN: { label: 'ผู้ดูแลระบบ', icon: <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" /> },
   MESSENGER: { label: 'พนักงานส่ง', icon: <Truck className="h-3.5 w-3.5" aria-hidden="true" /> },
-  GUEST: { label: 'ไม่มีสิทธิ์พนักงาน', icon: <UserX className="h-3.5 w-3.5" aria-hidden="true" /> },
+  GUEST: { label: 'ไม่มีสิทธิ์', icon: <UserX className="h-3.5 w-3.5" aria-hidden="true" /> },
 };
 
 function StatusBadge({ status }: { status?: UserRow['status'] }) {
@@ -96,7 +96,7 @@ export default function UserManagement() {
     if (res.success && res.users) {
       setUsers(res.users);
     } else {
-      toast.error(res.error || 'ไม่สามารถดึงข้อมูลผู้ใช้ได้');
+      toast.error(res.error || 'ไม่สามารถดึงข้อมูลผู้ใช้งานได้');
     }
     setLoading(false);
   };
@@ -149,7 +149,7 @@ export default function UserManagement() {
       return;
     }
     if (nameError || passwordError) {
-      toast.error(nameError || passwordError || 'กรุณาตรวจสอบข้อมูลผู้ใช้');
+      toast.error(nameError || passwordError || 'กรุณาตรวจสอบข้อมูล');
       return;
     }
 
@@ -167,7 +167,7 @@ export default function UserManagement() {
 
   const handleRoleChange = async (employeeId: string, newRole: SystemRole) => {
     if (employeeId === currentUser?.employeeId) {
-      toast.error('ไม่สามารถเปลี่ยนสิทธิ์ของตนเองได้');
+      toast.error('ไม่สามารถเปลี่ยนสิทธิ์ตัวเองได้');
       return;
     }
     setUpdatingId(employeeId);
@@ -175,7 +175,7 @@ export default function UserManagement() {
     setUpdatingId(null);
     if (res.success) {
       setUsers(prev => prev.map(u => u.employeeId === employeeId ? { ...u, role: newRole } : u));
-      toast.success('เปลี่ยนสิทธิ์ผู้ใช้สำเร็จ');
+      toast.success('เปลี่ยนสิทธิ์สำเร็จ');
     } else {
       toast.error(res.error || 'ไม่สามารถเปลี่ยนสิทธิ์ได้');
     }
@@ -198,7 +198,7 @@ export default function UserManagement() {
     const nameError = validateRequiredText(name, 'ชื่อ-นามสกุล', 1, 100);
     const passwordError = password ? validatePassword(password, 100) : undefined;
     if (nameError || passwordError) {
-      toast.error(nameError || passwordError || 'กรุณาตรวจสอบข้อมูลผู้ใช้');
+      toast.error(nameError || passwordError || 'กรุณาตรวจสอบข้อมูล');
       return;
     }
 
@@ -215,13 +215,13 @@ export default function UserManagement() {
       setEditingUser(null);
       toast.success('บันทึกข้อมูลผู้ใช้สำเร็จ');
     } else {
-      toast.error(res.error || 'ไม่สามารถบันทึกข้อมูลผู้ใช้ได้');
+      toast.error(res.error || 'ไม่สามารถบันทึกข้อมูลได้');
     }
   };
 
   const handleDisableUser = async (target: UserRow) => {
     if (target.employeeId === currentUser?.employeeId) {
-      toast.error('ไม่สามารถปิดบัญชีของตนเองได้');
+      toast.error('ไม่สามารถระงับบัญชีตัวเองได้');
       return;
     }
     setDeletingId(target.employeeId);
@@ -230,15 +230,15 @@ export default function UserManagement() {
     if (res.success && res.user) {
       setUsers(prev => prev.map(u => u.employeeId === res.user!.employeeId ? res.user! : u));
       setPendingUserAction(null);
-      toast.success('ปิดบัญชีผู้ใช้สำเร็จ');
+      toast.success('ระงับบัญชีสำเร็จ');
     } else {
-      toast.error(res.error || 'ไม่สามารถปิดบัญชีผู้ใช้ได้');
+      toast.error(res.error || 'ไม่สามารถระงับบัญชีได้');
     }
   };
 
   const handleDeleteUser = async (target: UserRow) => {
     if (target.employeeId === currentUser?.employeeId) {
-      toast.error('ไม่สามารถลบบัญชีของตนเองได้');
+      toast.error('ไม่สามารถลบบัญชีตัวเองได้');
       return;
     }
     setDeletingId(target.employeeId);
@@ -296,7 +296,7 @@ export default function UserManagement() {
           </div>
           <div>
             <h1 className="app-page-title">จัดการพนักงาน</h1>
-            <p className="app-page-subtitle">สร้าง แก้ไข ปิดบัญชี และกำหนดสิทธิ์ผู้ดูแลระบบ/พนักงานส่ง</p>
+            <p className="app-page-subtitle">สร้าง แก้ไข ระงับบัญชี และกำหนดสิทธิ์ผู้ดูแลระบบ/พนักงานส่ง</p>
           </div>
         </div>
         <button onClick={fetchUsers} disabled={loading} className="app-secondary-button h-10 px-3">
@@ -309,7 +309,7 @@ export default function UserManagement() {
         <div className="lg:col-span-5">
           <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
             <Plus className="h-4 w-4" aria-hidden="true" />
-            สร้างผู้ใช้ใหม่
+            สร้างบัญชีผู้ใช้งานใหม่
           </div>
         </div>
         <input value={newUser.employeeId} onChange={e => setNewUser(v => ({ ...v, employeeId: normalizeEmployeeId(e.target.value) }))} disabled={creatingUser} placeholder="รหัสพนักงาน" className="app-input uppercase" />
@@ -533,8 +533,8 @@ export default function UserManagement() {
                 <Users className="h-5 w-5" aria-hidden="true" />
               </div>
               <div>
-                <DialogTitle className="text-lg font-black text-white">แก้ไขผู้ใช้</DialogTitle>
-                <DialogDescription className="text-xs font-semibold text-slate-300">แก้ชื่อ สิทธิ์ หรือเปลี่ยนรหัสผ่าน</DialogDescription>
+                <DialogTitle className="text-lg font-black text-white">แก้ไขข้อมูลผู้ใช้งาน</DialogTitle>
+                <DialogDescription className="text-xs font-semibold text-slate-300">แก้ไขชื่อ สิทธิ์การใช้งาน หรือเปลี่ยนรหัสผ่าน</DialogDescription>
               </div>
             </div>
           </DialogHeader>
@@ -560,12 +560,12 @@ export default function UserManagement() {
         <AlertDialogContent className="rounded-2xl border border-outline-variant bg-white">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-primary">
-              {pendingUserAction?.type === 'delete' ? 'ลบผู้ใช้ถาวร' : 'ปิดบัญชีผู้ใช้'}
+              {pendingUserAction?.type === 'delete' ? 'ลบข้อมูลผู้ใช้งานถาวร' : 'ระงับบัญชีผู้ใช้งาน'}
             </AlertDialogTitle>
             <AlertDialogDescription>
               {pendingUserAction?.type === 'delete'
-                ? `ลบผู้ใช้ ${pendingUserAction.user.employeeId} ถาวร บัญชีนี้จะถูกลบออกจาก Users sheet และไม่สามารถเข้าสู่ระบบได้อีก`
-                : `ปิดบัญชี ${pendingUserAction?.user.employeeId} ผู้ใช้นี้จะเข้าสู่ระบบไม่ได้จนกว่าจะเปิดใช้งานในอนาคต`}
+                ? `ต้องการลบผู้ใช้งาน ${pendingUserAction.user.employeeId} ถาวรหรือไม่? บัญชีนี้จะถูกลบออกจากระบบและไม่สามารถเข้าสู่ระบบได้อีกต่อไป`
+                : `ต้องการระงับการใช้งานบัญชี ${pendingUserAction?.user.employeeId} หรือไม่? ผู้ใช้งานรายนี้จะไม่สามารถเข้าสู่ระบบได้ชั่วคราว`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

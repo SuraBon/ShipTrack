@@ -51,7 +51,7 @@ export function useDashboardActions({
   const handleRefresh = async () => {
     if (loading) return;
     await fetchData();
-    toast.success('อัปเดตข้อมูลเรียบร้อย');
+    toast.success('อัปเดตข้อมูลเรียบร้อยแล้ว');
   };
 
   const handleDelete = async () => {
@@ -88,7 +88,7 @@ export function useDashboardActions({
     updateParcelLocally(selectedParcel.TrackingID, localUpdates);
     setSelectedParcel(current => current ? { ...current, ...localUpdates } : current);
     setIsEditParcelOpen(false);
-    toast.success('บันทึกข้อมูลพัสดุเรียบร้อย');
+    toast.success('บันทึกข้อมูลพัสดุเรียบร้อยแล้ว');
   };
 
   const executeBatchDelete = async (trackingIds: string[]) => {
@@ -96,7 +96,7 @@ export function useDashboardActions({
     if (uniqueIds.length === 0) return { successCount: 0, failedCount: 0 };
 
     uniqueIds.forEach(removeParcelLocally);
-    toast.success(`กำลังลบ ${uniqueIds.length} รายการ...`);
+    toast.success(`กำลังลบรายการ ${uniqueIds.length} รายการ...`);
 
     const results = await Promise.all(uniqueIds.map(async trackingID => {
       const res = await deleteParcel(trackingID);
@@ -105,10 +105,10 @@ export function useDashboardActions({
     const failed = results.filter(result => !result.res.success);
 
     if (failed.length > 0) {
-      toast.error(`ลบไม่สำเร็จ ${failed.length} รายการ กำลังโหลดข้อมูลใหม่`);
+      toast.error(`ไม่สามารถลบรายการได้จำนวน ${failed.length} รายการ ระบบกำลังโหลดข้อมูลใหม่`);
       loadParcels(undefined, true);
     } else {
-      toast.success(`ลบ ${uniqueIds.length} รายการเรียบร้อย`);
+      toast.success(`ลบรายการทั้งหมด ${uniqueIds.length} รายการเสร็จสิ้น`);
     }
 
     return { successCount: uniqueIds.length - failed.length, failedCount: failed.length };
@@ -124,7 +124,7 @@ export function useDashboardActions({
     const toastId = toast.loading(`กำลังรับงาน ${trackingIds.length} รายการ...`);
     const res = await batchStartDelivery(trackingIds, latitude, longitude);
     if (res.queued) {
-      toast.info(`บันทึกรับงาน ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`, { id: toastId });
+      toast.info(`บันทึกรับงาน ${trackingIds.length} รายการในคิวออฟไลน์แล้ว`, { id: toastId });
       return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
     }
     if (!res.success) {
@@ -142,7 +142,7 @@ export function useDashboardActions({
     });
     const successCount = res.successCount ?? successIds.size;
     const failedCount = res.failedCount ?? failedIds.length;
-    toast.success(`รับงานสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`, { id: toastId });
+    toast.success(`รับงานสำเร็จ ${successCount} รายการ${failedCount ? ` (ล้มเหลว ${failedCount})` : ''}`, { id: toastId });
     loadParcels(undefined, true).catch(() => {});
     setMessengerView('mine');
     return { success: successCount > 0, successCount, failedCount, failedIds };
@@ -160,7 +160,7 @@ export function useDashboardActions({
     const toastId = toast.loading(`กำลังยืนยันส่ง ${trackingIds.length} รายการ...`);
     const res = await batchConfirmReceipt(trackingIds, photoUrl, note, latitude, longitude);
     if (res.queued) {
-      toast.info(`บันทึกยืนยันส่ง ${trackingIds.length} รายการไว้ในคิวออฟไลน์แล้ว`, { id: toastId });
+      toast.info(`บันทึกยืนยันส่ง ${trackingIds.length} รายการในคิวออฟไลน์แล้ว`, { id: toastId });
       return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
     }
     if (!res.success) {
@@ -179,7 +179,7 @@ export function useDashboardActions({
     });
     const successCount = res.successCount ?? successIds.size;
     const failedCount = res.failedCount ?? failedIds.length;
-    toast.success(`ยืนยันส่งสำเร็จ ${successCount} รายการ${failedCount ? `, ไม่สำเร็จ ${failedCount} รายการ` : ''}`, { id: toastId });
+    toast.success(`ยืนยันส่งสำเร็จ ${successCount} รายการ${failedCount ? ` (ล้มเหลว ${failedCount})` : ''}`, { id: toastId });
     loadParcels(undefined, true).catch(() => {});
     return { success: successCount > 0, successCount, failedCount, failedIds };
   };
@@ -205,8 +205,8 @@ export function useDashboardActions({
 
     if (!res.success) {
       const message = res.error?.includes('มีผู้รับงานแล้ว')
-        ? 'งานนี้มีผู้รับแล้ว กรุณารีเฟรช'
-        : res.error || 'รับงานไม่ได้ กรุณาลองใหม่';
+        ? 'งานนี้มีพนักงานคนอื่นรับไปแล้ว กรุณากดรีเฟรชข้อมูล'
+        : res.error || 'รับงานไม่สำเร็จ';
       toast.error(message, { id: toastId });
       return;
     }
@@ -246,7 +246,7 @@ export function useDashboardActions({
     });
     startRouteTracking(parcel.TrackingID);
     setMessengerView('mine');
-    toast.success(res.autoPickedUp ? 'รับงานและบันทึกรับของแล้ว' : (res.alreadyStarted ? 'งานนี้อยู่ในรายการที่ต้องส่งแล้ว' : 'รับงานสำเร็จ'), { id: toastId });
+    toast.success(res.autoPickedUp ? 'รับงานสำเร็จ (ระบุพิกัดแล้ว)' : (res.alreadyStarted ? 'อยู่ระหว่างจัดส่งแล้ว' : 'รับงานสำเร็จ'), { id: toastId });
     loadParcels(undefined, true).catch(() => {});
   };
 
@@ -257,7 +257,7 @@ export function useDashboardActions({
     setReleasingDeliveryId(null);
 
     if (!res.success) {
-      toast.error(res.error || 'คืนงานไม่ได้ กรุณาลองใหม่');
+      toast.error(res.error || 'คืนงานไม่สำเร็จ');
       return;
     }
 
@@ -279,7 +279,7 @@ export function useDashboardActions({
     stopRouteTracking(parcel.TrackingID);
     void syncRouteSamples(parcel.TrackingID);
     setMessengerView('waiting');
-    toast.success(res.alreadyReleased ? 'งานนี้พร้อมให้ผู้อื่นกดรับแล้ว' : 'คืนงานสำเร็จ');
+    toast.success(res.alreadyReleased ? 'คืนงานเข้าระบบแล้ว' : 'คืนงานสำเร็จ');
     loadParcels(undefined, true).catch(() => {});
   };
 
@@ -289,12 +289,12 @@ export function useDashboardActions({
     setIsTimelineOpen(false);
     setIsDeleteConfirmOpen(false);
     removeParcelLocally(trackingID);
-    toast.success('กำลังลบรายการ...');
+    toast.success('กำลังดำเนินการลบรายการ...');
     const res = await deleteParcel(trackingID);
     if (res.success) {
-      toast.success('ลบรายการสำเร็จ');
+      toast.success('ลบรายการเสร็จสิ้น');
     } else {
-      toast.error('ไม่สามารถลบรายการได้ จะทำการรีโหลดข้อมูล');
+      toast.error('ไม่สามารถลบรายการได้ ระบบจะทำการรีโหลดข้อมูลใหม่');
       loadParcels(undefined, true);
     }
   };

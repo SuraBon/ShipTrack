@@ -136,7 +136,7 @@ export function DashboardDialogs({
         >
           <DialogTitle className="sr-only">ยืนยันการส่ง</DialogTitle>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-            <Suspense fallback={<LazyPanelFallback label="กำลังโหลดหน้ายืนยันส่ง..." />}>
+            <Suspense fallback={<LazyPanelFallback label="กำลังโหลดหน้ายืนยันการจัดส่ง..." />}>
               <ConfirmReceipt
                 key={confirmTrackingId ?? 'confirm-flow'}
                 initialTrackingId={confirmTrackingId}

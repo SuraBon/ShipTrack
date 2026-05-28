@@ -144,7 +144,7 @@ export async function enqueueOfflineAction(
     const queue = readFallbackQueue();
     queue.push(item);
     if (!saveFallbackQueue(queue)) {
-      toast.error('พื้นที่เก็บข้อมูลในเครื่องเต็ม ไม่สามารถบันทึกรายการออฟไลน์ได้', {
+      toast.error('พื้นที่จัดเก็บข้อมูลบนอุปกรณ์เต็ม ไม่สามารถบันทึกรายการแบบออฟไลน์ได้', {
         duration: 10000,
       });
       return item;

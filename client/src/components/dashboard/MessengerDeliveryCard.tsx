@@ -239,7 +239,7 @@ export const MessengerDeliveryCard = ({
               onClick={onOpen}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-blue-500 transition-colors hover:text-blue-700"
             >
-              {isDone ? 'ดู Milestone' : 'ดูรายละเอียด'}
+              {isDone ? 'ดูประวัติส่ง' : 'ดูรายละเอียด'}
               {renderMaterialIcon(isDone ? 'timeline' : 'chevron_right', 'text-[13px]')}
             </button>
           </div>
