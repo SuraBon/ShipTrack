@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParcelStore } from '@/hooks/useParcelStore';
-import { getParcel, syncRouteSamples } from '@/lib/parcelService';
+import { getParcel } from '@/lib/parcelService';
 import { useBranches } from '@/hooks/useBranches';
 import { toast } from 'sonner';
 import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
@@ -9,7 +9,6 @@ import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
 import { buildGpsEvidenceNote, needsGpsOverrideReason as shouldRequireGpsOverrideReason } from '@/lib/gpsQuality';
 import { buildDeliveryActionPayload, getCurrentBranchFromParcel, isParcelTrulyDelivered } from '@/lib/deliveryActionBuilder';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
-import { stopRouteTracking } from '@/lib/routeTracking';
 import { useProofImage } from '@/hooks/useProofImage';
 import { isNetworkErrorMessage } from '@/lib/apiErrorHelper';
 import { resolveSelectValue } from '@/components/NativeSelect';
@@ -363,8 +362,6 @@ export function useConfirmReceiptForm({
       );
       
       if (response && response.success) {
-        stopRouteTracking(finalTrackingId);
-        void syncRouteSamples(finalTrackingId);
         toast.success(response.queued ? 'บันทึกออฟไลน์แล้ว ระบบจะซิงค์เมื่อเชื่อมต่อได้' : 'ยืนยันจัดส่งสำเร็จ');
         resetFormState();
         onComplete?.();

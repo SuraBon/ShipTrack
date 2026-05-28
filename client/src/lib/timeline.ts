@@ -143,20 +143,8 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           deliveryMatchStatus: evt.deliveryMatchStatus,
           deliveryMismatchReason: evt.deliveryMismatchReason,
         });
-      } else if (evt.eventType === 'ROUTE_SAMPLE') {
-        events.push({
-          id: String(idCounter++),
-          eventType: 'ROUTE_SAMPLE',
-          kind: 'routeSample',
-          status: 'completed',
-          title: 'ตำแหน่งระหว่างส่ง',
-          description: evt.note || undefined,
-          timestamp: evt.timestamp,
-          location: evt.location || 'GPS',
-          latitude: evt.latitude,
-          longitude: evt.longitude,
-        });
       }
+
     }
 
     // Add current status indicator if in transit

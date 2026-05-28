@@ -46,13 +46,6 @@ import {
 import { computeRetryDelayMs } from '../retryBackoff';
 import { initSyncManager, registerSyncRunner } from '../syncManager';
 import {
-  getActiveRouteIds,
-  getUnsyncedRouteSamples,
-  markRouteSamplesSynced,
-  purgeSyncedRouteSamples,
-  type RouteSampleRecord,
-} from '../routeTracking';
-import {
   cacheParcelsLocally,
   getCachedParcelLocally,
   getCachedParcelsLocally,
@@ -76,10 +69,7 @@ import {
 } from './configState';
 
 let isSyncing = false;
-let isRouteSyncing = false;
-const ROUTE_SYNC_BATCH_SIZE = 100;
 const QUEUEABLE_ACTIONS = ['createParcel', 'confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery'];
-const ROUTE_SYNC_STATUS_EVENT = 'shiptrack-route-sync-status';
 
 // ── Status normalizer ────────────────────────────────────────────────────────
 type CallApiOptions = {
@@ -764,92 +754,6 @@ export async function updateProfile(
   }
 }
 
-type SyncRouteSamplesResponse = {
-  success: boolean;
-  savedCount?: number;
-  skippedCount?: number;
-  error?: string;
-};
-
-function dispatchRouteSyncStatus(detail: {
-  status: 'start' | 'success' | 'error';
-  trackingID?: string;
-  savedCount?: number;
-  skippedCount?: number;
-  pendingCount?: number;
-  error?: string;
-}): void {
-  if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(ROUTE_SYNC_STATUS_EVENT, { detail }));
-}
-
-export async function syncRouteSamples(trackingID?: string): Promise<SyncRouteSamplesResponse> {
-  if (isRouteSyncing) return { success: true, savedCount: 0, skippedCount: 0 };
-  const samples = await getUnsyncedRouteSamples(trackingID);
-  if (samples.length === 0) return { success: true, savedCount: 0, skippedCount: 0 };
-
-  const groups = samples.reduce<Record<string, RouteSampleRecord[]>>((acc, sample) => {
-    (acc[sample.trackingID] ||= []).push(sample);
-    return acc;
-  }, {});
-
-  isRouteSyncing = true;
-  let savedCount = 0;
-  let skippedCount = 0;
-  dispatchRouteSyncStatus({
-    status: 'start',
-    trackingID,
-    pendingCount: samples.length,
-  });
-  try {
-    for (const [groupTrackingID, groupSamples] of Object.entries(groups)) {
-      const batch = groupSamples.slice(0, ROUTE_SYNC_BATCH_SIZE);
-      const batchKey = batch.length <= 8
-        ? batch.map(sample => sample.id).join(',')
-        : `${batch.length}:${batch[0]?.id}:${batch[batch.length - 1]?.id}`;
-      const res = await callAPI<SyncRouteSamplesResponse>({
-        action: 'syncRouteSamples',
-        trackingID: groupTrackingID,
-        samples: batch,
-        idempotencyKey: createIdempotencyKey(`syncRouteSamples:${groupTrackingID}:${batchKey}`),
-      }, {}, NO_RETRY);
-
-      if (!res.success) {
-        const error = res.error || 'ซิงค์เส้นทางไม่สำเร็จ';
-        dispatchRouteSyncStatus({ status: 'error', trackingID, savedCount, skippedCount, error });
-        return { success: false, error, savedCount, skippedCount };
-      }
-
-      await markRouteSamplesSynced(batch.map(sample => sample.id));
-      savedCount += res.savedCount ?? batch.length;
-      skippedCount += res.skippedCount ?? 0;
-    }
-  } catch (err) {
-    const error = err instanceof Error ? err.message : 'ซิงค์เส้นทางไม่สำเร็จ';
-    dispatchRouteSyncStatus({ status: 'error', trackingID, savedCount, skippedCount, error });
-    return {
-      success: false,
-      error,
-      savedCount,
-      skippedCount,
-    };
-  } finally {
-    isRouteSyncing = false;
-  }
-
-  dispatchRouteSyncStatus({ status: 'success', trackingID, savedCount, skippedCount });
-  if (typeof window !== 'undefined' && (savedCount > 0 || skippedCount > 0)) {
-    window.dispatchEvent(new Event('offline-sync-complete'));
-    void purgeSyncedRouteSamples().catch(err => console.error('Failed to purge route samples:', err));
-  }
-  if (typeof window !== 'undefined' && (await getUnsyncedRouteSamples(trackingID)).length > 0) {
-    window.setTimeout(() => {
-      void syncRouteSamples(trackingID);
-    }, 250);
-  }
-  return { success: true, savedCount, skippedCount };
-}
-
 async function runQueuedAction(item: OfflineQueueItem): Promise<any> {
   const payload = await resolveSyncPayload(item.payload);
   if (payload.action === 'createParcel') {
@@ -965,11 +869,6 @@ export async function syncOfflineQueue(): Promise<SyncResult> {
 if (typeof window !== 'undefined') {
   registerSyncRunner(async () => {
     await syncOfflineQueue();
-    const activeRouteCount = getActiveRouteIds().length;
-    const pendingCount = (await getUnsyncedRouteSamples()).length;
-    if (activeRouteCount > 0 || pendingCount > 0) {
-      await syncRouteSamples();
-    }
   });
   initSyncManager();
   void cleanupOfflineData().catch(err => console.error('Failed to clean offline data:', err));

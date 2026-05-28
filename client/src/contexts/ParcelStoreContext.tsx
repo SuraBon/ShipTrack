@@ -86,7 +86,6 @@ function mergeIncomingParcels(localParcels: Parcel[], incomingParcels: Parcel[])
         ...incoming,
         'สถานะ': local['สถานะ'],
         events: local.events,
-        routeSamples: local.routeSamples || incoming.routeSamples,
       };
     }
 

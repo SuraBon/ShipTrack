@@ -9,7 +9,7 @@
 - Dashboard สำหรับผู้ดูแลระบบและพนักงานส่ง
 - รับงาน เริ่มจัดส่ง คืนงาน และยืนยันส่ง พร้อมบันทึกประวัติการเคลื่อนไหว
 - ยืนยันส่งหลายรายการพร้อมกันด้วยรูปหลักฐานเดียว
-- แผนที่แสดง GPS จริงของรายการส่งและเส้นทางการนำส่ง
+- แผนที่แสดง GPS จริงของเหตุการณ์หลักในรายการส่ง
 - ติดตามงานที่กำลังจัดส่งแบบ near real-time
 - รองรับ offline queue สำหรับ action สำคัญ และ PWA สำหรับติดตั้งบนมือถือ
 - เก็บ audit log และ parcel activity log สำหรับผู้ดูแลระบบ
@@ -85,7 +85,7 @@ pnpm run dev
 - `gas-src/30_entrypoints_routing.gs` - `doPost`/`doGet`, API key, token verification, lock, idempotency และ routing
 - `gas-src/40_parcels_delivery.gs` - สร้าง/อ่าน/ค้นหารายการส่ง และข้อมูล assignment
 - `gas-src/50_logs.gs` - audit log และ parcel activity log
-- `gas-src/52_delivery_handlers.gs` - start/confirm/batch/release delivery และ route samples
+- `gas-src/52_delivery_handlers.gs` - start/confirm/batch/release delivery
 - `gas-src/60_auth_handlers.gs` - login, setup PIN, token, rate limit และ idempotency helper
 - `gas-src/70_admin_handlers.gs` - users, branches, admin parcel actions, profile และ system health
 

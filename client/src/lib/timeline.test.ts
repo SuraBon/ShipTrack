@@ -205,28 +205,5 @@ describe('parseParcelTimeline', () => {
     expect(events[0].description).toContain('ส่งคนละจุด');
     expect(events[0].description).toContain('ฝากไว้ที่ป้อมยาม');
   });
-  it('keeps synced route samples available for maps', () => {
-    const parcel = createParcel({
-      'สถานะ': 'ส่งสำเร็จ',
-      events: [{
-        id: 'ROUTE_TRK1_1',
-        trackingId: 'TRK1',
-        timestamp: '2026-01-01T01:00:00.000Z',
-        eventType: 'ROUTE_SAMPLE',
-        location: 'GPS',
-        latitude: 13.7563,
-        longitude: 100.5018,
-        note: 'routeSampleId=TRK1_1;accuracy=20',
-      }],
-    });
 
-    expect(parseParcelTimeline(parcel)).toEqual([
-      expect.objectContaining({
-        kind: 'routeSample',
-        title: 'ตำแหน่งระหว่างส่ง',
-        latitude: 13.7563,
-        longitude: 100.5018,
-      }),
-    ]);
-  });
 });

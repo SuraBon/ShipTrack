@@ -87,6 +87,5 @@ export interface SystemHealth {
     parcelSheetCount: number;
     parcelRowCount: number;
     eventRowCount: number;
-    routeSampleRowCount: number;
   };
 }

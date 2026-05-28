@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useParcelStore } from '@/hooks/useParcelStore';
 import { useAuth } from '@/contexts/AuthContext';
-import { batchConfirmReceipt, batchStartDelivery, deleteParcel, editParcel, releaseDelivery, startDelivery, syncRouteSamples } from '@/lib/parcelService';
-import { startRouteTracking, stopRouteTracking } from '@/lib/routeTracking';
+import { batchConfirmReceipt, batchStartDelivery, deleteParcel, editParcel, releaseDelivery, startDelivery } from '@/lib/parcelService';
 import { getActiveDeliveryAssignment, buildAssignmentNote } from '@/lib/deliveryAssignment';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
@@ -137,7 +136,6 @@ export function useDashboardActions({
     parcelsToStart.forEach(parcel => {
       if (successIds.has(parcel.TrackingID)) {
         updateParcelLocally(parcel.TrackingID, { 'สถานะ': 'กำลังจัดส่ง' });
-        startRouteTracking(parcel.TrackingID);
       }
     });
     const successCount = res.successCount ?? successIds.size;
@@ -173,8 +171,6 @@ export function useDashboardActions({
     parcelsToConfirm.forEach(parcel => {
       if (successIds.has(parcel.TrackingID)) {
         updateParcelLocally(parcel.TrackingID, { 'สถานะ': 'ส่งสำเร็จ', 'รูปยืนยัน': res.sharedPhotoUrl });
-        stopRouteTracking(parcel.TrackingID);
-        void syncRouteSamples(parcel.TrackingID);
       }
     });
     const successCount = res.successCount ?? successIds.size;
@@ -244,7 +240,6 @@ export function useDashboardActions({
       'สถานะ': 'กำลังจัดส่ง',
       events: nextEvents,
     });
-    startRouteTracking(parcel.TrackingID);
     setMessengerView('mine');
     toast.success(res.autoPickedUp ? 'รับงานสำเร็จ (ระบุพิกัดแล้ว)' : (res.alreadyStarted ? 'อยู่ระหว่างจัดส่งแล้ว' : 'รับงานสำเร็จ'), { id: toastId });
     loadParcels(undefined, true).catch(() => {});
@@ -276,8 +271,6 @@ export function useDashboardActions({
       'สถานะ': 'รอจัดส่ง',
       events: [...(parcel.events || []), releaseEvent],
     });
-    stopRouteTracking(parcel.TrackingID);
-    void syncRouteSamples(parcel.TrackingID);
     setMessengerView('waiting');
     toast.success(res.alreadyReleased ? 'คืนงานเข้าระบบแล้ว' : 'คืนงานสำเร็จ');
     loadParcels(undefined, true).catch(() => {});

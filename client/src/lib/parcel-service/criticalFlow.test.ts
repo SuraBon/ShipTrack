@@ -42,7 +42,6 @@ describe('critical parcel service flow', () => {
             parcelSheetCount: 1,
             parcelRowCount: 1,
             eventRowCount: 1,
-            routeSampleRowCount: 0,
           },
         },
       }));

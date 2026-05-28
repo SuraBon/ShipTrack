@@ -15,7 +15,7 @@ interface TimelineProps {
 }
 
 export default function Timeline({ events, className = '', compact = false }: TimelineProps) {
-  const displayTimelineEvents = events.filter(event => event.kind !== 'routeSample');
+  const displayTimelineEvents = events;
   events = displayTimelineEvents;
   const isDelivered = events.some((event) => event.title.includes('ส่งสำเร็จ'));
   const currentEvent = events.find(e => e.status === 'current') || events[0];

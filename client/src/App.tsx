@@ -12,7 +12,6 @@ import { useAuth } from "./contexts/AuthContext";
 import { normalizeRole } from "./lib/roles";
 import { canAccessPage, getVisiblePage } from "./lib/permissionHelper";
 import { useAppRouter } from "./hooks/useAppRouter";
-import { getActiveRouteIds } from "./lib/routeTracking";
 
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const CreateParcel = lazy(() => import("./pages/CreateParcel"));
@@ -76,8 +75,7 @@ function App() {
 
     const role = user ? normalizeRole(user.role) : "GUEST";
     if (!canAccessPage(currentPage, role)) {
-      const nextGuestPage = getActiveRouteIds().length > 0 ? "login" : "create";
-      navigateToPage(role === "GUEST" ? nextGuestPage : "dashboard");
+      navigateToPage(role === "GUEST" ? "create" : "dashboard");
     }
   }, [currentPage, loading, navigateToPage, user]);
 

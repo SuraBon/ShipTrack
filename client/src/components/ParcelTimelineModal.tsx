@@ -114,7 +114,6 @@ export default function ParcelTimelineModal({
                 <TrackingMap
                   events={selectedTimelineEvents}
                   trackingID={selectedParcel.TrackingID}
-                  routeSamples={selectedParcel.routeSamples}
                   className="h-[62vh] max-h-[560px] min-h-[340px] rounded-2xl"
                   mapClassName="min-h-0"
                 />

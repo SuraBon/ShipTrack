@@ -1,26 +1,36 @@
-import { useEffect, useRef, useState, useCallback, useMemo, memo, type MouseEvent } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import './mapStyles.css';
 import { MapView } from './Map';
 import type { TimelineEvent } from '@/types/timeline';
-import type { ParcelRouteSample } from '@/types/parcel';
 import { formatThaiDateTime } from '@/lib/dateUtils';
-import { useRouteSamples } from '@/hooks/useRouteSamples';
 
-const DEFAULT_CENTER = { lat: 13.7563, lng: 100.5018 }; // กรุงเทพฯ
+const DEFAULT_CENTER = { lat: 13.7563, lng: 100.5018 };
+const MAIN_MARKER_TYPES = new Set([
+  'CREATED',
+  'PICKUP',
+  'START_DELIVERY',
+  'FORWARD',
+  'DELIVERED',
+  'PROXY',
+]);
 
-type RouteEntry = {
+type MarkerEntry = {
   lat: number;
   lng: number;
   label: string;
-  isGps: boolean;
   isLast: boolean;
-  isRouteSample?: boolean;
   event: TimelineEvent;
 };
 
-/** Escape a string so it is safe to embed in HTML attribute/text context. */
+interface TrackingMapProps {
+  events: TimelineEvent[];
+  trackingID?: string;
+  className?: string;
+  mapClassName?: string;
+}
+
 function escapeHtml(str: string): string {
   return str
     .replace(/&/g, '&amp;')
@@ -30,149 +40,78 @@ function escapeHtml(str: string): string {
     .replace(/'/g, '&#39;');
 }
 
-interface TrackingMapProps {
-  events: TimelineEvent[];
-  trackingID?: string;
-  routeSamples?: ParcelRouteSample[];
-  className?: string;
-  mapClassName?: string;
-}
-
-function thinRouteSamples<T extends { latitude?: number; longitude?: number; timestamp: string }>(samples: T[], maxSamples = 300): T[] {
-  const valid = samples.filter(sample =>
-    typeof sample.latitude === 'number' &&
-    typeof sample.longitude === 'number' &&
-    Number.isFinite(sample.latitude) &&
-    Number.isFinite(sample.longitude),
+function isMainCoordinateEvent(event: TimelineEvent): boolean {
+  return (
+    !!event.eventType &&
+    MAIN_MARKER_TYPES.has(event.eventType) &&
+    typeof event.latitude === 'number' &&
+    typeof event.longitude === 'number' &&
+    Number.isFinite(event.latitude) &&
+    Number.isFinite(event.longitude)
   );
-  if (valid.length <= maxSamples) return valid;
-  const step = Math.ceil(valid.length / maxSamples);
-  return valid.filter((_, index) => index === 0 || index === valid.length - 1 || index % step === 0);
 }
 
-function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = [], className = '', mapClassName = 'h-[250px] sm:h-[300px] md:h-[400px] max-h-[50vh]' }: TrackingMapProps) {
-  const mapRef      = useRef<L.Map | null>(null);
+function TrackingMap({
+  events,
+  trackingID,
+  className = '',
+  mapClassName = 'h-[250px] sm:h-[300px] md:h-[400px] max-h-[50vh]',
+}: TrackingMapProps) {
+  const mapRef = useRef<L.Map | null>(null);
   const markerGroupRef = useRef<L.LayerGroup | null>(null);
   const markersByIdRef = useRef<Map<string, L.Marker>>(new Map());
-  const polylineRef = useRef<L.Polyline | null>(null);
   const didFitBoundsRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
-  const [followLatest, setFollowLatest] = useState(false);
-  const routeSamples = useRouteSamples(trackingID);
 
-  // Derive the ordered list of coordinate-bearing events from the timeline.
-  // ใช้เฉพาะ GPS จริงจาก events — ไม่ fallback ไปหา branch coordinates
-  const { pathEntries, hasUnresolved } = useMemo(() => {
-    const entries: RouteEntry[] = [];
-    const hasSyncedRouteSamples = syncedRouteSamples.some(sample =>
-      typeof sample.latitude === 'number' &&
-      typeof sample.longitude === 'number' &&
-      Number.isFinite(sample.latitude) &&
-      Number.isFinite(sample.longitude),
-    );
-
-    for (const e of events) {
-      if (e.kind === 'routeSample' && hasSyncedRouteSamples) continue;
-      // ใช้เฉพาะ GPS จริงเท่านั้น
-      if (
-        typeof e.latitude === 'number' &&
-        typeof e.longitude === 'number' &&
-        isFinite(e.latitude) &&
-        isFinite(e.longitude)
-      ) {
-        entries.push({
-          lat: e.latitude,
-          lng: e.longitude,
-          label: e.kind === 'routeSample' ? 'ตำแหน่งระหว่างส่ง' : e.location || 'GPS',
-          isGps: true,
-          isLast: false,
-          isRouteSample: e.kind === 'routeSample',
-          event: e,
-        });
-      }
-    }
-
-    const remoteSamples = thinRouteSamples(syncedRouteSamples);
-    const localSamples = routeSamples.filter(sample => !sample.synced);
-    const localIds = new Set(localSamples.map(sample => sample.id));
-    const mapSamples = [
-      ...remoteSamples.filter(sample => !localIds.has(sample.id)),
-      ...localSamples,
-    ];
-
-    for (const sample of thinRouteSamples(mapSamples)) {
-      entries.push({
-        lat: sample.latitude as number,
-        lng: sample.longitude as number,
-        label: 'ตำแหน่งระหว่างส่ง',
-        isGps: true,
+  const { markerEntries, hasUnresolved } = useMemo(() => {
+    const orderedEntries = events
+      .filter(isMainCoordinateEvent)
+      .map<MarkerEntry>(event => ({
+        lat: event.latitude!,
+        lng: event.longitude!,
+        label: event.location || 'GPS',
         isLast: false,
-        isRouteSample: true,
-        event: {
-          id: sample.id,
-          status: 'completed',
-          title: 'ตำแหน่งระหว่างส่ง',
-          description: sample.accuracy ? `ความแม่นยำประมาณ ${Math.round(sample.accuracy)} เมตร` : undefined,
-          timestamp: sample.timestamp,
-          location: 'GPS',
-          latitude: sample.latitude,
-          longitude: sample.longitude,
-        },
+        event,
+      }))
+      .sort((a, b) => {
+        const aTime = Date.parse(a.event.timestamp || '');
+        const bTime = Date.parse(b.event.timestamp || '');
+        if (!Number.isFinite(aTime) && !Number.isFinite(bTime)) return 0;
+        if (!Number.isFinite(aTime)) return 1;
+        if (!Number.isFinite(bTime)) return -1;
+        return aTime - bTime;
       });
-    }
 
-    const orderedEntries = [...entries].sort((a, b) => {
-      const aTime = Date.parse(a.event.timestamp || '');
-      const bTime = Date.parse(b.event.timestamp || '');
-      if (!Number.isFinite(aTime) && !Number.isFinite(bTime)) return 0;
-      if (!Number.isFinite(aTime)) return 1;
-      if (!Number.isFinite(bTime)) return -1;
-      return aTime - bTime;
-    });
-
-    // Deduplicate consecutive identical coordinates
-    const deduped = orderedEntries.filter((entry, i, arr) => {
-      if (i === 0) return true;
-      const prev = arr[i - 1];
-      return entry.lat !== prev.lat || entry.lng !== prev.lng;
-    });
-
-    // Mark the last entry
-    if (deduped.length > 0) {
-      deduped[deduped.length - 1].isLast = true;
-    }
-
-    // hasUnresolved = มี event ที่ไม่มี GPS (แสดงเพื่อ inform user)
-    const hasUnresolved = events.some(e =>
-      e.title !== 'สร้างรายการส่ง' &&
-      e.status === 'completed' &&
-      (typeof e.latitude !== 'number' || typeof e.longitude !== 'number')
-    );
-
-    return { pathEntries: deduped, hasUnresolved };
-  }, [events, routeSamples, syncedRouteSamples]);
-
-  const hasRouteData = pathEntries.length > 0;
-  const markerEntries = useMemo(() => {
     const seen = new Set<string>();
-    return pathEntries.filter(entry => {
-      const eventType = entry.event.eventType;
-      const isMainMarker =
-        eventType === 'CREATED' ||
-        eventType === 'PICKUP' ||
-        eventType === 'START_DELIVERY' ||
-        eventType === 'FORWARD' ||
-        eventType === 'DELIVERED' ||
-        eventType === 'PROXY';
-      if (!isMainMarker) return false;
-      const key = `${entry.lat},${entry.lng},${eventType}`;
+    const deduped = orderedEntries.filter(entry => {
+      const key = `${entry.lat},${entry.lng},${entry.event.eventType}`;
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
     });
-  }, [pathEntries]);
-  const latestRouteEntry = [...pathEntries].reverse().find(entry => entry.isRouteSample) ?? pathEntries[pathEntries.length - 1];
-  const latestRouteTimestamp = latestRouteEntry?.event.timestamp ? formatThaiDateTime(latestRouteEntry.event.timestamp) : null;
+
+    if (deduped.length > 0) {
+      deduped[deduped.length - 1].isLast = true;
+    }
+
+    const unresolved = events.some(event =>
+      event.status === 'completed' &&
+      !!event.eventType &&
+      MAIN_MARKER_TYPES.has(event.eventType) &&
+      (typeof event.latitude !== 'number' || typeof event.longitude !== 'number')
+    );
+
+    return { markerEntries: deduped, hasUnresolved: unresolved };
+  }, [events]);
+
+  const coords = useMemo(
+    () => markerEntries.map(entry => L.latLng(entry.lat, entry.lng)),
+    [markerEntries],
+  );
+  const hasLocationData = markerEntries.length > 0;
+  const latestTimestamp = markerEntries.at(-1)?.event.timestamp
+    ? formatThaiDateTime(markerEntries.at(-1)!.event.timestamp)
+    : null;
 
   const handleMapReady = useCallback((map: L.Map) => {
     mapRef.current = map;
@@ -187,30 +126,28 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
       markerGroupRef.current = L.layerGroup().addTo(map);
     }
 
-    if (!hasRouteData) {
-      // Clear layers when no route data
+    if (!hasLocationData) {
       markersByIdRef.current.forEach(marker => marker.remove());
       markersByIdRef.current.clear();
-      polylineRef.current?.remove();
-      polylineRef.current = null;
       didFitBoundsRef.current = false;
       map.setView([DEFAULT_CENTER.lat, DEFAULT_CENTER.lng], 7);
       return;
     }
 
     const nextIds = new Set<string>();
-    const makeMarkerId = (entry: RouteEntry) => `${entry.event.eventType ?? 'point'}:${entry.event.id ?? `${entry.lat},${entry.lng},${entry.event.timestamp}`}`;
+    const makeMarkerId = (entry: MarkerEntry) =>
+      `${entry.event.eventType ?? 'point'}:${entry.event.id ?? `${entry.lat},${entry.lng},${entry.event.timestamp}`}`;
 
-    markerEntries.forEach((entry) => {
-      const { lat, lng, label, isGps, isLast, event } = entry;
+    markerEntries.forEach(entry => {
+      const { lat, lng, label, isLast, event } = entry;
       const eventDate = event.timestamp ? formatThaiDateTime(event.timestamp) : '';
-      const safeLabel     = escapeHtml(label || 'GPS');
+      const safeLabel = escapeHtml(label || 'GPS');
       const isStartPoint = event.eventType === 'CREATED';
       const isDeliveredPoint = event.eventType === 'DELIVERED' || event.eventType === 'PROXY';
       const isForwardPoint = event.eventType === 'FORWARD';
       const iconName = isStartPoint ? 'inventory_2' : isDeliveredPoint ? 'task_alt' : isForwardPoint ? 'storefront' : 'local_shipping';
       const markerColor = isStartPoint ? '#2563eb' : isDeliveredPoint ? '#16a34a' : isForwardPoint ? '#7c3aed' : '#0f172a';
-      const markerRing  = isStartPoint
+      const markerRing = isStartPoint
         ? 'rgba(37,99,235,0.18)'
         : isDeliveredPoint
           ? 'rgba(22,163,74,0.18)'
@@ -229,7 +166,6 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
 
       const markerId = makeMarkerId(entry);
       nextIds.add(markerId);
-      const existingMarker = markersByIdRef.current.get(markerId);
       const nextIcon = L.divIcon({
         html,
         className: 'branch-marker bg-transparent',
@@ -237,6 +173,7 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
         iconAnchor: [21, 46],
         popupAnchor: [0, -42],
       });
+      const existingMarker = markersByIdRef.current.get(markerId);
 
       if (existingMarker) {
         existingMarker.setLatLng([lat, lng]);
@@ -245,8 +182,6 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
       }
 
       const marker = L.marker([lat, lng], { icon: nextIcon });
-
-      // Safe popup — use textContent via DOM, not innerHTML
       const popupEl = document.createElement('div');
       popupEl.style.cssText = 'padding:4px 2px 2px;font-family:Manrope,sans-serif;min-width:230px;max-width:280px';
 
@@ -267,27 +202,19 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
 
       const sub = document.createElement('div');
       sub.style.cssText = 'color:#61646b;margin-top:8px;font-size:12px;font-weight:700;line-height:1.45';
-      if (isGps) {
-        sub.textContent = `ตำแหน่ง GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
-      } else {
-        sub.textContent = isLast ? 'จุดล่าสุดของรายการนี้' : 'จุดแวะพักระหว่างทาง';
-      }
+      sub.textContent = `ตำแหน่ง GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
       popupEl.append(badge, title, sub);
 
-      // Show image if available
       if (event.imageUrl) {
         const img = document.createElement('img');
         img.src = event.imageUrl;
         img.style.cssText = 'width:100%;max-height:120px;object-fit:cover;border-radius:8px;margin-top:8px';
         img.alt = 'หลักฐาน';
-        img.onerror = () => {
-          img.remove();
-        };
+        img.onerror = () => img.remove();
         popupEl.appendChild(img);
       }
 
-      // Show timestamp if available
       if (eventDate) {
         const time = document.createElement('div');
         time.style.cssText = 'margin-top:8px;font-size:11px;color:#61646b;font-weight:800';
@@ -297,9 +224,9 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
 
       const footer = document.createElement('div');
       footer.style.cssText = 'margin-top:10px;padding-top:10px;border-top:1px solid #eef1f6;font-size:11px;color:#855300;font-weight:900';
-      footer.textContent = 'หมุดเหตุการณ์หลักของเส้นทาง';
-
+      footer.textContent = 'หมุดเหตุการณ์หลัก';
       popupEl.appendChild(footer);
+
       marker.on('click', () => {
         if (!marker.getPopup()) {
           marker.bindPopup(popupEl, {
@@ -315,17 +242,6 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
       markersByIdRef.current.set(markerId, marker);
     });
 
-    const coords = pathEntries.map(e => [e.lat, e.lng] as [number, number]);
-    if (!polylineRef.current) {
-      polylineRef.current = L.polyline(
-        coords,
-        { color: '#2563eb', opacity: 0.9, weight: 5, lineCap: 'round', lineJoin: 'round' },
-      ).addTo(map);
-    } else {
-      polylineRef.current.setLatLngs(coords);
-    }
-
-    // Remove stale markers
     markersByIdRef.current.forEach((marker, id) => {
       if (!nextIds.has(id)) {
         marker.remove();
@@ -333,7 +249,6 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
       }
     });
 
-    // Fit bounds only once per dataset (avoid annoying map jumps when new samples stream in)
     if (!didFitBoundsRef.current) {
       if (coords.length > 1) {
         const bounds = L.latLngBounds(coords);
@@ -343,14 +258,10 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
         map.setView(coords[0], 13);
       }
       didFitBoundsRef.current = true;
-    } else if (followLatest && coords.length > 0) {
-      const latest = coords[coords.length - 1];
-      map.panTo(latest, { animate: true });
     }
-  }, [followLatest, hasRouteData, isMapReady, markerEntries, pathEntries]);
+  }, [coords, hasLocationData, isMapReady, markerEntries]);
 
   useEffect(() => {
-    // Reset bounds fitting when tracking changes
     didFitBoundsRef.current = false;
   }, [trackingID]);
 
@@ -368,35 +279,30 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
     };
   }, [isMapReady]);
 
-  const toggleFollowLatest = (event: MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    setFollowLatest(value => !value);
-  };
-
   return (
     <div className={`tracking-map relative flex w-full flex-col overflow-hidden rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#050915] shadow-sm ${className}`}>
-      {!hasRouteData && (
+      {!hasLocationData && (
         <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/10 bg-blue-50 dark:bg-blue-950/40 px-4 py-2.5 text-[11px] font-semibold text-blue-700 dark:text-blue-200">
           <span className="material-symbols-outlined text-base" aria-hidden="true">info</span>
-          ยังไม่มีตำแหน่ง GPS — แผนที่จะแสดงเมื่อมีการสร้างรายการหรือยืนยันการจัดส่ง
+          ยังไม่มีตำแหน่ง GPS จากเหตุการณ์หลัก
         </div>
       )}
-      {hasRouteData && hasUnresolved && (
+      {hasLocationData && hasUnresolved && (
         <div className="flex items-center gap-2 border-b border-amber-100 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5 text-[11px] font-semibold text-amber-700 dark:text-amber-200">
           <span className="material-symbols-outlined text-base" aria-hidden="true">warning</span>
-          บางจุดไม่มีตำแหน่ง GPS จึงไม่แสดงบนแผนที่
+          บางเหตุการณ์หลักไม่มีตำแหน่ง GPS จึงไม่แสดงบนแผนที่
         </div>
       )}
-      {hasRouteData && (
+      {hasLocationData && (
         <div className="pointer-events-none absolute left-3 top-3 z-[500] rounded-xl border border-white/80 dark:border-white/15 bg-white/95 dark:bg-[#020617]/95 px-3 py-2 shadow-sm backdrop-blur">
-          <p className="text-xs font-semibold leading-none text-slate-800 dark:text-slate-100">แผนที่การจัดส่ง</p>
+          <p className="text-xs font-semibold leading-none text-slate-800 dark:text-slate-100">แผนที่จุดหลัก</p>
           <p className="mt-1 text-[10px] font-medium text-slate-400 dark:text-slate-400">{markerEntries.length} หมุดหลัก</p>
         </div>
       )}
-      {hasRouteData && latestRouteTimestamp && (
+      {hasLocationData && latestTimestamp && (
         <div className="pointer-events-none absolute right-3 top-3 z-[500] rounded-xl border border-cyan-100 dark:border-cyan-500/40 bg-white/95 dark:bg-[#020617]/95 px-3 py-2 text-right shadow-sm backdrop-blur">
-          <p className="text-[10px] font-black text-cyan-700 dark:text-cyan-300">ตำแหน่งล่าสุด</p>
-          <p className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-300">{latestRouteTimestamp}</p>
+          <p className="text-[10px] font-black text-cyan-700 dark:text-cyan-300">เหตุการณ์ล่าสุด</p>
+          <p className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-300">{latestTimestamp}</p>
         </div>
       )}
       <MapView
@@ -406,11 +312,11 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
         onMapReady={handleMapReady}
         fallbackMessage="โหลดแผนที่ไม่ได้ แต่ข้อมูลรายการส่งยังใช้งานได้ตามปกติ"
       />
-      {!hasRouteData && (
+      {!hasLocationData && (
         <div className="pointer-events-none absolute inset-x-4 top-1/2 z-[500] mx-auto max-w-sm -translate-y-1/2 rounded-2xl border border-white/80 dark:border-white/10 bg-white/95 dark:bg-[#020617]/95 p-4 text-center shadow-sm backdrop-blur">
           <span className="material-symbols-outlined text-3xl text-slate-300 dark:text-slate-500" aria-hidden="true">location_off</span>
           <p className="mt-2 text-sm font-black text-slate-800 dark:text-slate-100">ยังไม่มีพิกัดสำหรับแสดงบนแผนที่</p>
-          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">ระบบจะแสดงเส้นทางเมื่อมีข้อมูล GPS จากการสร้างรายการหรือยืนยันการจัดส่ง</p>
+          <p className="mt-1 text-xs leading-relaxed text-slate-500 dark:text-slate-400">ระบบจะแสดงหมุดเมื่อมีตำแหน่ง GPS จากเหตุการณ์หลัก</p>
         </div>
       )}
       <div className="flex items-center justify-between gap-3 border-t border-gray-100 dark:border-slate-800 bg-white dark:bg-[#020617] px-4 py-2.5 text-[10px] font-semibold text-slate-400 dark:text-slate-400">
@@ -419,7 +325,7 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
             <span className="h-2 w-2 rounded-full bg-blue-600" /> จุดเริ่มต้น
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-slate-900 dark:bg-slate-400" /> กำลังส่ง
+            <span className="h-2 w-2 rounded-full bg-slate-900 dark:bg-slate-400" /> รับงาน/รับของ
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-violet-600" /> ส่งต่อ
@@ -428,22 +334,7 @@ function TrackingMap({ events, trackingID, routeSamples: syncedRouteSamples = []
             <span className="h-2 w-2 rounded-full bg-green-600" /> ปลายทาง
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          {hasRouteData && (
-            <button
-              type="button"
-              onClick={toggleFollowLatest}
-              className={`rounded-lg px-2.5 py-1 text-[10px] font-bold transition-colors ${
-                followLatest
-                  ? 'bg-cyan-600 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/10 dark:text-slate-200'
-              }`}
-            >
-              {followLatest ? 'หยุดติดตาม' : 'ติดตามล่าสุด'}
-            </button>
-          )}
-          <span className="hidden text-slate-300 sm:inline dark:text-slate-200">ShipTrack Maps</span>
-        </div>
+        <span className="hidden text-slate-300 sm:inline dark:text-slate-200">ShipTrack Maps</span>
       </div>
     </div>
   );

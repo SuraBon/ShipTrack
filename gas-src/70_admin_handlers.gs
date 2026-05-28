@@ -24,8 +24,7 @@ function handleGetSystemHealth(payload) {
     activeUserCount: 0,
     parcelSheetCount: 0,
     parcelRowCount: 0,
-    eventRowCount: 0,
-    routeSampleRowCount: 0
+    eventRowCount: 0
   };
 
   function pushCheck(name, ok, message, elapsedMs) {
@@ -75,8 +74,6 @@ function handleGetSystemHealth(payload) {
       metrics.parcelRowCount += Math.max(0, entry.sheet.getLastRow() - 1);
       const eventSheet = entry.spreadsheet.getSheetByName("ParcelEvents");
       if (eventSheet) metrics.eventRowCount += Math.max(0, eventSheet.getLastRow() - 1);
-      const routeSheet = entry.spreadsheet.getSheetByName("RouteSamples");
-      if (routeSheet) metrics.routeSampleRowCount += Math.max(0, routeSheet.getLastRow() - 1);
     });
     pushCheck("parcelStorage", true, metrics.parcelRowCount + " parcel rows", Date.now() - parcelStart);
   } catch (e) {

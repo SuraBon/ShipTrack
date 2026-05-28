@@ -233,57 +233,6 @@ function getParcelEventsForSpreadsheet(ss, trackingID) {
   return events;
 }
 
-function parseRouteSampleRow(row) {
-  return {
-    id: String(row[0]),
-    trackingID: String(row[1]),
-    timestamp: formatSheetDateValue(row[2]),
-    latitude: row[3] !== "" ? Number(row[3]) : undefined,
-    longitude: row[4] !== "" ? Number(row[4]) : undefined,
-    accuracy: row[5] !== "" ? Number(row[5]) : undefined,
-    speed: row[6] !== "" ? Number(row[6]) : undefined,
-    heading: row[7] !== "" ? Number(row[7]) : undefined,
-    recordedBy: String(row[8] || ""),
-    createdAt: formatSheetDateValue(row[9])
-  };
-}
-
-function getRouteSamplesForSpreadsheet(ss, trackingID) {
-  const sheet = ss.getSheetByName("RouteSamples");
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  const samples = [];
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][1]).trim() === String(trackingID).trim()) {
-      samples.push(parseRouteSampleRow(data[i]));
-    }
-  }
-  return samples;
-}
-
-function getRouteSamplesForTrackingIds(trackingIds) {
-  if (!trackingIds || trackingIds.length === 0) return {};
-  const samplesByTrackingId = {};
-  const idSet = {};
-  trackingIds.forEach(function (id) {
-    idSet[String(id).trim()] = true;
-  });
-
-  getYearSpreadsheetsForRead().forEach(function (entry) {
-    const sheet = entry.spreadsheet.getSheetByName("RouteSamples");
-    if (!sheet) return;
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      const trackingId = String(data[i][1]).trim();
-      if (!idSet[trackingId]) continue;
-      if (!samplesByTrackingId[trackingId]) samplesByTrackingId[trackingId] = [];
-      samplesByTrackingId[trackingId].push(parseRouteSampleRow(data[i]));
-    }
-  });
-
-  return samplesByTrackingId;
-}
-
 function getActiveDeliveryAssignmentFromEvents(events) {
   let active = null;
   for (let i = 0; i < events.length; i++) {

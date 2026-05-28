@@ -51,10 +51,8 @@ function handleGetParcels(payload) {
 
   const trackingIds = parcels.map(function (p) { return p.TrackingID; });
   const eventsMap = getEventsForTrackingIds(trackingIds);
-  const routeSamplesMap = getRouteSamplesForTrackingIds(trackingIds);
   for (let p of parcels) {
     p.events = eventsMap[p.TrackingID] || [];
-    p.routeSamples = routeSamplesMap[p.TrackingID] || [];
   }
 
   return createJsonResponse({
@@ -98,7 +96,6 @@ function handleGetParcel(payload) {
 
       const eventsMap = getParcelEventsMap();
       parcel.events = eventsMap[payload.trackingID] || [];
-      parcel.routeSamples = getRouteSamplesForSpreadsheet(storage.spreadsheet, payload.trackingID);
 
       return createJsonResponse({ success: true, parcel: parcel });
     }

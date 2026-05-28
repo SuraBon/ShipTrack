@@ -50,16 +50,14 @@ describe('production configuration', () => {
     expect(readPngSize('client/public/icon-512-v2.png')).toEqual({ width: 512, height: 512 });
   });
 
-  it('keeps realtime tracking and route sync status wired into the main screens', () => {
+  it('keeps realtime parcel refresh and event marker maps wired into the main screens', () => {
     const trackPage = readFileSync(resolve(repoRoot, 'client/src/pages/Track.tsx'), 'utf8');
     const dashboardPage = readFileSync(resolve(repoRoot, 'client/src/pages/Dashboard.tsx'), 'utf8');
-    const parcelService = readFileSync(resolve(repoRoot, 'client/src/lib/parcel-service/core.ts'), 'utf8');
     const trackingMap = readFileSync(resolve(repoRoot, 'client/src/components/TrackingMap.tsx'), 'utf8');
 
     expect(trackPage).toContain('useRealtimeParcel');
     expect(dashboardPage).toContain('useRealtimeParcel');
-    expect(dashboardPage).toContain('useRouteSyncStatus');
-    expect(parcelService).toContain('shiptrack-route-sync-status');
-    expect(trackingMap).toContain('ตำแหน่งล่าสุด');
+    expect(trackingMap).toContain('MAIN_MARKER_TYPES');
+    expect(trackingMap).not.toContain('Polyline');
   });
 });

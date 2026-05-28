@@ -24,27 +24,13 @@ export interface Parcel {
   'OriginLatitude'?: number;
   'OriginLongitude'?: number;
   'events'?: ParcelEventRecord[];
-  routeSamples?: ParcelRouteSample[];
-}
-
-export interface ParcelRouteSample {
-  id: string;
-  trackingID: string;
-  timestamp: string;
-  latitude?: number;
-  longitude?: number;
-  accuracy?: number;
-  speed?: number | null;
-  heading?: number | null;
-  recordedBy?: string;
-  createdAt?: string;
 }
 
 export interface ParcelEventRecord {
   id: string;
   trackingId: string;
   timestamp: string;
-  eventType: 'FORWARD' | 'PROXY' | 'DELIVERED' | 'CREATED' | 'START_DELIVERY' | 'PICKUP' | 'RELEASE_DELIVERY' | 'ROUTE_SAMPLE';
+  eventType: 'FORWARD' | 'PROXY' | 'DELIVERED' | 'CREATED' | 'START_DELIVERY' | 'PICKUP' | 'RELEASE_DELIVERY';
   location: string;
   destLocation?: string;
   person?: string;

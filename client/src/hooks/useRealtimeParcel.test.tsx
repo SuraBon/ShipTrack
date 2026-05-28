@@ -91,7 +91,18 @@ describe('useRealtimeParcel', () => {
   });
 
   it('fetches immediately and stores the latest parcel when enabled', async () => {
-    const updatedParcel = { ...baseParcel, routeSamples: [{ id: 'S1', trackingID: 'TRK1', timestamp: '2026-01-01T00:01:00.000Z', latitude: 13.7, longitude: 100.5 }] };
+    const updatedParcel = {
+      ...baseParcel,
+      events: [{
+        id: 'EVT1',
+        trackingId: 'TRK1',
+        timestamp: '2026-01-01T00:01:00.000Z',
+        eventType: 'START_DELIVERY' as const,
+        location: 'HQ',
+        latitude: 13.7,
+        longitude: 100.5,
+      }],
+    };
     vi.mocked(getParcel).mockResolvedValueOnce({ success: true, parcel: updatedParcel });
     const states: HookState[] = [];
 

@@ -136,10 +136,6 @@ function ensureEventSheetSchema(sheet) {
   ensureHeaderRow(sheet, EVENT_HEADERS, "#e0f2fe");
 }
 
-function ensureRouteSampleSheetSchema(sheet) {
-  ensureHeaderRow(sheet, ROUTE_SAMPLE_HEADERS, "#ede9fe");
-}
-
 function getYearSpreadsheet(year, createIfMissing) {
   const normalizedYear = Number(year || getYearFromDate(new Date()));
   const master = getSpreadsheet();
@@ -322,15 +318,6 @@ function getEventSheetForSpreadsheet(ss) {
   }
   ensureEventSheetSchema(eventSheet);
   return eventSheet;
-}
-
-function getRouteSampleSheetForSpreadsheet(ss) {
-  let sheet = ss.getSheetByName("RouteSamples");
-  if (!sheet) {
-    sheet = ss.insertSheet("RouteSamples");
-  }
-  ensureRouteSampleSheetSchema(sheet);
-  return sheet;
 }
 
 var apiKeyCache = null;

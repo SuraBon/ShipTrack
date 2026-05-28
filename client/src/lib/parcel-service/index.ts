@@ -4,6 +4,5 @@ export * from './branches';
 export * from './parcels';
 export * from './logs';
 export * from './users';
-export * from './routeSync';
 export * from './offlineSync';
 export * from './health';

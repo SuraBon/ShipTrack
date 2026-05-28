@@ -9,9 +9,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { useDashboardLists } from '@/hooks/useDashboardLists';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { useRealtimeParcel } from '@/hooks/useRealtimeParcel';
-import { useRouteSyncStatus } from '@/hooks/useRouteSyncStatus';
 import { useDashboardActions } from '@/hooks/useDashboardActions';
-import { formatSyncTime } from '@/lib/dateUtils';
 import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 import {
@@ -64,7 +62,6 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     requestLocation: requestMessengerLocation,
   } = useGeolocation();
   
-  const routeSyncStatus = useRouteSyncStatus();
   const defaultStatusFilter = 'ทั้งหมด';
   const [statusFilter, setStatusFilter] = useState(() => defaultStatusFilter);
   
@@ -255,7 +252,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
     if (!liveSelectedParcel) return false;
     return selectedTimelineEvents.some(
       event => typeof event.latitude === 'number' && typeof event.longitude === 'number'
-    ) || Boolean(liveSelectedParcel.routeSamples?.some(sample => typeof sample.latitude === 'number' && typeof sample.longitude === 'number'));
+    );
   }, [liveSelectedParcel, selectedTimelineEvents]);
 
   const clearFilters = () => { setSearchTerm(''); setStatusFilter(defaultStatusFilter); setCurrentPage(1); };

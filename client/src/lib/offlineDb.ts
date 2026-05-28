@@ -9,7 +9,6 @@ export const OFFLINE_QUEUE_STORE = 'offlineQueue';
 export const OFFLINE_MEDIA_STORE = 'offlineMedia';
 export const OFFLINE_DRAFT_STORE = 'drafts';
 export const OFFLINE_HISTORY_STORE = 'createdParcelHistory';
-export const OFFLINE_ROUTE_STORE = 'routeSamples';
 export const OFFLINE_PARCEL_CACHE_STORE = 'parcelsCache';
 
 export const LEGACY_QUEUE_KEY = 'shiptrack_offline_queue';
@@ -50,19 +49,6 @@ export type OfflineHistoryRecord = CreatedParcelHistoryItem & {
   id: string;
 };
 
-export interface RouteSampleRecord {
-  id: string;
-  trackingID: string;
-  latitude: number;
-  longitude: number;
-  accuracy?: number;
-  speed?: number | null;
-  heading?: number | null;
-  timestamp: string;
-  syncState?: 0 | 1;
-  synced?: boolean;
-}
-
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 
 export function isIndexedDbAvailable(): boolean {
@@ -89,30 +75,6 @@ function openDb(): Promise<IDBDatabase | null> {
       if (!db.objectStoreNames.contains(OFFLINE_HISTORY_STORE)) {
         db.createObjectStore(OFFLINE_HISTORY_STORE, { keyPath: 'id' });
       }
-      let routeStore: IDBObjectStore;
-      if (!db.objectStoreNames.contains(OFFLINE_ROUTE_STORE)) {
-        routeStore = db.createObjectStore(OFFLINE_ROUTE_STORE, { keyPath: 'id' });
-      } else {
-        routeStore = request.transaction!.objectStore(OFFLINE_ROUTE_STORE);
-      }
-      if (!routeStore.indexNames.contains('trackingID')) {
-        routeStore.createIndex('trackingID', 'trackingID', { unique: false });
-      }
-      if (!routeStore.indexNames.contains('syncState')) {
-        routeStore.createIndex('syncState', 'syncState', { unique: false });
-      }
-      routeStore.openCursor().onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest<IDBCursorWithValue | null>).result;
-        if (!cursor) return;
-        const sample = cursor.value as RouteSampleRecord;
-        if (sample && sample.syncState !== 0 && sample.syncState !== 1) {
-          cursor.update({
-            ...sample,
-            syncState: sample.synced ? 1 : 0,
-          });
-        }
-        cursor.continue();
-      };
       if (!db.objectStoreNames.contains(OFFLINE_PARCEL_CACHE_STORE)) {
         db.createObjectStore(OFFLINE_PARCEL_CACHE_STORE, { keyPath: 'TrackingID' });
       }

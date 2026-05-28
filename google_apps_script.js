@@ -55,19 +55,6 @@ const EVENT_HEADERS = [
   "DeliveryMatchStatus",
   "DeliveryMismatchReason"
 ];
-const ROUTE_SAMPLE_HEADERS = [
-  "SampleID",
-  "TrackingID",
-  "Timestamp",
-  "Latitude",
-  "Longitude",
-  "Accuracy",
-  "Speed",
-  "Heading",
-  "RecordedBy",
-  "CreatedAt"
-];
-
 const USER_HEADERS = ["EmployeeID", "Name", "Role", "PIN", "CreatedAt", "Status", "UpdatedAt"];
 const BRANCH_HEADERS = ["Name", "CreatedAt", "CreatedBy"];
 const DEFAULT_BRANCHES = [
@@ -214,10 +201,6 @@ function ensureParcelSheetSchema(sheet) {
 
 function ensureEventSheetSchema(sheet) {
   ensureHeaderRow(sheet, EVENT_HEADERS, "#e0f2fe");
-}
-
-function ensureRouteSampleSheetSchema(sheet) {
-  ensureHeaderRow(sheet, ROUTE_SAMPLE_HEADERS, "#ede9fe");
 }
 
 function getYearSpreadsheet(year, createIfMissing) {
@@ -402,15 +385,6 @@ function getEventSheetForSpreadsheet(ss) {
   }
   ensureEventSheetSchema(eventSheet);
   return eventSheet;
-}
-
-function getRouteSampleSheetForSpreadsheet(ss) {
-  let sheet = ss.getSheetByName("RouteSamples");
-  if (!sheet) {
-    sheet = ss.insertSheet("RouteSamples");
-  }
-  ensureRouteSampleSheetSchema(sheet);
-  return sheet;
 }
 
 var apiKeyCache = null;
@@ -865,7 +839,7 @@ function doPost(e) {
     }
 
     // --- Token Signature Verification ---
-    const protectedActions = ['confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs', 'getSystemHealth'];
+    const protectedActions = ['confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs', 'getSystemHealth'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
       if (parts.length === 5) {
@@ -913,7 +887,7 @@ function doPost(e) {
       payload.role = 'GUEST';
     }
 
-    const writeActions = ['createParcel', 'confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'login', 'setupPin', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile'];
+    const writeActions = ['createParcel', 'confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'login', 'setupPin', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile'];
     const isWrite = writeActions.includes(action);
 
     let result;
@@ -968,7 +942,6 @@ function routeAction(action, payload) {
   if (action === 'startDelivery') return handleStartDelivery(payload);
   if (action === 'batchStartDelivery') return handleBatchStartDelivery(payload);
   if (action === 'releaseDelivery') return handleReleaseDelivery(payload);
-  if (action === 'syncRouteSamples') return handleSyncRouteSamples(payload);
   if (action === 'searchParcels') return handleSearchParcels(payload);
   if (action === 'login') return handleLogin(payload);
   if (action === 'setupPin') return handleSetupPin(payload);
@@ -1232,57 +1205,6 @@ function getParcelEventsForSpreadsheet(ss, trackingID) {
   return events;
 }
 
-function parseRouteSampleRow(row) {
-  return {
-    id: String(row[0]),
-    trackingID: String(row[1]),
-    timestamp: formatSheetDateValue(row[2]),
-    latitude: row[3] !== "" ? Number(row[3]) : undefined,
-    longitude: row[4] !== "" ? Number(row[4]) : undefined,
-    accuracy: row[5] !== "" ? Number(row[5]) : undefined,
-    speed: row[6] !== "" ? Number(row[6]) : undefined,
-    heading: row[7] !== "" ? Number(row[7]) : undefined,
-    recordedBy: String(row[8] || ""),
-    createdAt: formatSheetDateValue(row[9])
-  };
-}
-
-function getRouteSamplesForSpreadsheet(ss, trackingID) {
-  const sheet = ss.getSheetByName("RouteSamples");
-  if (!sheet) return [];
-  const data = sheet.getDataRange().getValues();
-  const samples = [];
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][1]).trim() === String(trackingID).trim()) {
-      samples.push(parseRouteSampleRow(data[i]));
-    }
-  }
-  return samples;
-}
-
-function getRouteSamplesForTrackingIds(trackingIds) {
-  if (!trackingIds || trackingIds.length === 0) return {};
-  const samplesByTrackingId = {};
-  const idSet = {};
-  trackingIds.forEach(function (id) {
-    idSet[String(id).trim()] = true;
-  });
-
-  getYearSpreadsheetsForRead().forEach(function (entry) {
-    const sheet = entry.spreadsheet.getSheetByName("RouteSamples");
-    if (!sheet) return;
-    const data = sheet.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      const trackingId = String(data[i][1]).trim();
-      if (!idSet[trackingId]) continue;
-      if (!samplesByTrackingId[trackingId]) samplesByTrackingId[trackingId] = [];
-      samplesByTrackingId[trackingId].push(parseRouteSampleRow(data[i]));
-    }
-  });
-
-  return samplesByTrackingId;
-}
-
 function getActiveDeliveryAssignmentFromEvents(events) {
   let active = null;
   for (let i = 0; i < events.length; i++) {
@@ -1465,10 +1387,8 @@ function handleGetParcels(payload) {
 
   const trackingIds = parcels.map(function (p) { return p.TrackingID; });
   const eventsMap = getEventsForTrackingIds(trackingIds);
-  const routeSamplesMap = getRouteSamplesForTrackingIds(trackingIds);
   for (let p of parcels) {
     p.events = eventsMap[p.TrackingID] || [];
-    p.routeSamples = routeSamplesMap[p.TrackingID] || [];
   }
 
   return createJsonResponse({
@@ -1512,7 +1432,6 @@ function handleGetParcel(payload) {
 
       const eventsMap = getParcelEventsMap();
       parcel.events = eventsMap[payload.trackingID] || [];
-      parcel.routeSamples = getRouteSamplesForSpreadsheet(storage.spreadsheet, payload.trackingID);
 
       return createJsonResponse({ success: true, parcel: parcel });
     }
@@ -2174,160 +2093,6 @@ function handleReleaseDelivery(payload) {
 }
 
 // ---- 53_route_search.gs ----
-function sanitizeRouteSampleId(value) {
-  return String(value || "").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 80);
-}
-
-function handleSyncRouteSamples(payload) {
-  if (!hasAnyRole(payload, ['ADMIN', 'MESSENGER'])) {
-    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
-  }
-
-  const reqId = sanitizeText(payload.requestId || "");
-
-  const rl = checkWriteRateLimit(payload.employeeId, 'syncRouteSamples');
-  if (!rl.allowed) {
-    return createJsonResponse({ success: false, error: "ส่งคำขอบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่" });
-  }
-
-  if (!validateTrackingID(payload.trackingID)) {
-    return createJsonResponse({ success: false, error: "รูปแบบหมายเลขติดตามไม่ถูกต้อง" });
-  }
-
-  const samples = Array.isArray(payload.samples) ? payload.samples.slice(0, 500) : [];
-  if (samples.length === 0) {
-    return createJsonResponse({ success: true, savedCount: 0, skippedCount: 0 });
-  }
-
-  const storage = getParcelStorageByTrackingId(payload.trackingID);
-  if (!storage) {
-    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
-  }
-
-  const data = storage.sheet.getDataRange().getValues();
-  let parcelRow = null;
-  for (let i = 1; i < data.length; i++) {
-    if (String(data[i][0]).trim() === String(payload.trackingID).trim()) {
-      parcelRow = data[i];
-      break;
-    }
-  }
-
-  if (!parcelRow || !canReadParcelRow(payload, parcelRow)) {
-    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง" });
-  }
-
-  const routeSheet = getRouteSampleSheetForSpreadsheet(storage.spreadsheet);
-  if (!routeSheet) {
-    return createJsonResponse({ success: false, error: "Route sample sheet unavailable" });
-  }
-
-  const existingIds = {};
-  const existingSamples = getRouteSamplesForSpreadsheet(storage.spreadsheet, payload.trackingID);
-  for (let i = 0; i < existingSamples.length; i++) {
-    existingIds[String(existingSamples[i].id)] = true;
-  }
-
-  let savedCount = 0;
-  let skippedCount = 0;
-  const rowsToAppend = [];
-  const operatorName = escapeSheetValue(payload.operatorName || payload.name || payload.employeeId || "");
-  for (let i = 0; i < samples.length; i++) {
-    const sample = samples[i] || {};
-    const sampleId = sanitizeRouteSampleId(sample.id || (String(payload.trackingID) + "_" + i));
-    if (!sampleId) {
-      skippedCount++;
-      continue;
-    }
-
-    if (existingIds[sampleId]) {
-      skippedCount++;
-      continue;
-    }
-
-    const latitude = sanitizeCoordinate(sample.latitude, -90, 90);
-    const longitude = sanitizeCoordinate(sample.longitude, -180, 180);
-    if (latitude === "" || longitude === "") {
-      skippedCount++;
-      continue;
-    }
-
-    const rawDate = sample.timestamp ? new Date(String(sample.timestamp)) : new Date();
-    const eventDate = isNaN(rawDate.getTime()) ? new Date() : rawDate;
-    rowsToAppend.push([
-      sampleId,
-      payload.trackingID,
-      formatThaiDateForSheet(eventDate),
-      latitude,
-      longitude,
-      sample.accuracy !== undefined && sample.accuracy !== null && isFinite(Number(sample.accuracy)) ? Math.round(Number(sample.accuracy)) : "",
-      sample.speed !== undefined && sample.speed !== null && isFinite(Number(sample.speed)) ? Number(sample.speed).toFixed(2) : "",
-      sample.heading !== undefined && sample.heading !== null && isFinite(Number(sample.heading)) ? Math.round(Number(sample.heading)) : "",
-      operatorName,
-      formatThaiDateForSheet(new Date())
-    ]);
-    existingIds[sampleId] = true;
-    savedCount++;
-  }
-
-  if (rowsToAppend.length > 0) {
-    routeSheet
-      .getRange(routeSheet.getLastRow() + 1, 1, rowsToAppend.length, rowsToAppend[0].length)
-      .setValues(rowsToAppend);
-  }
-
-  if (savedCount > 0) {
-    const details = "Saved route samples: " + savedCount +
-      (skippedCount ? " (skipped: " + skippedCount + ")" : "") +
-      (reqId ? " requestId=" + reqId : "");
-    writeAuditLog(payload.employeeId, "SYNC_ROUTE_SAMPLES", payload.trackingID, details);
-  }
-  return createJsonResponse({ success: true, savedCount: savedCount, skippedCount: skippedCount });
-}
-
-/**
- * Time-driven maintenance: delete route samples older than daysToKeep (default 90).
- * Install trigger: daily, function purgeOldRouteSamples
- */
-function purgeOldRouteSamples(daysToKeep) {
-  const keepDays = Math.max(parseInt(daysToKeep) || 90, 7);
-  const cutoffMs = Date.now() - keepDays * 24 * 60 * 60 * 1000;
-  let deleted = 0;
-
-  getYearSpreadsheetsForRead().forEach(function (entry) {
-    const sheet = entry.spreadsheet.getSheetByName("RouteSamples");
-    if (!sheet || sheet.getLastRow() <= 1) return;
-    const data = sheet.getDataRange().getValues();
-    for (let i = data.length - 1; i >= 1; i--) {
-      const row = data[i];
-      const ts = row[2];
-      const parsed = ts instanceof Date ? ts.getTime() : Date.parse(String(ts || ""));
-      if (!isNaN(parsed) && parsed < cutoffMs) {
-        sheet.deleteRow(i + 1);
-        deleted++;
-      }
-    }
-  });
-
-  writeAuditLog("SYSTEM", "PURGE_ROUTE_SAMPLES", "", "Deleted rows: " + deleted + " older than " + keepDays + " days");
-  return { success: true, deleted: deleted };
-}
-
-function installPurgeOldRouteSamplesTrigger() {
-  const handler = "purgeOldRouteSamples";
-  const exists = ScriptApp.getProjectTriggers().some(function (trigger) {
-    return trigger.getHandlerFunction && trigger.getHandlerFunction() === handler;
-  });
-  if (!exists) {
-    ScriptApp.newTrigger(handler)
-      .timeBased()
-      .everyDays(1)
-      .atHour(3)
-      .create();
-  }
-  return { success: true, installed: !exists };
-}
-
 function handleSearchParcels(payload) {
   const query = sanitizeText(payload.query || "");
   if (!query) {
@@ -2405,13 +2170,11 @@ function handleSearchParcels(payload) {
   }
 
   if (!isGuest && parcels.length > 0) {
-    // Attach events only for authenticated users. Public search should not expose proof images or GPS trails.
+    // Attach events only for authenticated users. Public search should not expose proof images or GPS details.
     const trackingIds = parcels.map(function (p) { return p.TrackingID; });
     const eventsMap = getEventsForTrackingIds(trackingIds);
-    const routeSamplesMap = getRouteSamplesForTrackingIds(trackingIds);
     for (let p of parcels) {
       p.events = eventsMap[p.TrackingID] || [];
-      p.routeSamples = routeSamplesMap[p.TrackingID] || [];
     }
   }
 
@@ -2524,7 +2287,7 @@ const LOGIN_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 // Write rate limit: max 30 creates per user per 10 minutes
 const MAX_WRITE_PER_WINDOW = 30;
 const WRITE_WINDOW_SECONDS = 600; // 10 minutes
-const IDEMPOTENT_ACTIONS = ["createParcel", "confirmReceipt", "batchConfirmReceipt", "startDelivery", "batchStartDelivery", "releaseDelivery", "syncRouteSamples"];
+const IDEMPOTENT_ACTIONS = ["createParcel", "confirmReceipt", "batchConfirmReceipt", "startDelivery", "batchStartDelivery", "releaseDelivery"];
 const IDEMPOTENCY_TTL_SECONDS = 21600; // 6 hours
 
 function getIdempotencyCacheKey(action, payload) {
@@ -2745,8 +2508,7 @@ function handleGetSystemHealth(payload) {
     activeUserCount: 0,
     parcelSheetCount: 0,
     parcelRowCount: 0,
-    eventRowCount: 0,
-    routeSampleRowCount: 0
+    eventRowCount: 0
   };
 
   function pushCheck(name, ok, message, elapsedMs) {
@@ -2796,8 +2558,6 @@ function handleGetSystemHealth(payload) {
       metrics.parcelRowCount += Math.max(0, entry.sheet.getLastRow() - 1);
       const eventSheet = entry.spreadsheet.getSheetByName("ParcelEvents");
       if (eventSheet) metrics.eventRowCount += Math.max(0, eventSheet.getLastRow() - 1);
-      const routeSheet = entry.spreadsheet.getSheetByName("RouteSamples");
-      if (routeSheet) metrics.routeSampleRowCount += Math.max(0, routeSheet.getLastRow() - 1);
     });
     pushCheck("parcelStorage", true, metrics.parcelRowCount + " parcel rows", Date.now() - parcelStart);
   } catch (e) {

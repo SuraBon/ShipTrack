@@ -54,19 +54,6 @@ const EVENT_HEADERS = [
   "DeliveryMatchStatus",
   "DeliveryMismatchReason"
 ];
-const ROUTE_SAMPLE_HEADERS = [
-  "SampleID",
-  "TrackingID",
-  "Timestamp",
-  "Latitude",
-  "Longitude",
-  "Accuracy",
-  "Speed",
-  "Heading",
-  "RecordedBy",
-  "CreatedAt"
-];
-
 const USER_HEADERS = ["EmployeeID", "Name", "Role", "PIN", "CreatedAt", "Status", "UpdatedAt"];
 const BRANCH_HEADERS = ["Name", "CreatedAt", "CreatedBy"];
 const DEFAULT_BRANCHES = [

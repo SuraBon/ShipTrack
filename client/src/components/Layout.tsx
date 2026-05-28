@@ -1,11 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouteSyncStatus } from '@/hooks/useRouteSyncStatus';
 import { normalizeRole, type AppRole } from '@/lib/roles';
 import { toast } from 'sonner';
 import { UI_COPY } from '@/lib/uiCopy';
-import { ROUTE_TRACKING_ERROR_EVENT } from '@/lib/routeTracking';
-import { formatSyncTime } from '@/lib/dateUtils';
 import { ProfileDialog } from '@/components/layout/ProfileDialog';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { OfflineQueueDialog } from '@/components/layout/OfflineQueueDialog';
@@ -56,40 +53,10 @@ const NavIcon = ({ icon: Icon, active = false }: { icon: LucideIcon; active?: bo
 const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }) => {
   const { theme, toggleTheme } = useTheme();
   const { user, logout, updateUserProfile } = useAuth();
-  const routeSyncStatus = useRouteSyncStatus();
-  const { activeRouteCount } = routeSyncStatus;
-  const routePopoverShouldShow =
-    activeRouteCount > 0 ||
-    routeSyncStatus.pendingRouteSampleCount > 0 ||
-    routeSyncStatus.isRouteSyncing ||
-    !!routeSyncStatus.lastRouteSyncError;
-  const routeButtonCount =
-    activeRouteCount > 0
-      ? activeRouteCount
-      : routeSyncStatus.pendingRouteSampleCount > 0
-        ? routeSyncStatus.pendingRouteSampleCount
-        : routeSyncStatus.isRouteSyncing
-          ? 1
-          : 0;
-  const routeSavingCount = routeButtonCount;
-  const routeHealthRows = routeSyncStatus.pendingRoutes.slice(0, 6);
-  const hiddenRouteHealthCount = Math.max(routeSyncStatus.pendingRoutes.length - routeHealthRows.length, 0);
-  const [isRoutePopoverOpen, setIsRoutePopoverOpen] = useState(false);
-  const routePopoverRef = useRef<HTMLDivElement>(null);
 
 
 
   // ปิด popover เมื่อคลิกนอก
-  useEffect(() => {
-    if (!isRoutePopoverOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (routePopoverRef.current && !routePopoverRef.current.contains(e.target as Node)) {
-        setIsRoutePopoverOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [isRoutePopoverOpen]);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isMobileNavCollapsed, setIsMobileNavCollapsed] = useState(false);
   const [profileForm, setProfileForm] = useState({ name: '', currentPassword: '', newPassword: '', confirmPassword: '' });
@@ -138,16 +105,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
   const mobileBottomPadding = hideBottomNav
     ? 'pb-20'
     : (canCollapseMobileNav && isMobileNavCollapsed ? 'pb-16' : 'pb-24');
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handleRouteError = (event: Event) => {
-      const detail = (event as CustomEvent<{ message?: string }>).detail;
-      if (detail?.message) toast.warning(detail.message);
-    };
-    window.addEventListener(ROUTE_TRACKING_ERROR_EVENT, handleRouteError);
-    return () => window.removeEventListener(ROUTE_TRACKING_ERROR_EVENT, handleRouteError);
-  }, []);
 
   useEffect(() => {
     if (!canCollapseMobileNav) setIsMobileNavCollapsed(false);
@@ -240,96 +197,6 @@ const Layout: React.FC<LayoutProps> = ({ children, currentPage, setCurrentPage }
             )}
 
             <div className="flex shrink-0 items-center gap-1 text-slate-700 dark:text-slate-100">
-              {routePopoverShouldShow && (
-                <div className="relative" ref={routePopoverRef}>
-                  <button
-                    type="button"
-                    onClick={() => setIsRoutePopoverOpen(v => !v)}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-xs font-bold text-red-600 transition-all hover:bg-red-500/20 hover:text-red-500 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300 dark:hover:bg-red-500/20 sm:px-2.5"
-                    title="กำลังบันทึกเส้นทางส่ง"
-                  >
-                    <span className="relative flex h-2 w-2 shrink-0">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-                    </span>
-                    <span>บันทึกเส้นทาง ({routeButtonCount})</span>
-                  </button>
-
-                  {isRoutePopoverOpen && (
-                    <div className="absolute right-0 top-full z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-2xl border border-slate-200/70 dark:border-white/[0.12] bg-card shadow-xl">
-                      <div className="px-4 py-3 border-b border-slate-200/60 dark:border-white/[0.08]">
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-black text-foreground">บันทึกเส้นทาง</p>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-black ${
-                            routeSyncStatus.isRouteSyncing
-                              ? 'bg-blue-500/10 text-blue-700 dark:bg-blue-500/15 dark:text-blue-300'
-                              : routeSyncStatus.lastRouteSyncError
-                                ? 'bg-red-500/10 text-red-700 dark:bg-red-500/15 dark:text-red-300'
-                                : 'bg-surface-container text-muted-foreground'
-                          }`}>
-                            {routeSyncStatus.isRouteSyncing ? 'กำลังซิงค์' : routeSyncStatus.lastRouteSyncError ? 'ซิงค์ไม่สำเร็จ' : 'พร้อมซิงค์'}
-                          </span>
-                        </div>
-                        <p className="mt-0.5 text-xs text-muted-foreground">
-                          กำลังบันทึกพิกัด {routeSavingCount} งาน
-                        </p>
-                      </div>
-                      <div className="grid grid-cols-3 gap-2 p-3">
-                        <div className="rounded-xl bg-surface-container px-2.5 py-2">
-                          <p className="text-[9px] font-black text-muted-foreground">พิกัดค้างส่ง</p>
-                          <p className="mt-0.5 text-sm font-black text-foreground">{routeSyncStatus.pendingRouteSampleCount}</p>
-                        </div>
-                        <div className="rounded-xl bg-surface-container px-2.5 py-2">
-                          <p className="text-[9px] font-black text-muted-foreground">บันทึกล่าสุด</p>
-                          <p className="mt-0.5 text-sm font-black text-foreground">{formatSyncTime(routeSyncStatus.latestRouteSampleAt)}</p>
-                        </div>
-                        <div className="rounded-xl bg-surface-container px-2.5 py-2">
-                          <p className="text-[9px] font-black text-muted-foreground">ซิงค์ล่าสุด</p>
-                          <p className="mt-0.5 text-sm font-black text-foreground">{formatSyncTime(routeSyncStatus.lastRouteSyncAt)}</p>
-                        </div>
-                      </div>
-                      {routeSyncStatus.lastRouteSyncError && (
-                        <p className="px-3 pb-3 text-[11px] font-semibold text-red-700 dark:text-red-300">
-                          {routeSyncStatus.lastRouteSyncError}
-                        </p>
-                      )}
-                      {routeHealthRows.length > 0 && (
-                        <div className="border-t border-slate-200/60 px-3 py-3 dark:border-white/[0.08]">
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <p className="text-[11px] font-black text-foreground">งานที่กำลังบันทึก/ค้างซิงค์</p>
-                            <span className="text-[10px] font-bold text-muted-foreground">{routeSyncStatus.pendingRoutes.length} งาน</span>
-                          </div>
-                          <div className="max-h-48 space-y-1.5 overflow-y-auto pr-1">
-                            {routeHealthRows.map(route => (
-                              <div key={route.trackingID} className="rounded-xl bg-surface-container px-2.5 py-2">
-                                <div className="flex items-center justify-between gap-2">
-                                  <p className="min-w-0 truncate text-[11px] font-black text-foreground">{route.trackingID}</p>
-                                  <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black ${
-                                    route.pendingCount > 0
-                                      ? 'bg-amber-500/15 text-amber-800 dark:text-amber-200'
-                                      : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                                  }`}>
-                                    {route.pendingCount > 0 ? `${route.pendingCount} ค้าง` : 'ทันล่าสุด'}
-                                  </span>
-                                </div>
-                                <div className="mt-1 flex items-center justify-between gap-2 text-[10px] font-semibold text-muted-foreground">
-                                  <span>{route.active ? 'กำลังติดตาม GPS' : 'รอซิงค์ย้อนหลัง'}</span>
-                                  <span>{formatSyncTime(route.latestSampleAt)}</span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                          {hiddenRouteHealthCount > 0 && (
-                            <p className="mt-2 text-[10px] font-semibold text-muted-foreground">
-                              และอีก {hiddenRouteHealthCount} งาน
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
               {offlineQueue.length > 0 && (
                 <button
                   type="button"

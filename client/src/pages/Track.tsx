@@ -281,7 +281,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     if (!parcel) return false;
     return timelineEvents.some(
       event => typeof event.latitude === 'number' && typeof event.longitude === 'number'
-    ) || Boolean(parcel.routeSamples?.some(sample => typeof sample.latitude === 'number' && typeof sample.longitude === 'number'));
+    );
   }, [parcel, timelineEvents]);
 
   return (
@@ -456,7 +456,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                     </div>
                   }
                 >
-                  <TrackingMap events={timelineEvents} trackingID={parcel.TrackingID} routeSamples={parcel.routeSamples} mapClassName="h-[68vh] max-h-[640px] min-h-[360px]" />
+                  <TrackingMap events={timelineEvents} trackingID={parcel.TrackingID} mapClassName="h-[68vh] max-h-[640px] min-h-[360px]" />
                 </Suspense>
               </div>
             </div>
