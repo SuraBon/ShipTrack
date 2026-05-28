@@ -476,6 +476,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const visibleMessengerWaitingParcels = messengerWaitingParcels.slice(0, messengerVisibleCounts.waiting);
   const visibleMessengerMineParcels = messengerMineParcels.slice(0, messengerVisibleCounts.mine);
   const visibleMessengerDoneParcels = messengerDoneParcels.slice(0, messengerVisibleCounts.done);
+  const shouldShowSystemHealth = role === 'ADMIN' && (
+    Boolean(systemHealthError) ||
+    systemHealth?.status === 'degraded'
+  );
 
   if (!isConfigured) {
     return (
@@ -501,7 +505,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   return (
     <div className="mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
-      {role === 'ADMIN' && (systemHealth || systemHealthError) && (
+      {shouldShowSystemHealth && (
         <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${
           systemHealth?.status === 'ok'
             ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
