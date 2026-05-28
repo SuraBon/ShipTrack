@@ -68,3 +68,25 @@ export interface LogQueryInput {
   eventType?: string;
   trackingId?: string;
 }
+
+export interface SystemHealthCheck {
+  name: string;
+  ok: boolean;
+  message: string;
+  elapsedMs: number;
+}
+
+export interface SystemHealth {
+  status: 'ok' | 'degraded';
+  checkedAt: string;
+  elapsedMs: number;
+  checks: SystemHealthCheck[];
+  metrics: {
+    userCount: number;
+    activeUserCount: number;
+    parcelSheetCount: number;
+    parcelRowCount: number;
+    eventRowCount: number;
+    routeSampleRowCount: number;
+  };
+}

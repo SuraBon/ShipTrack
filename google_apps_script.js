@@ -2,7 +2,7 @@
 const SHEET_NAME = "Parcels";
 const API_KEY_PROPERTY = "API_KEY";
 const ADMIN_INITIAL_PIN_PROPERTY = "ADMIN_INITIAL_PIN";
-const DEFAULT_ADMIN_PIN = "1234";
+const DEFAULT_ADMIN_PIN = "";
 const SHIPTRACK_FOLDER_ID_PROPERTY = "SHIPTRACK_FOLDER_ID";
 const VALID_ROLES = ["MESSENGER", "ADMIN"];
 const TOKEN_MAX_AGE_MS = 12 * 60 * 60 * 1000; // 12 hours
@@ -426,8 +426,11 @@ function getApiKey() {
 
 function getInitialAdminPin() {
   const props = PropertiesService.getScriptProperties();
-  props.setProperty(ADMIN_INITIAL_PIN_PROPERTY, DEFAULT_ADMIN_PIN);
-  return DEFAULT_ADMIN_PIN;
+  const configured = sanitizePassword(props.getProperty(ADMIN_INITIAL_PIN_PROPERTY) || DEFAULT_ADMIN_PIN);
+  if (!configured || !validatePassword(configured) || configured.length > 100) {
+    throw new Error("Set Script Property " + ADMIN_INITIAL_PIN_PROPERTY + " before running setup/resetDefaultAdminPassword");
+  }
+  return configured;
 }
 
 function normalizeBranchName(branch) {
@@ -733,12 +736,12 @@ function resetDefaultAdminPassword() {
         "ACTIVE",
         now
       ]]);
-      return { success: true, employeeId: "ADMIN", pin: DEFAULT_ADMIN_PIN, updated: true };
+      return { success: true, employeeId: "ADMIN", updated: true };
     }
   }
 
   sheet.appendRow(["ADMIN", "Admin", "ADMIN", adminPinHash, now, "ACTIVE", now]);
-  return { success: true, employeeId: "ADMIN", pin: DEFAULT_ADMIN_PIN, created: true };
+  return { success: true, employeeId: "ADMIN", created: true };
 }
 
 function ensureUsersSheetSchema(sheet) {
@@ -862,7 +865,7 @@ function doPost(e) {
     }
 
     // --- Token Signature Verification ---
-    const protectedActions = ['confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs'];
+    const protectedActions = ['confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs', 'getSystemHealth'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
       if (parts.length === 5) {
@@ -979,6 +982,7 @@ function routeAction(action, payload) {
   if (action === 'renameBranch') return handleRenameBranch(payload);
   if (action === 'getAuditLogs') return handleGetAuditLogs(payload);
   if (action === 'getParcelActivityLogs') return handleGetParcelActivityLogs(payload);
+  if (action === 'getSystemHealth') return handleGetSystemHealth(payload);
   if (action === 'deleteParcel') return handleDeleteParcel(payload);
   if (action === 'editParcel') return handleEditParcel(payload);
   if (action === 'updateProfile') return handleUpdateProfile(payload);
@@ -2420,6 +2424,15 @@ function setupApiKey(value) {
   PropertiesService.getScriptProperties().setProperty(API_KEY_PROPERTY, String(value).trim());
 }
 
+function setupInitialAdminPin(value) {
+  const pin = sanitizePassword(value);
+  if (!validatePassword(pin) || pin.length > 100) {
+    throw new Error("Admin PIN must be 4-100 allowed characters and must not start with = + - or @");
+  }
+  PropertiesService.getScriptProperties().setProperty(ADMIN_INITIAL_PIN_PROPERTY, pin);
+  return { success: true };
+}
+
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);
@@ -2691,6 +2704,98 @@ function handleGetUsers(payload) {
     users.push(buildUserRowResponse(data[i]));
   }
   return createJsonResponse({ success: true, users: users });
+}
+
+function handleGetSystemHealth(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะผู้ดูแลระบบ)" });
+  }
+
+  const startedAt = Date.now();
+  const checks = [];
+  const metrics = {
+    userCount: 0,
+    activeUserCount: 0,
+    parcelSheetCount: 0,
+    parcelRowCount: 0,
+    eventRowCount: 0,
+    routeSampleRowCount: 0
+  };
+
+  function pushCheck(name, ok, message, elapsedMs) {
+    checks.push({
+      name: name,
+      ok: !!ok,
+      message: message || "",
+      elapsedMs: elapsedMs || 0
+    });
+  }
+
+  const apiKeyStart = Date.now();
+  const apiKeyConfigured = !!getApiKey();
+  pushCheck("apiKey", apiKeyConfigured, apiKeyConfigured ? "configured" : "missing API_KEY", Date.now() - apiKeyStart);
+
+  const adminPinStart = Date.now();
+  const adminPinConfigured = !!PropertiesService.getScriptProperties().getProperty(ADMIN_INITIAL_PIN_PROPERTY);
+  pushCheck("initialAdminPin", adminPinConfigured, adminPinConfigured ? "configured" : "missing ADMIN_INITIAL_PIN", Date.now() - adminPinStart);
+
+  try {
+    const sheetStart = Date.now();
+    const ss = getSpreadsheet();
+    pushCheck("spreadsheet", !!ss, ss ? ss.getName() : "not available", Date.now() - sheetStart);
+  } catch (e) {
+    pushCheck("spreadsheet", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  try {
+    const usersStart = Date.now();
+    const usersSheet = getUsersSheet();
+    const usersData = usersSheet.getDataRange().getValues();
+    metrics.userCount = Math.max(0, usersData.length - 1);
+    for (let i = 1; i < usersData.length; i++) {
+      const status = String(usersData[i][5] || "ACTIVE").trim().toUpperCase() || "ACTIVE";
+      if (status !== "DISABLED") metrics.activeUserCount++;
+    }
+    pushCheck("usersSheet", true, metrics.userCount + " users", Date.now() - usersStart);
+  } catch (e) {
+    pushCheck("usersSheet", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  try {
+    const parcelStart = Date.now();
+    const parcelSheets = getParcelSheetsForRead();
+    metrics.parcelSheetCount = parcelSheets.length;
+    parcelSheets.forEach(function (entry) {
+      metrics.parcelRowCount += Math.max(0, entry.sheet.getLastRow() - 1);
+      const eventSheet = entry.spreadsheet.getSheetByName("ParcelEvents");
+      if (eventSheet) metrics.eventRowCount += Math.max(0, eventSheet.getLastRow() - 1);
+      const routeSheet = entry.spreadsheet.getSheetByName("RouteSamples");
+      if (routeSheet) metrics.routeSampleRowCount += Math.max(0, routeSheet.getLastRow() - 1);
+    });
+    pushCheck("parcelStorage", true, metrics.parcelRowCount + " parcel rows", Date.now() - parcelStart);
+  } catch (e) {
+    pushCheck("parcelStorage", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  try {
+    const driveStart = Date.now();
+    const folder = getShipTrackFolder();
+    pushCheck("driveFolder", !!folder, folder ? folder.getName() : "folder not configured or unavailable", Date.now() - driveStart);
+  } catch (e) {
+    pushCheck("driveFolder", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  const failedChecks = checks.filter(function (check) { return !check.ok; });
+  return createJsonResponse({
+    success: true,
+    health: {
+      status: failedChecks.length === 0 ? "ok" : "degraded",
+      checkedAt: new Date().toISOString(),
+      elapsedMs: Date.now() - startedAt,
+      checks: checks,
+      metrics: metrics
+    }
+  });
 }
 
 function handleCreateUser(payload) {

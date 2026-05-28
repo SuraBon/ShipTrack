@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {
   type OfflineQueueItem,
+  cleanupOfflineData,
+  clearFailedOfflineActions,
   removeOfflineAction,
   resetFailedOfflineActions,
   resetOfflineActionForRetry,
@@ -45,6 +47,22 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
     const ok = await resetOfflineActionForRetry(id);
     if (!ok) return;
     await handleSyncAll();
+  };
+
+  const handleClearFailed = async () => {
+    if (!window.confirm('ลบรายการออฟไลน์ที่ซิงค์ล้มเหลวทั้งหมดหรือไม่? รายการเหล่านี้จะไม่ถูกส่งขึ้นระบบ')) return;
+    const count = await clearFailedOfflineActions();
+    toast.success(`ลบรายการล้มเหลว ${count} รายการแล้ว`);
+  };
+
+  const handleCleanupOldData = async () => {
+    const result = await cleanupOfflineData();
+    const total = result.removedQueueItems + result.removedMediaItems;
+    if (total === 0) {
+      toast.info('ไม่พบข้อมูลออฟไลน์เก่าที่ต้องล้าง');
+      return;
+    }
+    toast.success(`ล้างข้อมูลออฟไลน์เก่าแล้ว ${total} รายการ`);
   };
 
   const handleDeleteItem = async (id: string, e: React.MouseEvent) => {
@@ -223,6 +241,17 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
               ลองรายการที่ล้มเหลว
             </button>
           )}
+          {failedItems.length > 0 && (
+            <button
+              type="button"
+              onClick={handleClearFailed}
+              disabled={isSyncing}
+              className="inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 text-xs font-bold text-red-700 transition-colors hover:bg-red-100 disabled:opacity-50"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              ล้างรายการล้มเหลว
+            </button>
+          )}
           {queue.length > 0 && (
             <button
               type="button"
@@ -239,6 +268,15 @@ export function OfflineQueueDialog({ isOpen, onClose, queue }: OfflineQueueDialo
             </button>
           )}
         </div>
+        <button
+          type="button"
+          onClick={handleCleanupOldData}
+          disabled={isSyncing}
+          className="mt-2 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 transition-colors hover:bg-slate-100 disabled:opacity-50"
+        >
+          <Trash2 className="h-3.5 w-3.5" />
+          ล้างข้อมูลออฟไลน์เก่า
+        </button>
       </DialogContent>
     </Dialog>
   );

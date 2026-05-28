@@ -12,6 +12,98 @@ function handleGetUsers(payload) {
   return createJsonResponse({ success: true, users: users });
 }
 
+function handleGetSystemHealth(payload) {
+  if (normalizeRole(payload.role) !== 'ADMIN') {
+    return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะผู้ดูแลระบบ)" });
+  }
+
+  const startedAt = Date.now();
+  const checks = [];
+  const metrics = {
+    userCount: 0,
+    activeUserCount: 0,
+    parcelSheetCount: 0,
+    parcelRowCount: 0,
+    eventRowCount: 0,
+    routeSampleRowCount: 0
+  };
+
+  function pushCheck(name, ok, message, elapsedMs) {
+    checks.push({
+      name: name,
+      ok: !!ok,
+      message: message || "",
+      elapsedMs: elapsedMs || 0
+    });
+  }
+
+  const apiKeyStart = Date.now();
+  const apiKeyConfigured = !!getApiKey();
+  pushCheck("apiKey", apiKeyConfigured, apiKeyConfigured ? "configured" : "missing API_KEY", Date.now() - apiKeyStart);
+
+  const adminPinStart = Date.now();
+  const adminPinConfigured = !!PropertiesService.getScriptProperties().getProperty(ADMIN_INITIAL_PIN_PROPERTY);
+  pushCheck("initialAdminPin", adminPinConfigured, adminPinConfigured ? "configured" : "missing ADMIN_INITIAL_PIN", Date.now() - adminPinStart);
+
+  try {
+    const sheetStart = Date.now();
+    const ss = getSpreadsheet();
+    pushCheck("spreadsheet", !!ss, ss ? ss.getName() : "not available", Date.now() - sheetStart);
+  } catch (e) {
+    pushCheck("spreadsheet", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  try {
+    const usersStart = Date.now();
+    const usersSheet = getUsersSheet();
+    const usersData = usersSheet.getDataRange().getValues();
+    metrics.userCount = Math.max(0, usersData.length - 1);
+    for (let i = 1; i < usersData.length; i++) {
+      const status = String(usersData[i][5] || "ACTIVE").trim().toUpperCase() || "ACTIVE";
+      if (status !== "DISABLED") metrics.activeUserCount++;
+    }
+    pushCheck("usersSheet", true, metrics.userCount + " users", Date.now() - usersStart);
+  } catch (e) {
+    pushCheck("usersSheet", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  try {
+    const parcelStart = Date.now();
+    const parcelSheets = getParcelSheetsForRead();
+    metrics.parcelSheetCount = parcelSheets.length;
+    parcelSheets.forEach(function (entry) {
+      metrics.parcelRowCount += Math.max(0, entry.sheet.getLastRow() - 1);
+      const eventSheet = entry.spreadsheet.getSheetByName("ParcelEvents");
+      if (eventSheet) metrics.eventRowCount += Math.max(0, eventSheet.getLastRow() - 1);
+      const routeSheet = entry.spreadsheet.getSheetByName("RouteSamples");
+      if (routeSheet) metrics.routeSampleRowCount += Math.max(0, routeSheet.getLastRow() - 1);
+    });
+    pushCheck("parcelStorage", true, metrics.parcelRowCount + " parcel rows", Date.now() - parcelStart);
+  } catch (e) {
+    pushCheck("parcelStorage", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  try {
+    const driveStart = Date.now();
+    const folder = getShipTrackFolder();
+    pushCheck("driveFolder", !!folder, folder ? folder.getName() : "folder not configured or unavailable", Date.now() - driveStart);
+  } catch (e) {
+    pushCheck("driveFolder", false, String(e && e.message ? e.message : e), 0);
+  }
+
+  const failedChecks = checks.filter(function (check) { return !check.ok; });
+  return createJsonResponse({
+    success: true,
+    health: {
+      status: failedChecks.length === 0 ? "ok" : "degraded",
+      checkedAt: new Date().toISOString(),
+      elapsedMs: Date.now() - startedAt,
+      checks: checks,
+      metrics: metrics
+    }
+  });
+}
+
 function handleCreateUser(payload) {
   if (normalizeRole(payload.role) !== 'ADMIN') {
     return createJsonResponse({ success: false, error: "ไม่มีสิทธิ์เข้าถึง (เฉพาะผู้ดูแลระบบ)" });

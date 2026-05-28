@@ -26,7 +26,7 @@ function doPost(e) {
     }
 
     // --- Token Signature Verification ---
-    const protectedActions = ['confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs'];
+    const protectedActions = ['confirmReceipt', 'batchConfirmReceipt', 'startDelivery', 'batchStartDelivery', 'releaseDelivery', 'syncRouteSamples', 'getParcels', 'exportSummary', 'getUsers', 'createUser', 'updateUserRole', 'updateUser', 'disableUser', 'deleteUser', 'createBranch', 'deleteBranch', 'renameBranch', 'deleteParcel', 'editParcel', 'updateProfile', 'getAuditLogs', 'getParcelActivityLogs', 'getSystemHealth'];
     if (payload.token) {
       const parts = String(payload.token).split('|');
       if (parts.length === 5) {
@@ -143,6 +143,7 @@ function routeAction(action, payload) {
   if (action === 'renameBranch') return handleRenameBranch(payload);
   if (action === 'getAuditLogs') return handleGetAuditLogs(payload);
   if (action === 'getParcelActivityLogs') return handleGetParcelActivityLogs(payload);
+  if (action === 'getSystemHealth') return handleGetSystemHealth(payload);
   if (action === 'deleteParcel') return handleDeleteParcel(payload);
   if (action === 'editParcel') return handleEditParcel(payload);
   if (action === 'updateProfile') return handleUpdateProfile(payload);

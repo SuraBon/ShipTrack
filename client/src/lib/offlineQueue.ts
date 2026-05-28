@@ -22,9 +22,15 @@ export interface SyncResult {
   failed: number;
 }
 
+export interface OfflineCleanupResult {
+  removedQueueItems: number;
+  removedMediaItems: number;
+}
+
 const QUEUE_UPDATED_EVENT = 'offline-queue-updated';
 const FALLBACK_QUEUE_KEY = LEGACY_QUEUE_KEY;
 export const OFFLINE_MEDIA_URL_PREFIX = 'offline-media://';
+export const DEFAULT_OFFLINE_RETENTION_DAYS = 30;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -185,6 +191,17 @@ export async function resetFailedOfflineActions(): Promise<number> {
   return failed.length;
 }
 
+export async function clearFailedOfflineActions(): Promise<number> {
+  const queue = await getOfflineQueue();
+  const failed = queue.filter(item => item.status === 'failed');
+  for (const item of failed) {
+    await removeOfflineAction(item.id);
+    if (item.localMediaId) await deleteOfflineProofImage(item.localMediaId);
+  }
+  logTelemetry({ level: 'info', name: 'offline.queue.clear_failed', data: { count: failed.length } });
+  return failed.length;
+}
+
 export async function removeOfflineAction(id: string): Promise<void> {
   if (isIndexedDbAvailable() && await idbDelete(OFFLINE_QUEUE_STORE, id)) {
     dispatchQueueUpdated();
@@ -246,6 +263,82 @@ export async function deleteOfflineProofImage(localMediaId: string): Promise<voi
   revokeResolvedProofUrl(localMediaId);
   await idbDelete(OFFLINE_MEDIA_STORE, localMediaId);
   localStorage.removeItem(`shiptrack_offline_media_${localMediaId}`);
+}
+
+function getRecordTime(value?: string): number {
+  const time = Date.parse(String(value || ''));
+  return Number.isFinite(time) ? time : 0;
+}
+
+function cleanupLegacyMediaKeys(referencedMediaIds: Set<string>): number {
+  let removed = 0;
+  try {
+    const prefix = 'shiptrack_offline_media_';
+    const keys: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(prefix)) keys.push(key);
+    }
+    keys.forEach(key => {
+      const mediaId = key.slice(prefix.length);
+      if (!referencedMediaIds.has(mediaId)) {
+        localStorage.removeItem(key);
+        removed++;
+      }
+    });
+  } catch {
+    // ignore private mode/storage access errors
+  }
+  return removed;
+}
+
+export async function cleanupOfflineData(maxAgeDays = DEFAULT_OFFLINE_RETENTION_DAYS): Promise<OfflineCleanupResult> {
+  const cutoff = Date.now() - Math.max(1, maxAgeDays) * 24 * 60 * 60 * 1000;
+  const queue = await getOfflineQueue();
+  const nextQueue: OfflineQueueItem[] = [];
+  let removedQueueItems = 0;
+  let removedMediaItems = 0;
+
+  for (const item of queue) {
+    const isOldFailed = item.status === 'failed' && item.timestamp < cutoff;
+    if (isOldFailed) {
+      removedQueueItems++;
+      if (item.localMediaId) {
+        await deleteOfflineProofImage(item.localMediaId);
+        removedMediaItems++;
+      }
+    } else {
+      nextQueue.push(item);
+    }
+  }
+
+  if (removedQueueItems > 0) {
+    await saveOfflineQueue(nextQueue);
+  }
+
+  const referencedMediaIds = new Set(nextQueue.map(item => item.localMediaId).filter((id): id is string => Boolean(id)));
+  const mediaRecords = await idbGetAll<OfflineMediaRecord>(OFFLINE_MEDIA_STORE);
+  if (mediaRecords) {
+    for (const record of mediaRecords) {
+      const createdAt = getRecordTime(record.createdAt);
+      if (!referencedMediaIds.has(record.id) && (!createdAt || createdAt < cutoff)) {
+        await deleteOfflineProofImage(record.id);
+        removedMediaItems++;
+      }
+    }
+  }
+  removedMediaItems += cleanupLegacyMediaKeys(referencedMediaIds);
+
+  if (removedQueueItems > 0 || removedMediaItems > 0) {
+    logTelemetry({
+      level: 'info',
+      name: 'offline.cleanup',
+      data: { maxAgeDays, removedQueueItems, removedMediaItems },
+    });
+    dispatchQueueUpdated();
+  }
+
+  return { removedQueueItems, removedMediaItems };
 }
 
 export { isReadyForRetry, MAX_OFFLINE_ATTEMPTS };

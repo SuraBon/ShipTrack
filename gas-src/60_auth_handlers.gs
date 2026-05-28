@@ -5,6 +5,15 @@ function setupApiKey(value) {
   PropertiesService.getScriptProperties().setProperty(API_KEY_PROPERTY, String(value).trim());
 }
 
+function setupInitialAdminPin(value) {
+  const pin = sanitizePassword(value);
+  if (!validatePassword(pin) || pin.length > 100) {
+    throw new Error("Admin PIN must be 4-100 allowed characters and must not start with = + - or @");
+  }
+  PropertiesService.getScriptProperties().setProperty(ADMIN_INITIAL_PIN_PROPERTY, pin);
+  return { success: true };
+}
+
 function createJsonResponse(data) {
   return ContentService.createTextOutput(JSON.stringify(data))
     .setMimeType(ContentService.MimeType.JSON);

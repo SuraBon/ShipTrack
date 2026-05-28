@@ -8,8 +8,11 @@ function getApiKey() {
 
 function getInitialAdminPin() {
   const props = PropertiesService.getScriptProperties();
-  props.setProperty(ADMIN_INITIAL_PIN_PROPERTY, DEFAULT_ADMIN_PIN);
-  return DEFAULT_ADMIN_PIN;
+  const configured = sanitizePassword(props.getProperty(ADMIN_INITIAL_PIN_PROPERTY) || DEFAULT_ADMIN_PIN);
+  if (!configured || !validatePassword(configured) || configured.length > 100) {
+    throw new Error("Set Script Property " + ADMIN_INITIAL_PIN_PROPERTY + " before running setup/resetDefaultAdminPassword");
+  }
+  return configured;
 }
 
 function normalizeBranchName(branch) {
@@ -315,12 +318,12 @@ function resetDefaultAdminPassword() {
         "ACTIVE",
         now
       ]]);
-      return { success: true, employeeId: "ADMIN", pin: DEFAULT_ADMIN_PIN, updated: true };
+      return { success: true, employeeId: "ADMIN", updated: true };
     }
   }
 
   sheet.appendRow(["ADMIN", "Admin", "ADMIN", adminPinHash, now, "ACTIVE", now]);
-  return { success: true, employeeId: "ADMIN", pin: DEFAULT_ADMIN_PIN, created: true };
+  return { success: true, employeeId: "ADMIN", created: true };
 }
 
 function ensureUsersSheetSchema(sheet) {

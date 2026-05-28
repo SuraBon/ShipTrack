@@ -26,6 +26,7 @@ import { getDeviceId } from '../createdParcelHistory';
 import { getErrorMessage, getServerErrorMessage, isAuthErrorMessage, isNetworkErrorMessage } from '../apiErrorHelper';
 import { createIdempotencyKey } from '../idempotency';
 import { createRequestId, logTelemetry } from '../telemetry';
+import { readAuthPayload } from '../authStorage';
 import {
   OFFLINE_MEDIA_URL_PREFIX,
   deleteOfflineProofImage,
@@ -34,6 +35,7 @@ import {
   getOfflineQueue,
   isReadyForRetry,
   MAX_OFFLINE_ATTEMPTS,
+  cleanupOfflineData,
   removeOfflineAction,
   saveOfflineProofImage,
   updateOfflineAction,
@@ -56,7 +58,7 @@ import {
 } from '../offlineDb';
 export { getCachedParcelsLocally };
 import { toast } from 'sonner';
-import type { AuditLogRow, BranchRow, CreateUserInput, LogQueryInput, ParcelActivityLogRow, UpdateUserInput, User, UserRow } from './types';
+import type { AuditLogRow, BranchRow, CreateUserInput, LogQueryInput, ParcelActivityLogRow, SystemHealth, UpdateUserInput, User, UserRow } from './types';
 import { normalizeParcelStatus, normalizeParcels } from './parcelNormalizers';
 import { REAL_AUTH_ERRORS, normalizeAuthResponse } from './authNormalizers';
 import {
@@ -157,16 +159,7 @@ async function callAPI<T>(
 
     let response: Response;
     try {
-      let authData = {};
-      const storedUser = includeAuth ? localStorage.getItem('shiptrack_user') : null;
-      if (includeAuth && storedUser) {
-        try {
-          const u = JSON.parse(storedUser) as Record<string, unknown>;
-          authData = { employeeId: u['employeeId'], role: u['role'], token: u['token'] };
-        } catch {
-          // ignore
-        }
-      }
+      const authData = includeAuth ? readAuthPayload() : {};
 
       const controller = new AbortController();
       const timeoutId = window.setTimeout(() => controller.abort(), API_TIMEOUT_MS);
@@ -245,8 +238,8 @@ async function callAPI<T>(
       continue;
     }
     if (dispatchAuthError && data && data['success'] === false) {
-      const storedUser = includeAuth ? localStorage.getItem('shiptrack_user') : null;
-      if (storedUser && isAuthErrorMessage(data['error'])) {
+      const storedUser = includeAuth ? readAuthPayload() : {};
+      if (storedUser.token && isAuthErrorMessage(data['error'])) {
         window.dispatchEvent(new Event('auth_error'));
       }
       data['error'] = getServerErrorMessage(data['error']);
@@ -593,6 +586,16 @@ export async function getParcelActivityLogs(input: LogQueryInput = {}): Promise<
       eventType: input.eventType,
       trackingId: input.trackingId,
     });
+  } catch (err) {
+    return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
+  }
+}
+
+export async function getSystemHealth(): Promise<{ success: boolean; health?: SystemHealth; error?: string }> {
+  try {
+    return await callAPI<{ success: boolean; health?: SystemHealth; error?: string }>({
+      action: 'getSystemHealth',
+    }, {}, NO_RETRY);
   } catch (err) {
     return { success: false, error: err instanceof Error ? err.message : 'เกิดข้อผิดพลาด' };
   }
@@ -951,4 +954,5 @@ if (typeof window !== 'undefined') {
     }
   });
   initSyncManager();
+  void cleanupOfflineData().catch(err => console.error('Failed to clean offline data:', err));
 }

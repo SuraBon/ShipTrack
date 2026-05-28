@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useRef, ReactNode } fro
 import { User, login, setupPin, updateProfile } from '@/lib/parcelService';
 import { normalizeRole } from '@/lib/roles';
 import { toast } from 'sonner';
+import { clearAuthUser, readAuthUser, writeAuthUser } from '@/lib/authStorage';
 
 interface AuthContextValue {
   user: User | null;
@@ -14,7 +15,6 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const SESSION_KEY = 'shiptrack_user';
 const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 function getUserIssuedAt(user?: User | null): number | null {
@@ -44,12 +44,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const clearSession = () => {
     if (authTransitionTimer.current) clearTimeout(authTransitionTimer.current);
     setUser(null);
-    localStorage.removeItem(SESSION_KEY);
+    clearAuthUser();
   };
 
   const completeLoginAfterFeedback = (authenticatedUser: User) => {
     if (authTransitionTimer.current) clearTimeout(authTransitionTimer.current);
-    localStorage.setItem(SESSION_KEY, JSON.stringify(authenticatedUser));
+    writeAuthUser(authenticatedUser);
     authTransitionTimer.current = setTimeout(() => {
       setUser(authenticatedUser);
       authTransitionTimer.current = null;
@@ -57,19 +57,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem(SESSION_KEY);
+    const savedUser = readAuthUser();
     if (savedUser) {
       try {
-        const parsed = JSON.parse(savedUser) as User;
-        const normalizedUser = { ...parsed, role: normalizeRole(parsed.role) };
+        const normalizedUser = { ...savedUser, role: normalizeRole(savedUser.role) };
         if (normalizedUser.role === 'GUEST' || !normalizedUser.token || isSessionExpired(normalizedUser)) {
           clearSession();
         } else {
           setUser(normalizedUser);
-          localStorage.setItem(SESSION_KEY, JSON.stringify(normalizedUser));
+          writeAuthUser(normalizedUser);
         }
       } catch {
-        localStorage.removeItem(SESSION_KEY);
+        clearAuthUser();
       }
     }
     setLoading(false);
@@ -131,7 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const res = await updateProfile(newName, newPassword, currentPassword);
     if (res.success && res.user) {
       setUser(res.user);
-      localStorage.setItem(SESSION_KEY, JSON.stringify(res.user));
+      writeAuthUser(res.user);
     }
     return { success: res.success, error: res.error };
   };

@@ -27,6 +27,8 @@ import {
   Trash2,
 } from 'lucide-react';
 import { convertParcelsToCSV, downloadCSV } from '@/lib/csvHelper';
+import { getSystemHealth } from '@/lib/parcelService';
+import type { SystemHealth } from '@/lib/parcel-service/types';
 import { Skeleton } from '@/components/ui/skeleton';
 import AppLoading from '@/components/AppLoading';
 import EmptyState from '@/components/EmptyState';
@@ -293,6 +295,29 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const [isBatchStarting, setIsBatchStarting] = useState(false);
   const [isBatchConfirmOpen, setIsBatchConfirmOpen] = useState(false);
   const [isBatchConfirming, setIsBatchConfirming] = useState(false);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
+  const [systemHealthError, setSystemHealthError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role !== 'ADMIN') return;
+    let cancelled = false;
+    const loadHealth = async () => {
+      const res = await getSystemHealth();
+      if (cancelled) return;
+      if (res.success && res.health) {
+        setSystemHealth(res.health);
+        setSystemHealthError(null);
+      } else {
+        setSystemHealthError(res.error || 'ไม่สามารถตรวจสถานะระบบได้');
+      }
+    };
+    void loadHealth();
+    const timer = window.setInterval(loadHealth, 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [role]);
 
   const toggleSelectedAdminParcel = useCallback((trackingId: string, checked: boolean) => {
     setSelectedAdminParcelIds(current => {
@@ -476,6 +501,32 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
 
   return (
     <div className="mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+      {role === 'ADMIN' && (systemHealth || systemHealthError) && (
+        <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${
+          systemHealth?.status === 'ok'
+            ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+            : 'border-amber-200 bg-amber-50 text-amber-900'
+        }`}>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-4 w-4" aria-hidden="true" />
+              <span className="font-bold">
+                สถานะระบบ: {systemHealth ? (systemHealth.status === 'ok' ? 'ปกติ' : 'ต้องตรวจสอบ') : 'ตรวจสอบไม่สำเร็จ'}
+              </span>
+            </div>
+            {systemHealth && (
+              <span className="text-xs font-semibold opacity-80">
+                {systemHealth.metrics.parcelRowCount} รายการ, {systemHealth.metrics.activeUserCount} ผู้ใช้ active, {systemHealth.elapsedMs} ms
+              </span>
+            )}
+          </div>
+          {(systemHealthError || systemHealth?.checks.some(check => !check.ok)) && (
+            <p className="mt-1 text-xs font-medium opacity-90">
+              {systemHealthError || systemHealth?.checks.filter(check => !check.ok).map(check => `${check.name}: ${check.message}`).join(' | ')}
+            </p>
+          )}
+        </div>
+      )}
       {error && (
         <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive sm:flex-row sm:items-center sm:justify-between">
           <div>
