@@ -190,6 +190,35 @@ export async function resetFailedOfflineActions(): Promise<number> {
   return failed.length;
 }
 
+export async function autoResetAuthFailedActions(): Promise<number> {
+  const queue = await getOfflineQueue();
+  const authFailedItems = queue.filter(item => {
+    if (item.status !== 'failed') return false;
+    const err = String(item.lastError || '').toLowerCase();
+    return (
+      err.includes('auth') ||
+      err.includes('token') ||
+      err.includes('session') ||
+      err.includes('unauthorized') ||
+      err.includes('สิทธิ์') ||
+      err.includes('เข้าสู่ระบบ')
+    );
+  });
+
+  if (authFailedItems.length === 0) return 0;
+
+  for (const item of authFailedItems) {
+    await updateOfflineAction({
+      ...item,
+      status: 'pending',
+      attemptCount: 0,
+      nextRetryAt: undefined,
+      lastError: undefined,
+    });
+  }
+  return authFailedItems.length;
+}
+
 export async function clearFailedOfflineActions(): Promise<number> {
   const queue = await getOfflineQueue();
   const failed = queue.filter(item => item.status === 'failed');

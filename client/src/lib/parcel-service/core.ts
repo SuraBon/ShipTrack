@@ -39,6 +39,7 @@ import {
   removeOfflineAction,
   saveOfflineProofImage,
   updateOfflineAction,
+  autoResetAuthFailedActions,
   type OfflineQueueItem,
   type SyncResult,
 } from '../offlineQueue';
@@ -56,7 +57,7 @@ import {
   getCachedParcelLocally,
   getCachedParcelsLocally,
 } from '../offlineDb';
-export { getCachedParcelsLocally };
+export { getCachedParcelsLocally, cacheParcelsLocally };
 import { toast } from 'sonner';
 import type { AuditLogRow, BranchRow, CreateUserInput, LogQueryInput, ParcelActivityLogRow, SystemHealth, UpdateUserInput, User, UserRow } from './types';
 import { normalizeParcelStatus, normalizeParcels } from './parcelNormalizers';
@@ -258,6 +259,13 @@ async function callAPI<T>(
         skippedCount: (data as any)?.skippedCount,
       },
     });
+
+    if (!isSyncing && action !== 'login' && action !== 'setupPin') {
+      window.setTimeout(() => {
+        void syncOfflineQueue().catch(err => console.error('Auto sync on connection success failed:', err));
+      }, 500);
+    }
+
     return data as T;
   }
 
@@ -867,6 +875,16 @@ async function runQueuedAction(item: OfflineQueueItem): Promise<any> {
 
 export async function syncOfflineQueue(): Promise<SyncResult> {
   if (isSyncing) return { total: 0, synced: 0, failed: 0 };
+
+  const token = readAuthPayload().token;
+  if (token && typeof navigator !== 'undefined' && navigator.onLine) {
+    try {
+      await autoResetAuthFailedActions();
+    } catch (err) {
+      console.error('Failed to auto reset auth-failed actions:', err);
+    }
+  }
+
   const queue = (await getOfflineQueue()).filter(
     item => item.status === 'pending' && isReadyForRetry(item.nextRetryAt),
   );

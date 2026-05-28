@@ -13,6 +13,8 @@ import * as parcelService from '@/lib/parcelService';
 import { summarizeParcels } from '@/lib/parcelStatus';
 import { saveCreatedParcelHistory } from '@/lib/createdParcelHistory';
 import { useAuth } from '@/contexts/AuthContext';
+import { normalizeRole } from '@/lib/roles';
+import { readAuthUser } from '@/lib/authStorage';
 
 interface ParcelStoreValue {
   parcels: Parcel[];
@@ -55,6 +57,43 @@ interface ParcelStoreValue {
 
 const ParcelStoreContext = createContext<ParcelStoreValue | null>(null);
 
+function mergeIncomingParcels(localParcels: Parcel[], incomingParcels: Parcel[]): Parcel[] {
+  const localMap = new Map(localParcels.map(p => [p.TrackingID.toUpperCase(), p]));
+  const STALE_WINDOW_MS = 15_000; // 15 seconds window to protect local changes from stale server reads
+  const now = Date.now();
+
+  return incomingParcels.map(incoming => {
+    const key = incoming.TrackingID.toUpperCase();
+    const local = localMap.get(key);
+    if (!local) return incoming;
+
+    const localUpdateTime = (local as any)._localUpdateTime || 0;
+    const isWithinProtectionWindow = now - localUpdateTime < STALE_WINDOW_MS;
+
+    if (isWithinProtectionWindow) {
+      return {
+        ...incoming,
+        ...local,
+        _localUpdateTime: localUpdateTime,
+      };
+    }
+
+    const localEventsCount = local.events?.length || 0;
+    const incomingEventsCount = incoming.events?.length || 0;
+
+    if (localEventsCount > incomingEventsCount) {
+      return {
+        ...incoming,
+        'สถานะ': local['สถานะ'],
+        events: local.events,
+        routeSamples: local.routeSamples || incoming.routeSamples,
+      };
+    }
+
+    return incoming;
+  });
+}
+
 export function ParcelStoreProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [parcels, setParcels] = useState<Parcel[]>([]);
@@ -74,19 +113,31 @@ export function ParcelStoreProvider({ children }: { children: ReactNode }) {
     setCurrentStatus(status);
     if (reset) {
       offsetRef.current = 0;
-      setParcels([]);
+      setParcels(prev => prev.length === 0 ? [] : prev);
     }
     setLoading(true);
     setError(null);
     try {
+      const userRole = normalizeRole(readAuthUser()?.role);
+      const limit = userRole === 'MESSENGER' ? 100 : 10;
       const [res, summaryRes] = await Promise.all([
-        parcelService.getParcels(status, 10, offsetRef.current),
+        parcelService.getParcels(status, limit, offsetRef.current),
         reset ? parcelService.exportSummary() : Promise.resolve(null),
       ]);
 
       if (res.success) {
         const incomingParcels = res.parcels || [];
-        setParcels(prev => reset ? incomingParcels : [...prev, ...incomingParcels]);
+        setParcels(prev => {
+          if (reset) {
+            return mergeIncomingParcels(prev, incomingParcels);
+          } else {
+            const mergedIncoming = mergeIncomingParcels(prev, incomingParcels);
+            const incomingMap = new Map(mergedIncoming.map(p => [p.TrackingID.toUpperCase(), p]));
+            const updatedPrev = prev.map(p => incomingMap.get(p.TrackingID.toUpperCase()) || p);
+            const newParcels = mergedIncoming.filter(p => !prev.some(x => x.TrackingID.toUpperCase() === p.TrackingID.toUpperCase()));
+            return [...updatedPrev, ...newParcels];
+          }
+        });
         setHasMore(res.hasMore || false);
         setTotalCount(res.totalCount || 0);
         offsetRef.current += incomingParcels.length;
@@ -126,6 +177,14 @@ export function ParcelStoreProvider({ children }: { children: ReactNode }) {
     window.addEventListener('offline-sync-complete', handleSyncComplete);
     return () => window.removeEventListener('offline-sync-complete', handleSyncComplete);
   }, [loadParcels]);
+
+  useEffect(() => {
+    if (user && user.token) {
+      window.setTimeout(() => {
+        void parcelService.syncOfflineQueue().catch(err => console.error('Auto sync on user login failed:', err));
+      }, 1000);
+    }
+  }, [user]);
 
   const loadMoreParcels = useCallback(async () => {
     if (!hasMore || loading) return;
@@ -198,7 +257,20 @@ export function ParcelStoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const updateParcelLocally = useCallback((trackingID: string, updates: Partial<Parcel>) => {
-    setParcels(prev => prev.map(p => p.TrackingID === trackingID ? { ...p, ...updates } : p));
+    setParcels(prev => prev.map(p => {
+      if (p.TrackingID === trackingID) {
+        const next = {
+          ...p,
+          ...updates,
+          _localUpdateTime: Date.now(),
+        };
+        void parcelService.cacheParcelsLocally([next]).catch(err => {
+          console.error('Failed to cache updated parcel locally:', err);
+        });
+        return next;
+      }
+      return p;
+    }));
   }, []);
 
   const value = useMemo<ParcelStoreValue>(

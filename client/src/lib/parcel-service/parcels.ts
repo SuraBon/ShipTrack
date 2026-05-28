@@ -12,4 +12,5 @@ export {
   startDelivery,
   batchStartDelivery,
   getCachedParcelsLocally,
+  cacheParcelsLocally,
 } from './core';
