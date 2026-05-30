@@ -47,15 +47,17 @@ export function TrackSearchResultsList({
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3">
         {visibleSearchResults.map(p => (
-          <div
+          <button
             key={p.TrackingID}
+            type="button"
             onClick={() => {
               updateCreatedParcelHistoryFromParcel(p);
               setParcel(p);
               setSearchResults([]);
               addToRecent(p.TrackingID);
             }}
-            className="cursor-pointer rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-gray-50"
+            className="text-left rounded-2xl border border-gray-100 bg-white p-4 shadow-sm transition-all hover:border-primary/30 hover:bg-gray-50"
+            aria-label={`ดูสถานะพัสดุ ${p.TrackingID} จาก ${p['ผู้ส่ง']} ถึง ${p['ผู้รับ']}`}
           >
             <div className="flex justify-between items-start mb-3">
               <code className="min-w-0 break-all rounded-md bg-muted px-2.5 py-1 font-mono text-xs font-semibold text-foreground">
@@ -74,7 +76,7 @@ export function TrackSearchResultsList({
               <span className="material-symbols-outlined text-sm" aria-hidden="true">event</span>
               {formatThaiDateTime(p['วันที่สร้าง'])}
             </div>
-          </div>
+          </button>
         ))}
       </div>
       {searchResults.length > visibleSearchResultCount && (

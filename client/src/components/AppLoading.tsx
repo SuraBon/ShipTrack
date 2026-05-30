@@ -21,6 +21,8 @@ export function AppLoading({ fullScreen = true, label = 'กำลังโห�
 
   return (
     <div
+      role="status"
+      aria-live="polite"
       className={`grid place-items-center px-4 transition-colors bg-surface text-foreground dark:bg-card dark:text-card-foreground ${fullScreen ? 'fixed inset-0 z-50' : 'min-h-[56vh] rounded-2xl'}`}
     >
       <div className="flex w-full max-w-[280px] animate-in fade-in slide-in-from-bottom-4 duration-500 flex-col items-center text-center">

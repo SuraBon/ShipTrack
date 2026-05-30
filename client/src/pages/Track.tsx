@@ -224,6 +224,19 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
     }
   };
 
+  const handleCopyTrackingId = async (id: string) => {
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      toast.error('ไม่สามารถคัดลอกหมายเลขติดตามอัตโนมัติได้ โปรดลองคัดลอกด้วยตนเอง');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(id);
+      toast.success(`คัดลอกหมายเลขติดตาม ${id} เรียบร้อยแล้ว`);
+    } catch {
+      toast.error('ไม่สามารถคัดลอกหมายเลขติดตาม โปรดลองคัดลอกด้วยตนเอง');
+    }
+  };
+
   useEffect(() => {
     const handleCustomSearch = (e: Event) => {
       const trackingIdParam = (e as CustomEvent<{ trackingId: string }>).detail?.trackingId;
@@ -304,6 +317,11 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         recentSearches={recentSearches}
         removeFromRecent={removeFromRecent}
       />
+      <div aria-live="polite" className="sr-only">
+        {isLoading && 'กำลังค้นหา...'}
+        {!isLoading && searchResults.length > 0 && `พบผลการค้นหา ${searchResults.length} รายการ`}
+        {!isLoading && !searchResults.length && notFoundQuery && `ไม่พบรายการ ${notFoundQuery}`}
+      </div>
 
       {/* Search results component */}
       {searchResults.length > 0 && !parcel && (
@@ -354,7 +372,7 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                     <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
                       <p className="min-w-0 break-all font-mono text-sm font-black tracking-wide text-primary">{parcel.TrackingID}</p>
                       <button
-                        onClick={() => { navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอกหมายเลขติดตาม ${parcel.TrackingID} เรียบร้อยแล้ว`); }}
+                        onClick={() => void handleCopyTrackingId(parcel.TrackingID)}
                         className="grid size-7 place-items-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
                         aria-label="คัดลอกหมายเลขติดตาม"
                       >
