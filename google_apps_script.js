@@ -936,7 +936,6 @@ function doPost(e) {
 
     const isWrite = WRITE_ACTIONS.indexOf(action) !== -1;
     const needsLock = LOCK_ACTIONS.indexOf(action) !== -1;
-    const needsLock = lockActions.includes(action);
 
     let result;
     if (isWrite && needsLock) {
