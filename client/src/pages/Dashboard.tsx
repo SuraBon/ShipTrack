@@ -575,7 +575,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
       })()}
 
       {/* ── Filters ── */}
-      <div className="bg-transparent md:rounded-2xl md:border md:border-gray-100 md:bg-white md:p-4 md:shadow-sm">
+      <div className="app-panel p-4">
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Search */}
           <div className="relative min-w-0 flex-1">
@@ -584,9 +584,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="ค้นหาหมายเลขติดตาม ผู้ส่ง ผู้รับ หรือปลายทาง..."
-              className={isMessengerDashboard
-                ? 'h-11 w-full rounded-xl border border-gray-100 bg-gray-50 pl-10 pr-10 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary/40 focus:ring-2 focus:ring-primary/10 md:h-12'
-                : 'h-11 w-full rounded-xl border border-gray-100 bg-gray-50 pl-10 pr-10 text-sm text-gray-700 outline-none transition-all placeholder:text-gray-400 focus:border-primary/40 focus:bg-white focus:ring-2 focus:ring-primary/10'}
+              className="app-input pl-10 pr-10 h-11 md:h-12"
             />
             {searchTerm && (
               <button
@@ -601,10 +599,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             )}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div className={`flex items-center gap-1.5 rounded-xl border bg-white px-2.5 text-[11px] font-semibold text-slate-500 shadow-sm ${
+            <div className={`flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-2.5 text-[11px] font-semibold text-muted-foreground shadow-sm ${
               isMessengerDashboard
-                ? 'h-11 md:h-12 border-gray-100 px-3 text-xs'
-                : 'h-8 rounded-lg border-outline-variant/35 text-[11px] px-2'
+                ? 'h-11 md:h-12 px-3 text-xs'
+                : 'h-8 rounded-lg px-2'
             }`}>
               <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
               <span>
@@ -615,8 +613,8 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               onClick={handleRefresh}
               disabled={loading}
               className={isMessengerDashboard
-                ? 'grid h-11 w-11 place-items-center rounded-xl border border-gray-100 bg-white text-gray-600 shadow-sm transition-all hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:w-12'
-                : 'grid h-8 w-8 place-items-center rounded-lg border border-outline-variant/35 bg-white text-on-surface-variant shadow-sm transition-all hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'}
+                ? 'grid h-11 w-11 place-items-center rounded-xl border border-outline-variant bg-surface text-on-surface-variant shadow-sm transition-all hover:text-primary disabled:cursor-not-allowed disabled:opacity-50 md:h-12 md:w-12'
+                : 'grid h-8 w-8 place-items-center rounded-lg border border-outline-variant bg-surface text-on-surface-variant shadow-sm transition-all hover:text-primary disabled:cursor-not-allowed disabled:opacity-50'}
               title="รีเฟรช"
               aria-label="รีเฟรชรายการ"
             >
@@ -660,7 +658,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             <button
               type="button"
               onClick={handleExportCSV}
-              className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-gray-200 bg-white px-3 text-xs font-semibold text-slate-700 transition-colors hover:bg-slate-50"
+              className="app-secondary-button h-9 px-3 text-xs"
             >
               <Download className="h-3.5 w-3.5" aria-hidden="true" />
               ดาวน์โหลด CSV
@@ -669,7 +667,7 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
               <button
                 type="button"
                 onClick={clearFilters}
-                className="col-span-2 inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-100 bg-white px-3 text-xs font-semibold text-red-600 transition-colors hover:bg-red-50 sm:col-span-1"
+                className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-destructive/20 bg-surface px-3 text-xs font-semibold text-destructive transition-colors hover:bg-destructive/10 sm:col-span-1"
               >
                 <FilterX className="h-3.5 w-3.5" aria-hidden="true" />
                 ล้างตัวกรอง

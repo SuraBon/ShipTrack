@@ -21,9 +21,7 @@ export function AppLoading({ fullScreen = true, label = 'กำลังโห�
 
   return (
     <div
-      className={`grid place-items-center px-4 transition-colors ${
-        isDark ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-900'
-      } ${fullScreen ? 'fixed inset-0 z-50' : 'min-h-[56vh] rounded-2xl'}`}
+      className={`grid place-items-center px-4 transition-colors bg-surface text-foreground dark:bg-card dark:text-card-foreground ${fullScreen ? 'fixed inset-0 z-50' : 'min-h-[56vh] rounded-2xl'}`}
     >
       <div className="flex w-full max-w-[280px] animate-in fade-in slide-in-from-bottom-4 duration-500 flex-col items-center text-center">
         <svg className="mb-6 h-20 w-20 animate-[splash-pulse_2s_ease-in-out_infinite]" viewBox="0 0 64 64" role="img" aria-label="ShipTrack">

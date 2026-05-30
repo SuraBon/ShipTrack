@@ -280,7 +280,7 @@ function TrackingMap({
   }, [isMapReady]);
 
   return (
-    <div className={`tracking-map relative flex w-full flex-col overflow-hidden rounded-2xl border border-gray-100 dark:border-white/10 bg-white dark:bg-[#050915] shadow-sm ${className}`}>
+    <div className={`tracking-map relative flex w-full flex-col overflow-hidden rounded-2xl border border-outline-variant bg-card ${className}`}>
       {!hasLocationData && (
         <div className="flex items-center gap-2 border-b border-gray-100 dark:border-white/10 bg-blue-50 dark:bg-blue-950/40 px-4 py-2.5 text-[11px] font-semibold text-blue-700 dark:text-blue-200">
           <span className="material-symbols-outlined text-base" aria-hidden="true">info</span>
@@ -288,19 +288,19 @@ function TrackingMap({
         </div>
       )}
       {hasLocationData && hasUnresolved && (
-        <div className="flex items-center gap-2 border-b border-amber-100 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-950/40 px-4 py-2.5 text-[11px] font-semibold text-amber-700 dark:text-amber-200">
+        <div className="flex items-center gap-2 border-b border-outline-variant bg-surface-container px-4 py-2.5 text-[11px] font-semibold text-accent">
           <span className="material-symbols-outlined text-base" aria-hidden="true">warning</span>
           บางเหตุการณ์หลักไม่มีตำแหน่ง GPS จึงไม่แสดงบนแผนที่
         </div>
       )}
       {hasLocationData && (
-        <div className="pointer-events-none absolute left-3 top-3 z-[500] rounded-xl border border-white/80 dark:border-white/15 bg-white/95 dark:bg-[#020617]/95 px-3 py-2 shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute left-3 top-3 z-[500] rounded-xl border border-outline-variant bg-surface/95 px-3 py-2 shadow-sm backdrop-blur">
           <p className="text-xs font-semibold leading-none text-slate-800 dark:text-slate-100">แผนที่จุดหลัก</p>
           <p className="mt-1 text-[10px] font-medium text-slate-400 dark:text-slate-400">{markerEntries.length} หมุดหลัก</p>
         </div>
       )}
       {hasLocationData && latestTimestamp && (
-        <div className="pointer-events-none absolute right-3 top-3 z-[500] rounded-xl border border-cyan-100 dark:border-cyan-500/40 bg-white/95 dark:bg-[#020617]/95 px-3 py-2 text-right shadow-sm backdrop-blur">
+        <div className="pointer-events-none absolute right-3 top-3 z-[500] rounded-xl border border-outline-variant bg-surface/95 px-3 py-2 text-right shadow-sm backdrop-blur">
           <p className="text-[10px] font-black text-cyan-700 dark:text-cyan-300">เหตุการณ์ล่าสุด</p>
           <p className="mt-1 text-[10px] font-semibold text-slate-500 dark:text-slate-300">{latestTimestamp}</p>
         </div>

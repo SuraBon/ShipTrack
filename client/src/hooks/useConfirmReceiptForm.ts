@@ -7,6 +7,7 @@ import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
 import { buildGpsEvidenceNote, needsGpsOverrideReason as shouldRequireGpsOverrideReason } from '@/lib/gpsQuality';
+import { reverseGeocode } from '@/lib/geocoding';
 import { buildDeliveryActionPayload, getCurrentBranchFromParcel, isParcelTrulyDelivered } from '@/lib/deliveryActionBuilder';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
 import { useProofImage } from '@/hooks/useProofImage';
@@ -140,20 +141,9 @@ export function useConfirmReceiptForm({
     const fetchLocationName = async () => {
       setIsGeocoding(true);
       try {
-        const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${position.latitude}&lon=${position.longitude}&accept-language=th`;
-        const res = await fetch(url, {
-          headers: {
-            'User-Agent': 'Doc-Track-PWA/1.0'
-          }
-        });
-        if (!res.ok) throw new Error('Geocoding network error');
-        const data = await res.json();
+        const displayName = await reverseGeocode(position.latitude, position.longitude);
         if (isMounted) {
-          if (data && data.display_name) {
-            setLocationName(data.display_name);
-          } else {
-            setLocationName('ไม่สามารถระบุสถานที่ได้');
-          }
+          setLocationName(displayName);
         }
       } catch (err) {
         console.error('Error fetching reverse geocode:', err);

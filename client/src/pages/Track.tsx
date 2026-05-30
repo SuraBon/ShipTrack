@@ -337,11 +337,11 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
         {parcel && (
           <DialogContent showCloseButton={false} className="w-[calc(100vw-1rem)] max-w-xl max-h-[92vh] overflow-hidden rounded-[1.75rem] border border-border bg-card p-0 shadow-xl">
             <div className="flex max-h-[92vh] flex-col">
-              <div className="relative bg-slate-950 px-6 py-6 text-white">
+              <div className="relative rounded-t-[1.75rem] border-b border-outline-variant bg-surface-container px-6 py-6 text-foreground">
                 <button
                   type="button"
                   onClick={() => setParcel(null)}
-                  className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20"
+                  className="absolute right-4 top-4 grid size-10 place-items-center rounded-full bg-surface/90 text-foreground transition-colors hover:bg-surface-container"
                   aria-label="ปิดผลการติดตามสถานะ"
                 >
                   <span className="material-symbols-outlined text-2xl" aria-hidden="true">close</span>
@@ -352,10 +352,10 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                        ประวัติสถานะการจัดส่ง
                     </DialogTitle>
                     <div className="mt-1 flex min-w-0 flex-wrap items-center gap-2">
-                      <p className="min-w-0 break-all font-mono text-sm font-black tracking-wide text-blue-200">{parcel.TrackingID}</p>
+                      <p className="min-w-0 break-all font-mono text-sm font-black tracking-wide text-primary">{parcel.TrackingID}</p>
                       <button
                         onClick={() => { navigator.clipboard.writeText(parcel.TrackingID); toast.success(`คัดลอกหมายเลขติดตาม ${parcel.TrackingID} เรียบร้อยแล้ว`); }}
-                        className="grid size-7 place-items-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
+                        className="grid size-7 place-items-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container hover:text-primary"
                         aria-label="คัดลอกหมายเลขติดตาม"
                       >
                         <span className="material-symbols-outlined text-base" aria-hidden="true">content_copy</span>
@@ -369,22 +369,22 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
               </div>
 
               <div className="modal-scroll flex-1 overflow-y-auto bg-card p-5 sm:p-6">
-                <div className="rounded-3xl border border-blue-100 dark:border-blue-800/40 bg-white dark:bg-card p-4 shadow-md">
+                <div className="app-card p-4">
                   <div className="mb-4 flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3">
                       <div className="grid size-10 place-items-center rounded-xl bg-blue-50 dark:bg-blue-900/25 text-blue-600 dark:text-blue-300">
                         <span className="material-symbols-outlined text-2xl" aria-hidden="true">route</span>
                       </div>
                       <div>
-                        <p className="font-display text-base font-black text-slate-900 dark:text-foreground">ประวัติสถานะการจัดส่ง</p>
-                        <p className="text-xs font-semibold text-slate-400 dark:text-muted-foreground">สถานะล่าสุดอยู่ด้านบน พร้อมเวลาและจุดที่บันทึก</p>
+                        <p className="font-display text-base font-black text-foreground">ประวัติสถานะการจัดส่ง</p>
+                        <p className="text-xs font-semibold text-muted-foreground">สถานะล่าสุดอยู่ด้านบน พร้อมเวลาและจุดที่บันทึก</p>
                       </div>
                     </div>
                     {hasLocationData && (
                       <button
                         type="button"
                         onClick={() => setIsMapOpen(true)}
-                        className="inline-flex shrink-0 items-center gap-2 rounded-2xl bg-slate-50 dark:bg-surface-container px-3 py-2 text-sm font-bold text-slate-700 dark:text-foreground transition-all hover:bg-blue-50 dark:hover:bg-blue-900/25 hover:text-blue-700 dark:hover:text-blue-300 active:scale-95"
+                        className="app-secondary-button inline-flex shrink-0 rounded-2xl px-3 py-2 text-sm font-bold"
                       >
                         <span className="material-symbols-outlined text-2xl" aria-hidden="true">map</span>
                         แผนที่
@@ -396,30 +396,30 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-slate-50 dark:bg-surface-container p-3">
-                    <p className="text-[10px] font-black text-slate-400 dark:text-muted-foreground">รับจาก</p>
-                    <p className="mt-1 truncate text-sm font-black text-slate-900 dark:text-foreground">{parcel['สาขาผู้ส่ง'] || '-'}</p>
-                    <p className="truncate text-xs font-semibold text-slate-500 dark:text-muted-foreground">{parcel['ผู้ส่ง'] || '-'}</p>
+                  <div className="rounded-3xl border border-outline-variant bg-surface-container p-3">
+                    <p className="text-[10px] font-black text-muted-foreground">รับจาก</p>
+                    <p className="mt-1 truncate text-sm font-black text-foreground">{parcel['สาขาผู้ส่ง'] || '-'}</p>
+                    <p className="truncate text-xs font-semibold text-muted-foreground">{parcel['ผู้ส่ง'] || '-'}</p>
                   </div>
-                  <div className="rounded-2xl bg-red-50/70 dark:bg-red-900/20 p-3">
-                    <p className="text-[10px] font-black text-red-500 dark:text-red-300">ปลายทาง</p>
-                    <p className="mt-1 truncate text-sm font-black text-slate-900 dark:text-foreground">{parcel['สาขาผู้รับ'] || '-'}</p>
-                    <p className="truncate text-xs font-semibold text-slate-500 dark:text-muted-foreground">{parcel['ผู้รับ'] || '-'}</p>
+                  <div className="rounded-3xl border border-outline-variant bg-surface-container p-3">
+                    <p className="text-[10px] font-black text-destructive">ปลายทาง</p>
+                    <p className="mt-1 truncate text-sm font-black text-foreground">{parcel['สาขาผู้รับ'] || '-'}</p>
+                    <p className="truncate text-xs font-semibold text-muted-foreground">{parcel['ผู้รับ'] || '-'}</p>
                   </div>
                 </div>
 
                 {(parcel['รายละเอียด'] || parcel['หมายเหตุ']) && (
                   <div className={`mt-3 grid gap-3 ${parcel['รายละเอียด'] && parcel['หมายเหตุ'] ? 'grid-cols-2' : 'grid-cols-1'}`}>
                     {parcel['รายละเอียด'] && (
-                      <div className="rounded-2xl bg-slate-50 dark:bg-surface-container p-3">
-                        <p className="text-[10px] font-black text-slate-400 dark:text-muted-foreground">สิ่งที่ส่ง</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-foreground break-words whitespace-pre-wrap">{parcel['รายละเอียด']}</p>
+                      <div className="rounded-3xl border border-outline-variant bg-surface-container p-3">
+                        <p className="text-[10px] font-black text-muted-foreground">สิ่งที่ส่ง</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground break-words whitespace-pre-wrap">{parcel['รายละเอียด']}</p>
                       </div>
                     )}
                     {parcel['หมายเหตุ'] && (
-                      <div className="rounded-2xl bg-orange-50/70 dark:bg-amber-900/20 p-3">
-                        <p className="text-[10px] font-black text-orange-600 dark:text-amber-300">หมายเหตุ</p>
-                        <p className="mt-1 text-sm font-semibold text-slate-800 dark:text-foreground break-words whitespace-pre-wrap">{translateSystemNote(parcel['หมายเหตุ'])}</p>
+                      <div className="rounded-3xl border border-outline-variant bg-surface-container p-3">
+                        <p className="text-[10px] font-black text-accent">หมายเหตุ</p>
+                        <p className="mt-1 text-sm font-semibold text-foreground break-words whitespace-pre-wrap">{translateSystemNote(parcel['หมายเหตุ'])}</p>
                       </div>
                     )}
                   </div>

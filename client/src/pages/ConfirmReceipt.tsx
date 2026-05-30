@@ -64,7 +64,7 @@ export default function ConfirmReceipt({
               <p className="app-page-subtitle">สแกนหรือกรอกหมายเลข แล้วดูต้นทาง ปลายทาง และผู้รับทันที</p>
             </div>
             {pendingOfflineCount > 0 && (
-              <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-800">
+              <div className="app-accent-chip">
                 <span className="material-symbols-outlined text-base" aria-hidden="true">sync_problem</span>
                 รอซิงค์ {pendingOfflineCount} รายการ
               </div>
@@ -74,12 +74,12 @@ export default function ConfirmReceipt({
 
         {/* Header Section (Embedded Modal) */}
         {embedded && (
-          <div className="relative shrink-0 border-b border-slate-800 bg-slate-950 px-4 py-3 text-white sm:px-5 sm:py-3.5">
+          <div className="relative shrink-0 border-b border-outline-variant bg-surface-container px-4 py-3 text-foreground sm:px-5 sm:py-3.5">
             {onClose && (
               <button
                 type="button"
                 onClick={handleCloseStep}
-                className="absolute right-3 top-2.5 grid h-10 w-10 place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-white/20 active:scale-95 sm:right-4"
+                className="absolute right-3 top-2.5 grid h-10 w-10 place-items-center rounded-full bg-surface/90 text-foreground transition-colors hover:bg-surface-container active:scale-95 sm:right-4"
                 aria-label="ปิดหน้านี้"
               >
                 <span className="material-symbols-outlined text-xl" aria-hidden="true">close</span>

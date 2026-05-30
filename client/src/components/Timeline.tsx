@@ -4,9 +4,11 @@
  * Design: Premium Minimalist Logistics
  */
 
+import { useEffect, useMemo, useState } from 'react';
 import type { TimelineEvent } from '@/types/timeline';
 import ImagePopup from '@/components/ImagePopup';
 import { formatThaiDateTime, parseDateInput } from '@/lib/dateUtils';
+import { formatCoordinateKey, reverseGeocode } from '@/lib/geocoding';
 
 interface TimelineProps {
   events: TimelineEvent[];
@@ -15,6 +17,53 @@ interface TimelineProps {
 }
 
 export default function Timeline({ events, className = '', compact = false }: TimelineProps) {
+  const [resolvedPlaceNames, setResolvedPlaceNames] = useState<Record<string, string>>({});
+
+  const eventsWithCoords = useMemo(
+    () => events.filter((event) => !event.location && typeof event.latitude === 'number' && typeof event.longitude === 'number'),
+    [events],
+  );
+
+  useEffect(() => {
+    const coordKeys = eventsWithCoords
+      .map((event) => formatCoordinateKey(event.latitude!, event.longitude!))
+      .filter((coordKey, index, arr) => arr.indexOf(coordKey) === index && !resolvedPlaceNames[coordKey]);
+
+    if (coordKeys.length === 0) return;
+
+    let isMounted = true;
+    const fetchPlaceNames = async () => {
+      const nextPlaceNames = { ...resolvedPlaceNames };
+      for (const coordKey of coordKeys) {
+        const [latString, lngString] = coordKey.split(',');
+        const latitude = Number(latString);
+        const longitude = Number(lngString);
+        try {
+          nextPlaceNames[coordKey] = await reverseGeocode(latitude, longitude);
+        } catch (error) {
+          nextPlaceNames[coordKey] = 'ไม่สามารถระบุสถานที่ได้';
+        }
+      }
+      if (isMounted) {
+        setResolvedPlaceNames(nextPlaceNames);
+      }
+    };
+
+    void fetchPlaceNames();
+    return () => {
+      isMounted = false;
+    };
+  }, [eventsWithCoords, resolvedPlaceNames]);
+
+  const getEventLocation = (event: TimelineEvent) => {
+    if (event.location) return event.location;
+    if (typeof event.latitude === 'number' && typeof event.longitude === 'number') {
+      const coordKey = formatCoordinateKey(event.latitude, event.longitude);
+      return resolvedPlaceNames[coordKey] ?? 'กำลังค้นหาสถานที่...';
+    }
+    return undefined;
+  };
+
   const displayTimelineEvents = events;
   events = displayTimelineEvents;
   const isDelivered = events.some((event) => event.title.includes('ส่งสำเร็จ'));
@@ -145,6 +194,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
             const stepNumber = displayEvents.length - index;
             const tone = getCompactTone(event, isLatest);
             const statusLabel = isLatest ? 'ล่าสุด' : event.status === 'completed' ? 'บันทึกแล้ว' : 'รอดำเนินการ';
+            const locationText = getEventLocation(event);
             return (
               <div key={event.id} className="grid grid-cols-[52px_28px_minmax(0,1fr)] gap-2.5">
                 <div className={`pt-2 text-right leading-none ${isLatest ? 'text-slate-900 dark:text-foreground' : 'text-slate-400 dark:text-muted-foreground'}`}>
@@ -200,10 +250,10 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                           {formatThaiDateTime(event.timestamp)}
                         </span>
                       )}
-                      {event.location && (
+                      {locationText && (
                         <span className="inline-flex min-w-0 items-center gap-1 text-[9px] font-bold text-slate-400 dark:text-muted-foreground">
                           <span className="material-symbols-outlined text-[12px]" aria-hidden="true">place</span>
-                          <span className="truncate">{event.location}</span>
+                          <span className="truncate">{locationText}</span>
                         </span>
                       )}
                     </div>
@@ -263,6 +313,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
 
       <div className="relative space-y-0">
         {events.map((event) => {
+          const locationText = getEventLocation(event);
           return (
             <div
               key={event.id}
@@ -335,9 +386,9 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                       <span className="material-symbols-outlined text-base" aria-hidden="true">schedule</span>
                       <time className="tracking-tight uppercase">{event.timestamp ? formatThaiDateTime(event.timestamp) : '-'}</time>
                     </div>
-                    {event.location && (
+                    {locationText && (
                       <div className="text-xs font-bold text-on-surface-variant/40">
-                        <span className="tracking-tight text-on-surface-variant/60">{event.location}</span>
+                        <span className="tracking-tight text-on-surface-variant/60">{locationText}</span>
                       </div>
                     )}
                   </div>
