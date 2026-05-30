@@ -22,10 +22,10 @@ export const DeliveryJobDetailsModal = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="max-h-[88vh] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-[1.5rem] border border-slate-100 bg-white p-0 shadow-2xl"
+        className="max-h-[88vh] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-[1.5rem] border border-outline-variant bg-card p-0 shadow-2xl"
       >
         <div className="flex max-h-[88vh] flex-col">
-          <div className="relative shrink-0 bg-slate-950 px-5 py-4 text-white">
+          <div className="relative shrink-0 bg-primary px-5 py-4 text-primary-foreground">
             <button
               type="button"
               onClick={() => onOpenChange(false)}
@@ -40,7 +40,7 @@ export const DeliveryJobDetailsModal = ({
             <p className="mt-1 break-all font-mono text-xs font-black tracking-wide text-blue-200">{parcel.TrackingID}</p>
           </div>
 
-          <div className="flex-1 space-y-3 overflow-y-auto bg-slate-50 p-4">
+          <div className="flex-1 space-y-3 overflow-y-auto bg-surface-container p-4">
             <div className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-blue-950">
               <p className="text-[10px] font-bold text-blue-600">ต้องไปส่งที่</p>
               <p className="mt-1 break-words font-display text-xl font-black leading-tight">

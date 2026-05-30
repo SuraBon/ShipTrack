@@ -71,9 +71,9 @@ export function AdminEditParcelDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-2xl">
+      <DialogContent className="max-h-[92vh] w-[calc(100vw-1rem)] max-w-2xl overflow-hidden rounded-2xl border border-outline-variant bg-card p-0 shadow-2xl">
         <form onSubmit={handleSubmit} className="flex max-h-[92vh] flex-col">
-          <DialogHeader className="border-b border-gray-100 px-5 py-4 text-left">
+          <DialogHeader className="border-b border-outline-variant px-5 py-4 text-left">
             <DialogTitle className="font-display text-xl text-primary">แก้ไขข้อมูลพัสดุ</DialogTitle>
             <DialogDescription>
               Tracking ID <code className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs font-bold text-primary">{parcel?.TrackingID || '-'}</code>
@@ -86,7 +86,7 @@ export function AdminEditParcelDialog({
               <input
                 value={form.senderName}
                 onChange={(event) => updateField('senderName', event.target.value)}
-                className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="app-input"
                 maxLength={200}
                 required
               />
@@ -97,7 +97,7 @@ export function AdminEditParcelDialog({
                 value={form.senderBranch}
                 onChange={(event) => updateField('senderBranch', event.target.value)}
                 list="admin-edit-branches"
-                className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="app-input"
                 maxLength={200}
                 required
               />
@@ -107,7 +107,7 @@ export function AdminEditParcelDialog({
               <input
                 value={form.receiverName}
                 onChange={(event) => updateField('receiverName', event.target.value)}
-                className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="app-input"
                 maxLength={200}
                 required
               />
@@ -118,7 +118,7 @@ export function AdminEditParcelDialog({
                 value={form.receiverBranch}
                 onChange={(event) => updateField('receiverBranch', event.target.value)}
                 list="admin-edit-branches"
-                className="h-11 w-full rounded-xl border border-gray-200 px-3 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="app-input"
                 maxLength={200}
                 required
               />
@@ -128,7 +128,7 @@ export function AdminEditParcelDialog({
               <textarea
                 value={form.description}
                 onChange={(event) => updateField('description', event.target.value)}
-                className="min-h-24 w-full resize-none rounded-xl border border-gray-200 px-3 py-2.5 text-sm font-semibold outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10"
+                className="app-input min-h-24 resize-none"
                 maxLength={200}
               />
             </label>
@@ -137,7 +137,7 @@ export function AdminEditParcelDialog({
             </datalist>
           </div>
 
-          <DialogFooter className="border-t border-gray-100 px-5 py-4">
+          <DialogFooter className="border-t border-outline-variant px-5 py-4">
             <button
               type="button"
               onClick={() => onOpenChange(false)}

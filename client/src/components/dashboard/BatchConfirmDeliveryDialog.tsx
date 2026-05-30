@@ -86,9 +86,9 @@ export function BatchConfirmDeliveryDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="flex max-h-[min(92dvh,100vh)] w-[calc(100vw-0.75rem)] max-w-xl flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-2xl sm:w-[calc(100vw-1rem)]">
+      <DialogContent className="flex max-h-[min(92dvh,100vh)] w-[calc(100vw-0.75rem)] max-w-xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-card p-0 shadow-2xl sm:w-[calc(100vw-1rem)]">
         <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <DialogHeader className="shrink-0 bg-slate-950 px-4 py-4 text-left text-white sm:px-5">
+          <DialogHeader className="shrink-0 bg-primary px-4 py-4 text-left text-primary-foreground sm:px-5">
             <div className="flex items-start gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/10 text-sky-200">
                 <PackageCheck className="h-5 w-5" aria-hidden="true" />
@@ -102,8 +102,8 @@ export function BatchConfirmDeliveryDialog({
             </div>
           </DialogHeader>
 
-          <div className="modal-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-slate-50 p-4 sm:space-y-4 sm:p-5">
-            <section className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+          <div className="modal-scroll min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-surface-container p-4 sm:space-y-4 sm:p-5">
+            <section className="rounded-2xl border border-outline-variant bg-surface p-3 shadow-sm">
               <div className="flex items-center gap-2">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-blue-50 text-blue-700">
                   <ClipboardList className="h-4 w-4" aria-hidden="true" />
@@ -130,7 +130,7 @@ export function BatchConfirmDeliveryDialog({
               onChange={handleFileSelect}
               className="hidden"
             />
-            <section className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+            <section className="rounded-2xl border border-outline-variant bg-surface p-3 shadow-sm">
               <div className="mb-3 flex items-center gap-2">
                 <span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-slate-900 text-white">
                   <Camera className="h-4 w-4" aria-hidden="true" />
@@ -141,7 +141,7 @@ export function BatchConfirmDeliveryDialog({
                 </div>
               </div>
               {previewUrl ? (
-                <div className="relative h-48 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 sm:h-56">
+                <div className="relative h-48 overflow-hidden rounded-xl border border-outline-variant bg-surface-container sm:h-56">
                   <img src={previewUrl} alt="หลักฐานการส่งพร้อมกัน" loading="lazy" className="h-full w-full object-contain" />
                   <button
                     type="button"
@@ -156,7 +156,7 @@ export function BatchConfirmDeliveryDialog({
                   type="button"
                   disabled={isProcessingImage}
                   onClick={() => fileInputRef.current?.click()}
-                  className="grid min-h-[10.5rem] w-full place-items-center rounded-xl border border-dashed border-gray-200 bg-gray-50 p-5 text-center transition hover:border-primary/40 hover:bg-gray-100 sm:min-h-44 sm:p-6"
+                  className="grid min-h-[10.5rem] w-full place-items-center rounded-xl border border-dashed border-outline-variant bg-surface p-5 text-center transition hover:border-primary/40 hover:bg-surface-container sm:min-h-44 sm:p-6"
                 >
                   {isProcessingImage ? (
                     <span className="inline-flex items-center gap-2 text-sm font-bold text-primary">
@@ -173,7 +173,7 @@ export function BatchConfirmDeliveryDialog({
               )}
             </section>
 
-            <section className="space-y-3 rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+            <section className="space-y-3 rounded-2xl border border-outline-variant bg-surface p-3 shadow-sm">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex min-w-0 items-start gap-2">
                   <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-xl ${
@@ -199,13 +199,13 @@ export function BatchConfirmDeliveryDialog({
                   value={gpsOverrideReason}
                   onChange={(event) => setGpsOverrideReason(sanitizeTextInput(event.target.value, 300))}
                   placeholder="ระบุเหตุผลที่ยืนยันโดยไม่มี GPS"
-                  className="min-h-[4.5rem] w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary"
+                  className="app-input min-h-[4.5rem] resize-none"
                 />
               )}
             </section>
 
-            <section className="rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-              <label className="mb-2 flex items-center gap-2 text-sm font-black text-slate-900">
+            <section className="rounded-2xl border border-outline-variant bg-surface p-3 shadow-sm">
+              <label className="mb-2 flex items-center gap-2 text-sm font-black text-foreground">
                 <StickyNote className="h-4 w-4 text-orange-500" aria-hidden="true" />
                 หมายเหตุเพิ่มเติม
               </label>
@@ -213,12 +213,12 @@ export function BatchConfirmDeliveryDialog({
                 value={note}
                 onChange={(event) => setNote(sanitizeTextInput(event.target.value, 2000))}
                 placeholder="ไม่บังคับ เช่น ส่งที่เคาน์เตอร์, ผู้รับฝากรับแทน"
-                className="min-h-[4.5rem] w-full resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm font-semibold outline-none focus:border-primary"
+                className="app-input min-h-[4.5rem] resize-none"
               />
             </section>
           </div>
 
-          <DialogFooter className="shrink-0 gap-2 border-t border-gray-100 bg-white px-4 py-3 sm:flex-row sm:justify-end sm:px-5 sm:py-4">
+          <DialogFooter className="shrink-0 gap-2 border-t border-outline-variant bg-surface px-4 py-3 sm:flex-row sm:justify-end sm:px-5 sm:py-4">
             <button
               type="button"
               onClick={() => handleOpenChange(false)}

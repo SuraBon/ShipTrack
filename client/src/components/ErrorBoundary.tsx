@@ -31,8 +31,8 @@ class ErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-[85vh] p-4 bg-slate-50">
-          <div className="flex flex-col items-center w-full max-w-md p-6 bg-white rounded-3xl border border-slate-200 shadow-xl shadow-slate-200/50 text-center animate-in fade-in zoom-in-95 duration-300">
+      <div className="flex items-center justify-center min-h-[85vh] p-4 bg-surface">
+        <div className="flex flex-col items-center w-full max-w-md p-6 rounded-3xl border border-outline-variant bg-card shadow-xl shadow-black/10 text-center animate-in fade-in zoom-in-95 duration-300">
             <div className="w-14 h-14 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mb-4">
               <AlertTriangle className="h-7 w-7 text-red-600" aria-hidden="true" />
             </div>
@@ -42,7 +42,7 @@ class ErrorBoundary extends Component<Props, State> {
             </p>
 
             {import.meta.env.DEV && this.state.error && (
-              <div className="mt-4 p-3.5 w-full rounded-xl bg-slate-50 border border-slate-200 overflow-auto text-left max-h-40">
+              <div className="mt-4 p-3.5 w-full rounded-xl bg-surface border border-outline-variant overflow-auto text-left max-h-40">
                 <pre className="text-[10px] font-mono text-slate-600 whitespace-pre-wrap leading-normal">
                   {this.state.error.message}
                   {"\n"}
@@ -61,7 +61,7 @@ class ErrorBoundary extends Component<Props, State> {
               </button>
               <button
                 onClick={() => this.setState({ hasError: false, error: null })}
-                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all active:scale-[0.99]"
+                className="flex-1 flex items-center justify-center gap-2 h-11 rounded-xl app-secondary-button text-xs font-bold"
               >
                 <RotateCcw className="h-4 w-4" aria-hidden="true" />
                 ลองใหม่อีกครั้ง

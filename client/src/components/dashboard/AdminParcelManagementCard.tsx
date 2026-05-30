@@ -64,8 +64,8 @@ export const AdminParcelManagementCard = ({
   };
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-slate-100 bg-white shadow-[0_4px_20px_rgba(15,23,42,0.04)] transition-all duration-200 hover:shadow-md">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-100 bg-slate-50 px-4 py-2">
+    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant bg-card shadow-sm transition-all duration-200 hover:shadow-md">
+      <div className="flex items-center justify-between gap-3 border-b border-outline-variant bg-surface-container px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           {onSelectedChange && (
             <Checkbox
@@ -154,13 +154,13 @@ export const AdminParcelManagementCard = ({
             />
           )}
 
-          <div className="rounded-xl bg-slate-50 px-3 py-2">
+          <div className="rounded-xl bg-surface-container px-3 py-2">
             <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">ล่าสุด</p>
             <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-slate-700">{getLatestTimelineSummary(parcel)}</p>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 border-t border-slate-50 pt-3">
+        <div className="mt-4 flex flex-col gap-3 border-t border-outline-variant/60 pt-3">
           <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
             {renderMaterialIcon('schedule', 'text-[14px]')}
             <span className="truncate">{dateLabel}</span>
