@@ -706,7 +706,10 @@ html {
   }
 
   .app-accent-chip {
-    @apply inline-flex items-center gap-2 rounded-full border border-accent-container bg-accent-container px-3 py-2 text-xs font-bold text-accent shadow-sm;
+    @apply inline-flex items-center gap-2 rounded-full px-3 py-2 text-xs font-bold shadow-sm;
+    border: 1px solid var(--accent-container);
+    background-color: var(--accent-container);
+    color: var(--accent);
   }
 
   input,
