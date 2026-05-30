@@ -59,7 +59,7 @@ function RoleDropdown({
       value={value === 'ADMIN' ? 'ADMIN' : 'MESSENGER'}
       onChange={event => onChange(event.target.value as SystemRole)}
       disabled={disabled}
-      className="h-9 rounded-lg border border-border bg-white px-2.5 text-xs font-semibold text-foreground outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
+      className="h-9 py-0 rounded-lg border border-border bg-white px-2.5 text-xs font-semibold text-foreground outline-none transition-colors focus:border-primary disabled:cursor-not-allowed disabled:opacity-50"
     >
       {SYSTEM_ROLES.map(role => (
         <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>

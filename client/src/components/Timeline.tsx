@@ -20,7 +20,7 @@ export default function Timeline({ events, className = '', compact = false }: Ti
   const [resolvedPlaceNames, setResolvedPlaceNames] = useState<Record<string, string>>({});
 
   const eventsWithCoords = useMemo(
-    () => events.filter((event) => !event.location && typeof event.latitude === 'number' && typeof event.longitude === 'number'),
+    () => events.filter((event) => typeof event.latitude === 'number' && typeof event.longitude === 'number'),
     [events],
   );
 
@@ -57,6 +57,14 @@ export default function Timeline({ events, className = '', compact = false }: Ti
 
   const getEventLocation = (event: TimelineEvent) => {
     if (event.location) return event.location;
+    if (typeof event.latitude === 'number' && typeof event.longitude === 'number') {
+      const coordKey = formatCoordinateKey(event.latitude, event.longitude);
+      return resolvedPlaceNames[coordKey] ?? 'กำลังค้นหาสถานที่...';
+    }
+    return undefined;
+  };
+
+  const getActualLocation = (event: TimelineEvent) => {
     if (typeof event.latitude === 'number' && typeof event.longitude === 'number') {
       const coordKey = formatCoordinateKey(event.latitude, event.longitude);
       return resolvedPlaceNames[coordKey] ?? 'กำลังค้นหาสถานที่...';
@@ -195,6 +203,9 @@ export default function Timeline({ events, className = '', compact = false }: Ti
             const tone = getCompactTone(event, isLatest);
             const statusLabel = isLatest ? 'ล่าสุด' : event.status === 'completed' ? 'บันทึกแล้ว' : 'รอดำเนินการ';
             const locationText = getEventLocation(event);
+            const actualLocation = getActualLocation(event);
+            const shouldShowActualLocation = actualLocation && actualLocation !== locationText;
+
             return (
               <div key={event.id} className="grid grid-cols-[52px_28px_minmax(0,1fr)] gap-2.5">
                 <div className={`pt-2 text-right leading-none ${isLatest ? 'text-slate-900 dark:text-foreground' : 'text-slate-400 dark:text-muted-foreground'}`}>
@@ -257,6 +268,12 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                         </span>
                       )}
                     </div>
+                    {shouldShowActualLocation && (
+                      <div className="mt-1.5 flex items-start gap-1 text-[9px] font-semibold text-slate-500 dark:text-muted-foreground" title={actualLocation}>
+                        <span className="material-symbols-outlined text-[12px] mt-0.5 shrink-0" aria-hidden="true">explore</span>
+                        <span className="break-words leading-tight">พิกัดจริง: {actualLocation}</span>
+                      </div>
+                    )}
 
                     {event.deliveryMatchStatus && (
                       <div className="mt-1.5">
@@ -314,6 +331,9 @@ export default function Timeline({ events, className = '', compact = false }: Ti
       <div className="relative space-y-0">
         {events.map((event) => {
           const locationText = getEventLocation(event);
+          const actualLocation = getActualLocation(event);
+          const shouldShowActualLocation = actualLocation && actualLocation !== locationText;
+
           return (
             <div
               key={event.id}
@@ -392,6 +412,12 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                       </div>
                     )}
                   </div>
+                  {shouldShowActualLocation && (
+                    <div className="mt-2.5 flex items-start gap-1.5 text-xs font-semibold text-on-surface-variant/50">
+                      <span className="material-symbols-outlined text-base mt-0.5 shrink-0" aria-hidden="true">explore</span>
+                      <span className="break-words leading-relaxed">พิกัดจริง: {actualLocation}</span>
+                    </div>
+                  )}
 
                   {/* Proof Image */}
                   {event.imageUrl && (

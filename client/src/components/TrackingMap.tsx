@@ -4,6 +4,7 @@ import './mapStyles.css';
 import { MapView } from './Map';
 import type { TimelineEvent } from '@/types/timeline';
 import { formatThaiDateTime } from '@/lib/dateUtils';
+import { formatCoordinateKey, reverseGeocode } from '@/lib/geocoding';
 
 const DEFAULT_CENTER = { lat: 13.7563, lng: 100.5018 };
 const MAIN_MARKER_TYPES = new Set([
@@ -62,6 +63,7 @@ function TrackingMap({
   const [leafletModule, setLeafletModule] = useState<typeof import('leaflet') | null>(null);
   const didFitBoundsRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [resolvedPlaceNames, setResolvedPlaceNames] = useState<Record<string, string>>({});
 
   const { markerEntries, hasUnresolved } = useMemo(() => {
     const orderedEntries = events
@@ -125,6 +127,37 @@ function TrackingMap({
       setLeafletModule((module as any).default ?? module);
     }).catch(() => undefined);
   }, [leafletModule]);
+
+  useEffect(() => {
+    const coordKeys = markerEntries
+      .map(entry => formatCoordinateKey(entry.lat, entry.lng))
+      .filter((coordKey, index, arr) => arr.indexOf(coordKey) === index && !resolvedPlaceNames[coordKey]);
+
+    if (coordKeys.length === 0) return;
+
+    let isMounted = true;
+    const fetchPlaceNames = async () => {
+      const nextPlaceNames = { ...resolvedPlaceNames };
+      for (const coordKey of coordKeys) {
+        const [latString, lngString] = coordKey.split(',');
+        const latitude = Number(latString);
+        const longitude = Number(lngString);
+        try {
+          nextPlaceNames[coordKey] = await reverseGeocode(latitude, longitude);
+        } catch (error) {
+          nextPlaceNames[coordKey] = 'ไม่สามารถระบุสถานที่ได้';
+        }
+      }
+      if (isMounted) {
+        setResolvedPlaceNames(nextPlaceNames);
+      }
+    };
+
+    void fetchPlaceNames();
+    return () => {
+      isMounted = false;
+    };
+  }, [markerEntries, resolvedPlaceNames]);
 
   useEffect(() => {
     if (!mapRef.current || !isMapReady || !leafletModule) return;
@@ -213,6 +246,20 @@ function TrackingMap({
       sub.style.cssText = 'color:#61646b;margin-top:8px;font-size:12px;font-weight:700;line-height:1.45';
       sub.textContent = `ตำแหน่ง GPS: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
 
+      const coordKey = formatCoordinateKey(lat, lng);
+      const placeName = resolvedPlaceNames[coordKey];
+      if (placeName) {
+        const placeDiv = document.createElement('div');
+        placeDiv.style.cssText = 'color:#27272a;margin-top:6px;padding-top:6px;border-top:1px dashed #e4e4e7;font-size:12px;font-weight:700;line-height:1.45;word-break:break-word;';
+        placeDiv.innerHTML = `<span style="color:#71717a;font-weight:800;">สถานที่จริง:</span> ${escapeHtml(placeName)}`;
+        sub.appendChild(placeDiv);
+      } else {
+        const placeDiv = document.createElement('div');
+        placeDiv.style.cssText = 'color:#9ca3af;margin-top:6px;padding-top:6px;border-top:1px dashed #e4e4e7;font-size:12px;font-weight:700;line-height:1.45;font-style:italic;';
+        placeDiv.textContent = `กำลังค้นหาสถานที่...`;
+        sub.appendChild(placeDiv);
+      }
+
       popupEl.append(badge, title, sub);
 
       if (event.imageUrl) {
@@ -268,7 +315,7 @@ function TrackingMap({
       }
       didFitBoundsRef.current = true;
     }
-  }, [coords, hasLocationData, isMapReady, markerEntries]);
+  }, [coords, hasLocationData, isMapReady, markerEntries, resolvedPlaceNames]);
 
   useEffect(() => {
     didFitBoundsRef.current = false;
