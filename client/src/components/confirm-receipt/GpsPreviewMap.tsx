@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import L from 'leaflet';
+import type { Map as LeafletMap } from 'leaflet';
 import { MapView } from '@/components/Map';
 import type { GeoPosition } from '@/hooks/useGeolocation';
 
@@ -8,14 +8,17 @@ type GpsPreviewMapProps = {
 };
 
 export default function GpsPreviewMap({ position }: GpsPreviewMapProps) {
-  const handleMapReady = useCallback((map: L.Map) => {
+  const handleMapReady = useCallback(async (map: LeafletMap) => {
+    const leafletModule = await import('leaflet');
+    const L = (leafletModule as any).default ?? leafletModule;
+
     map.dragging.disable();
     map.touchZoom.disable();
     map.doubleClickZoom.disable();
     map.scrollWheelZoom.disable();
     map.boxZoom.disable();
     map.keyboard.disable();
-    const tappableMap = map as L.Map & { tap?: { disable: () => void } };
+    const tappableMap = map as LeafletMap & { tap?: { disable: () => void } };
     tappableMap.tap?.disable();
 
     const icon = L.divIcon({

@@ -142,7 +142,7 @@ export function BatchConfirmDeliveryDialog({
               </div>
               {previewUrl ? (
                 <div className="relative h-48 overflow-hidden rounded-xl border border-gray-100 bg-gray-50 sm:h-56">
-                  <img src={previewUrl} alt="หลักฐานการส่งพร้อมกัน" className="h-full w-full object-contain" />
+                  <img src={previewUrl} alt="หลักฐานการส่งพร้อมกัน" loading="lazy" className="h-full w-full object-contain" />
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}

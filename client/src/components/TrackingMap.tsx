@@ -1,6 +1,5 @@
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import type { LayerGroup, Map as LeafletMap, Marker } from 'leaflet';
 import './mapStyles.css';
 import { MapView } from './Map';
 import type { TimelineEvent } from '@/types/timeline';
@@ -57,9 +56,10 @@ function TrackingMap({
   className = '',
   mapClassName = 'h-[250px] sm:h-[300px] md:h-[400px] max-h-[50vh]',
 }: TrackingMapProps) {
-  const mapRef = useRef<L.Map | null>(null);
-  const markerGroupRef = useRef<L.LayerGroup | null>(null);
-  const markersByIdRef = useRef<Map<string, L.Marker>>(new Map());
+  const mapRef = useRef<LeafletMap | null>(null);
+  const markerGroupRef = useRef<LayerGroup | null>(null);
+  const markersByIdRef = useRef<Map<string, Marker>>(new Map());
+  const [leafletModule, setLeafletModule] = useState<typeof import('leaflet') | null>(null);
   const didFitBoundsRef = useRef(false);
   const [isMapReady, setIsMapReady] = useState(false);
 
@@ -105,22 +105,31 @@ function TrackingMap({
   }, [events]);
 
   const coords = useMemo(
-    () => markerEntries.map(entry => L.latLng(entry.lat, entry.lng)),
-    [markerEntries],
+    () => (leafletModule ? markerEntries.map(entry => leafletModule.latLng(entry.lat, entry.lng)) : []),
+    [markerEntries, leafletModule],
   );
   const hasLocationData = markerEntries.length > 0;
   const latestTimestamp = markerEntries.at(-1)?.event.timestamp
     ? formatThaiDateTime(markerEntries.at(-1)!.event.timestamp)
     : null;
 
-  const handleMapReady = useCallback((map: L.Map) => {
+  const handleMapReady = useCallback((map: LeafletMap) => {
     mapRef.current = map;
     setIsMapReady(true);
   }, []);
 
   useEffect(() => {
-    if (!mapRef.current || !isMapReady) return;
+    if (leafletModule) return;
+
+    void import('leaflet').then((module) => {
+      setLeafletModule((module as any).default ?? module);
+    }).catch(() => undefined);
+  }, [leafletModule]);
+
+  useEffect(() => {
+    if (!mapRef.current || !isMapReady || !leafletModule) return;
     const map = mapRef.current;
+    const L = leafletModule;
 
     if (!markerGroupRef.current) {
       markerGroupRef.current = L.layerGroup().addTo(map);
@@ -311,6 +320,7 @@ function TrackingMap({
         initialZoom={7}
         onMapReady={handleMapReady}
         fallbackMessage="โหลดแผนที่ไม่ได้ แต่ข้อมูลรายการส่งยังใช้งานได้ตามปกติ"
+        ariaLabel={trackingID ? `แผนที่ติดตามพัสดุ ${trackingID}` : 'แผนที่การติดตาม'}
       />
       {!hasLocationData && (
         <div className="pointer-events-none absolute inset-x-4 top-1/2 z-[500] mx-auto max-w-sm -translate-y-1/2 rounded-2xl border border-white/80 dark:border-white/10 bg-white/95 dark:bg-[#020617]/95 p-4 text-center shadow-sm backdrop-blur">

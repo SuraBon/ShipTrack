@@ -394,7 +394,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
               ) : (
                 <div className="overflow-hidden rounded-xl border border-gray-100 bg-card shadow-sm relative">
                   <div className="relative aspect-[4/3] bg-surface-container-low">
-                    <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" className="h-full w-full object-cover" />
+                    <img src={proofPhotoPreview} alt="รูปสิ่งที่ส่ง" loading="lazy" className="h-full w-full object-cover" />
                     {isProcessingImage && (
                       <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center text-white gap-2">
                         <Spinner className="h-7 w-7" />
