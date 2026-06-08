@@ -251,7 +251,10 @@ function TrackingMap({
       if (placeName) {
         const placeDiv = document.createElement('div');
         placeDiv.style.cssText = 'color:#27272a;margin-top:6px;padding-top:6px;border-top:1px dashed #e4e4e7;font-size:12px;font-weight:700;line-height:1.45;word-break:break-word;';
-        placeDiv.innerHTML = `<span style="color:#71717a;font-weight:800;">สถานที่จริง:</span> ${escapeHtml(placeName)}`;
+        const placeLabel = document.createElement('span');
+        placeLabel.style.cssText = 'color:#71717a;font-weight:800;';
+        placeLabel.textContent = 'สถานที่จริง:';
+        placeDiv.append(placeLabel, ` ${placeName}`);
         sub.appendChild(placeDiv);
       } else {
         const placeDiv = document.createElement('div');

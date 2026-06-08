@@ -7,8 +7,8 @@ import { clearAuthUser, readAuthLastActivityAt, readAuthUser, touchAuthActivity,
 interface AuthContextValue {
   user: User | null;
   loading: boolean;
-  loginUser: (employeeId: string, pin?: string) => Promise<{ success: boolean, needsSetup?: boolean, error?: string, role?: string, name?: string }>;
-  setupUserPin: (employeeId: string, pin: string, name: string) => Promise<{ success: boolean, error?: string }>;
+  loginUser: (employeeId: string, pin?: string, options?: { remember?: boolean }) => Promise<{ success: boolean, needsSetup?: boolean, error?: string, role?: string, name?: string }>;
+  setupUserPin: (employeeId: string, pin: string, name: string, options?: { remember?: boolean }) => Promise<{ success: boolean, error?: string }>;
   updateUserProfile: (newName?: string, newPassword?: string, currentPassword?: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
 }
@@ -54,9 +54,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearAuthUser();
   };
 
-  const completeLoginAfterFeedback = (authenticatedUser: User) => {
+  const completeLoginAfterFeedback = (authenticatedUser: User, options: { remember?: boolean } = {}) => {
     if (authTransitionTimer.current) clearTimeout(authTransitionTimer.current);
-    writeAuthUser(authenticatedUser);
+    writeAuthUser(authenticatedUser, options);
     authTransitionTimer.current = setTimeout(() => {
       setUser(authenticatedUser);
       setLastActivityAt(readAuthLastActivityAt(authenticatedUser));
@@ -130,18 +130,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  const loginUser = async (employeeId: string, pin?: string) => {
+  const loginUser = async (employeeId: string, pin?: string, options: { remember?: boolean } = {}) => {
     const res = await login(employeeId, pin);
     if (res.success && res.user) {
-      completeLoginAfterFeedback(res.user);
+      completeLoginAfterFeedback(res.user, options);
     }
     return res;
   };
 
-  const setupUserPin = async (employeeId: string, pin: string, name: string) => {
+  const setupUserPin = async (employeeId: string, pin: string, name: string, options: { remember?: boolean } = {}) => {
     const res = await setupPin(employeeId, pin, name);
     if (res.success && res.user) {
-      completeLoginAfterFeedback(res.user);
+      completeLoginAfterFeedback(res.user, options);
     }
     return res;
   };

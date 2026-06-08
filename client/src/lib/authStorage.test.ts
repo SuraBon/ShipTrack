@@ -23,7 +23,15 @@ describe('authStorage', () => {
     clearAuthUser();
   });
 
-  it('keeps auth in session storage when local storage rejects writes', () => {
+  it('keeps auth in session storage by default', () => {
+    writeAuthUser(testUser);
+
+    expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeTruthy();
+    expect(localStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
+    expect(readAuthUser()).toMatchObject({ employeeId: 'EMP001', role: 'ADMIN' });
+  });
+
+  it('keeps auth in session storage when remembered local storage rejects writes', () => {
     const originalSetItem = Storage.prototype.setItem;
     const localSetItem = vi.spyOn(Storage.prototype, 'setItem');
     localSetItem.mockImplementation(function setItem(key: string, value: string) {
@@ -31,22 +39,41 @@ describe('authStorage', () => {
       return originalSetItem.call(this, key, value);
     });
 
-    writeAuthUser(testUser);
+    writeAuthUser(testUser, { remember: true });
 
     expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeTruthy();
     expect(readAuthUser()).toMatchObject({ employeeId: 'EMP001', role: 'ADMIN' });
   });
 
-  it('moves session-only auth into local storage when local storage is available', () => {
-    writeAuthUser(testUser);
+  it('stores auth in local storage only when remember is selected', () => {
+    writeAuthUser(testUser, { remember: true });
+
+    expect(localStorage.getItem(AUTH_SESSION_KEY)).toBeTruthy();
+    expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
+    expect(readAuthUser()).toMatchObject({ employeeId: 'EMP001', role: 'ADMIN' });
+  });
+
+  it('reads remembered local auth without migrating it to session storage', () => {
+    writeAuthUser(testUser, { remember: true });
     const sessionAuth = localStorage.getItem(AUTH_SESSION_KEY);
     expect(sessionAuth).toBeTruthy();
 
-    sessionStorage.setItem(AUTH_SESSION_KEY, sessionAuth as string);
-    localStorage.clear();
+    sessionStorage.clear();
 
     expect(readAuthUser()).toMatchObject({ employeeId: 'EMP001', role: 'ADMIN' });
     expect(localStorage.getItem(AUTH_SESSION_KEY)).toBeTruthy();
+    expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
+  });
+
+  it('clears tampered wrapped auth payloads', () => {
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
+      value: testUser,
+      checksum: 'invalid',
+      lastActivityAt: Date.now(),
+    }));
+
+    expect(readAuthUser()).toBeNull();
     expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
   });
 });

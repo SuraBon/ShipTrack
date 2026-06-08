@@ -32,6 +32,7 @@ const QUEUE_UPDATED_EVENT = 'offline-queue-updated';
 const FALLBACK_QUEUE_KEY = LEGACY_QUEUE_KEY;
 export const OFFLINE_MEDIA_URL_PREFIX = 'offline-media://';
 export const DEFAULT_OFFLINE_RETENTION_DAYS = 30;
+export const MAX_FALLBACK_MEDIA_DATA_URL_BYTES = 750_000;
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -250,10 +251,17 @@ export async function saveOfflineProofImage(fileOrDataUrl: File | Blob | string)
   };
   const saved = isIndexedDbAvailable() && await idbPut(OFFLINE_MEDIA_STORE, record);
   if (!saved && typeof fileOrDataUrl === 'string') {
-    localStorage.setItem(`shiptrack_offline_media_${id}`, fileOrDataUrl);
+    if (fileOrDataUrl.length > MAX_FALLBACK_MEDIA_DATA_URL_BYTES) {
+      throw new Error('รูปหลักฐานมีขนาดใหญ่เกินไปสำหรับพื้นที่จัดเก็บสำรอง กรุณาเปิดพื้นที่จัดเก็บ IndexedDB หรือถ่ายรูปใหม่ให้เล็กลง');
+    }
+    try {
+      localStorage.setItem(`shiptrack_offline_media_${id}`, fileOrDataUrl);
+    } catch {
+      throw new Error('พื้นที่จัดเก็บข้อมูลบนอุปกรณ์เต็ม ไม่สามารถบันทึกรูปหลักฐานออฟไลน์ได้');
+    }
   }
   if (!saved && typeof fileOrDataUrl !== 'string') {
-    throw new Error('ไม่สามารถบันทึกรูปหลักฐานออฟไลน์ได้');
+    throw new Error('ไม่สามารถบันทึกรูปหลักฐานออฟไลน์ได้ กรุณาเปิดพื้นที่จัดเก็บ IndexedDB หรือเชื่อมต่ออินเทอร์เน็ตแล้วลองใหม่');
   }
   return id;
 }

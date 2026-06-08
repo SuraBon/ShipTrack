@@ -8,6 +8,8 @@ import {
   saveOfflineProofImage,
   getOfflineProofImage,
   updateOfflineAction,
+  cleanupOfflineData,
+  MAX_FALLBACK_MEDIA_DATA_URL_BYTES,
   type OfflineQueueItem,
 } from './offlineQueue';
 
@@ -23,6 +25,10 @@ const localStorageMock = {
   clear: vi.fn(() => {
     for (const key in store) delete store[key];
   }),
+  key: vi.fn((index: number) => Object.keys(store)[index] ?? null),
+  get length() {
+    return Object.keys(store).length;
+  },
 };
 
 Object.defineProperty(globalThis, 'localStorage', { value: localStorageMock, writable: true });
@@ -146,5 +152,53 @@ describe('offlineQueue', () => {
   it('stores data URL proof media in fallback storage', async () => {
     const id = await saveOfflineProofImage('data:image/jpeg;base64,abc');
     await expect(getOfflineProofImage(id)).resolves.toBe('data:image/jpeg;base64,abc');
+  });
+
+  it('rejects oversized data URL proof media in fallback storage', async () => {
+    const oversized = `data:image/jpeg;base64,${'a'.repeat(MAX_FALLBACK_MEDIA_DATA_URL_BYTES)}`;
+
+    await expect(saveOfflineProofImage(oversized)).rejects.toThrow('รูปหลักฐานมีขนาดใหญ่เกินไป');
+  });
+
+  it('rejects blob proof media when IndexedDB is unavailable', async () => {
+    await expect(saveOfflineProofImage(new Blob(['proof'], { type: 'image/jpeg' }))).rejects.toThrow('ไม่สามารถบันทึกรูปหลักฐานออฟไลน์ได้');
+  });
+
+  it('cleans old failed queue items and orphaned fallback media', async () => {
+    const oldTimestamp = Date.now() - 31 * 24 * 60 * 60 * 1000;
+    store.shiptrack_offline_queue = JSON.stringify([
+      {
+        id: 'failed-1',
+        action: 'confirmReceipt',
+        payload: { trackingID: 'TRK1' },
+        timestamp: oldTimestamp,
+        createdAt: new Date(oldTimestamp).toISOString(),
+        attemptCount: 3,
+        status: 'failed',
+        localMediaId: 'old',
+      },
+      {
+        id: 'pending-1',
+        action: 'startDelivery',
+        payload: { trackingID: 'TRK2' },
+        timestamp: Date.now(),
+        createdAt: new Date().toISOString(),
+        attemptCount: 0,
+        status: 'pending',
+        localMediaId: 'kept',
+      },
+    ]);
+    store.shiptrack_offline_media_old = 'data:image/jpeg;base64,old';
+    store.shiptrack_offline_media_kept = 'data:image/jpeg;base64,kept';
+    store.shiptrack_offline_media_orphan = 'data:image/jpeg;base64,orphan';
+
+    const result = await cleanupOfflineData(30);
+    const queue = await getOfflineQueue();
+
+    expect(result).toEqual({ removedQueueItems: 1, removedMediaItems: 2 });
+    expect(queue).toHaveLength(1);
+    expect(store.shiptrack_offline_media_old).toBeUndefined();
+    expect(store.shiptrack_offline_media_orphan).toBeUndefined();
+    expect(store.shiptrack_offline_media_kept).toBe('data:image/jpeg;base64,kept');
   });
 });

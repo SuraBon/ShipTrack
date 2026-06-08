@@ -2,11 +2,19 @@ import type { User } from './parcel-service/types';
 
 export const AUTH_SESSION_KEY = 'shiptrack_user';
 const AUTH_LAST_ACTIVITY_KEY = 'shiptrack_last_activity_at';
-const INTEGRITY_SALT = 'shiptrack_secure_salt_98765';
+const INTEGRITY_GUARD_SALT = 'shiptrack_integrity_guard_98765';
+
+type AuthPersistence = 'session' | 'local';
+
+type StoredAuthUser = {
+  value?: User;
+  checksum?: string;
+  lastActivityAt?: number;
+};
 
 function calculateChecksum(payload: string): string {
   let hash = 0;
-  const combined = payload + '_' + INTEGRITY_SALT;
+  const combined = payload + '_' + INTEGRITY_GUARD_SALT;
   for (let i = 0; i < combined.length; i++) {
     hash = (hash << 5) - hash + combined.charCodeAt(i);
     hash |= 0;
@@ -21,11 +29,12 @@ function safeParseUser(raw: string | null): User | null {
     if (!parsed || typeof parsed !== 'object') return null;
 
     if ('value' in parsed && 'checksum' in parsed) {
-      const userObj = parsed.value;
-      const checksum = parsed.checksum;
+      const wrapped = parsed as StoredAuthUser;
+      const userObj = wrapped.value;
+      const checksum = wrapped.checksum;
       const expectedChecksum = calculateChecksum(JSON.stringify(userObj));
       if (checksum !== expectedChecksum) {
-        console.warn('Auth token integrity check failed! Session tampered.');
+        console.warn('Auth session integrity guard failed. Clearing stored session.');
         clearAuthUser();
         return null;
       }
@@ -67,26 +76,34 @@ function serializeAuthUser(user: User, lastActivityAt = Date.now()): string {
   });
 }
 
-function writeStoredAuthUser(user: User, lastActivityAt = Date.now()): 'local' | 'session' | null {
+function writeStoredAuthUser(
+  user: User,
+  lastActivityAt = Date.now(),
+  persistence: AuthPersistence = 'session',
+): AuthPersistence | null {
   const wrappedUser = serializeAuthUser(user, lastActivityAt);
   const local = getLocalStorage();
   const session = getSessionStorage();
 
-  try {
-    if (!local) throw new Error('localStorage unavailable');
-    local.setItem(AUTH_SESSION_KEY, wrappedUser);
-    local.setItem(AUTH_LAST_ACTIVITY_KEY, String(lastActivityAt));
-    session?.removeItem(AUTH_SESSION_KEY);
-    session?.removeItem(AUTH_LAST_ACTIVITY_KEY);
-    return 'local';
-  } catch {
-    // Fall back to session storage for restricted/private browsing contexts.
+  if (persistence === 'local') {
+    try {
+      if (!local) throw new Error('localStorage unavailable');
+      local.setItem(AUTH_SESSION_KEY, wrappedUser);
+      local.setItem(AUTH_LAST_ACTIVITY_KEY, String(lastActivityAt));
+      session?.removeItem(AUTH_SESSION_KEY);
+      session?.removeItem(AUTH_LAST_ACTIVITY_KEY);
+      return 'local';
+    } catch {
+      // Fall back to session storage for restricted/private browsing contexts.
+    }
   }
 
   try {
     if (!session) return null;
     session.setItem(AUTH_SESSION_KEY, wrappedUser);
     session.setItem(AUTH_LAST_ACTIVITY_KEY, String(lastActivityAt));
+    local?.removeItem(AUTH_SESSION_KEY);
+    local?.removeItem(AUTH_LAST_ACTIVITY_KEY);
     return 'session';
   } catch {
     return null;
@@ -119,29 +136,28 @@ export function readAuthLastActivityAt(user?: User | null): number | null {
 export function readAuthUser(): User | null {
   const session = getSessionStorage();
   const local = getLocalStorage();
-  const localUser = safeParseUser(local?.getItem(AUTH_SESSION_KEY) ?? null);
-  if (localUser) return localUser;
+  const sessionUser = safeParseUser(session?.getItem(AUTH_SESSION_KEY) ?? null);
+  if (sessionUser) return sessionUser;
 
-  const legacyUser = safeParseUser(session?.getItem(AUTH_SESSION_KEY) ?? null);
-  if (legacyUser) {
-    const lastActivityAt = readAuthLastActivityAt(legacyUser) ?? Date.now();
-    writeStoredAuthUser(legacyUser, lastActivityAt);
-    return legacyUser;
+  const rememberedUser = safeParseUser(local?.getItem(AUTH_SESSION_KEY) ?? null);
+  if (rememberedUser) {
+    return rememberedUser;
   }
 
   session?.removeItem(AUTH_SESSION_KEY);
   return null;
 }
 
-export function writeAuthUser(user: User): void {
-  writeStoredAuthUser(user);
+export function writeAuthUser(user: User, options: { remember?: boolean } = {}): void {
+  writeStoredAuthUser(user, Date.now(), options.remember ? 'local' : 'session');
 }
 
 export function touchAuthActivity(user?: User | null): number | null {
   const activeUser = user ?? readAuthUser();
   if (!activeUser) return null;
   const now = Date.now();
-  return writeStoredAuthUser(activeUser, now) ? now : null;
+  const hasRememberedSession = Boolean(getLocalStorage()?.getItem(AUTH_SESSION_KEY));
+  return writeStoredAuthUser(activeUser, now, hasRememberedSession ? 'local' : 'session') ? now : null;
 }
 
 export function clearAuthUser(): void {

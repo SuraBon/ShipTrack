@@ -51,6 +51,7 @@ export default function Login() {
   const [pin, setPin] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isSetup, setIsSetup] = useState(false);
+  const [rememberSession, setRememberSession] = useState(false);
   
   // For setup
   const [name, setName] = useState('');
@@ -111,7 +112,7 @@ export default function Login() {
         title: 'กำลังบันทึกข้อมูล',
         message: 'กรุณารอสักครู่ ระบบกำลังตรวจสอบและบันทึกข้อมูลของท่าน',
       });
-      const res = await setupUserPin(employeeId, pin, name);
+      const res = await setupUserPin(employeeId, pin, name, { remember: rememberSession });
       if (res.success) {
         setFailCount(0);
         setAuthDialog({
@@ -146,7 +147,7 @@ export default function Login() {
         title: 'กำลังเข้าสู่ระบบ',
         message: 'กรุณารอสักครู่ ระบบกำลังตรวจสอบรหัสพนักงานและรหัสผ่าน',
       });
-      const res = await loginUser(employeeId, pin);
+      const res = await loginUser(employeeId, pin, { remember: rememberSession });
       
       if (res.success) {
         setFailCount(0);
@@ -274,6 +275,17 @@ export default function Login() {
                 </button>
               </div>
             </div>
+
+            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
+              <input
+                type="checkbox"
+                checked={rememberSession}
+                onChange={(event) => setRememberSession(event.target.checked)}
+                disabled={isLoginDisabled}
+                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+              />
+              <span>จำการเข้าสู่ระบบไว้บนอุปกรณ์นี้</span>
+            </label>
 
             <button
               type="submit"

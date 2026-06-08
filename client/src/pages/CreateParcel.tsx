@@ -117,7 +117,7 @@ export default function CreateParcel({ embedded = false }: { embedded?: boolean 
     e.preventDefault();
     const v = getFinalValues();
 
-    // ✅ FIX: Proper validation with specific messages
+    // Validate each required field with a user-facing field name.
     const validationError =
       validateRequiredText(v.senderName, 'ชื่อผู้ส่ง', 2, 200) ||
       validateRequiredText(v.senderBranch, 'แผนก/สาขาผู้ส่ง', 1, 100) ||
