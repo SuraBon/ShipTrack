@@ -1,6 +1,7 @@
 import StatusBadge from '@/components/StatusBadge';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import type { Parcel } from '@/types/parcel';
+import { Button } from '@/components/ui/button';
 
 interface TrackSearchResultsListProps {
   searchResults: Parcel[];
@@ -81,13 +82,13 @@ export function TrackSearchResultsList({
       </div>
       {searchResults.length > visibleSearchResultCount && (
         <div className="flex justify-center">
-          <button
-            type="button"
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setVisibleSearchResultCount(current => current + batchSize)}
-            className="app-secondary-button h-10 px-4 text-xs"
           >
             แสดงเพิ่ม {Math.min(batchSize, searchResults.length - visibleSearchResultCount)} รายการ
-          </button>
+          </Button>
         </div>
       )}
     </div>

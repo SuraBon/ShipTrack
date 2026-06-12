@@ -1,5 +1,8 @@
 import { Spinner } from '@/components/ui/spinner';
 import { sanitizeTextInput } from '@/lib/validation';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { embeddedStepBodyClass } from './ConfirmReceiptShared';
 import { useConfirmReceiptContext } from '@/contexts/ConfirmReceiptContext';
 
@@ -23,32 +26,32 @@ export function Step1CheckTracking({
   } = useConfirmReceiptContext();
   return (
     <div className="animate-in slide-in-from-right-4 duration-500">
-      <div className={embedded ? '' : 'app-panel overflow-hidden'}>
+      <Card className={`border-0 shadow-none sm:border sm:shadow-sm ${embedded ? 'bg-transparent' : 'overflow-hidden'}`}>
         {!embedded && (
-          <div className="app-panel-header p-5 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+          <div className="p-5 border-b bg-muted/50 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
               <span className="material-symbols-outlined text-xl" aria-hidden="true">search</span>
             </div>
             <div>
               <h2 className="font-display text-base font-bold text-primary">ระบุหมายเลขติดตาม</h2>
-              <p className="text-xs text-on-surface-variant/60 mt-0.5">กรอกหมายเลขติดตามเพื่อดูต้นทาง ปลายทาง และผู้รับ</p>
+              <p className="text-xs text-muted-foreground mt-0.5">กรอกหมายเลขติดตามเพื่อดูต้นทาง ปลายทาง และผู้รับ</p>
             </div>
           </div>
         )}
-        <div className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
+        <CardContent className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
           <div className="space-y-4">
             <div className="relative group">
-              <input
+              <Input
                 placeholder="เช่น TRK20260420001"
                 value={trackingId}
                 onChange={(e) => setTrackingId(sanitizeTextInput(e.target.value, 100).toUpperCase())}
-                className="app-input h-14 w-full pr-12 font-mono text-base font-semibold tracking-[0.05em] sm:h-14 sm:text-xl sm:tracking-[0.12em]"
+                className="h-14 w-full pr-12 font-mono text-base font-semibold tracking-[0.05em] sm:h-14 sm:text-xl sm:tracking-[0.12em]"
                 autoFocus
               />
               <button
                 type="button"
                 onClick={handlePasteTrackingID}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-xl text-on-surface-variant hover:text-primary hover:bg-surface-container transition-all"
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-xl text-muted-foreground hover:text-primary hover:bg-accent transition-all"
                 title="วางจากคลิปบอร์ด"
               >
                 <span className="material-symbols-outlined text-2xl" aria-hidden="true">content_paste</span>
@@ -74,37 +77,37 @@ export function Step1CheckTracking({
                     <p className="opacity-90 leading-normal">ไม่พบข้อมูลพัสดุบนอุปกรณ์ คุณสามารถบันทึกข้อมูลการจัดส่งแบบออฟไลน์สำหรับหมายเลขนี้ได้ โดยข้อมูลจะถูกซิงค์เข้าระบบอัตโนมัติเมื่อเชื่อมต่ออินเท็อร์เน็ต</p>
                   </div>
                 </div>
-                <button
-                  type="button"
+                <Button
                   onClick={handleAcceptOfflineFallback}
-                  className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-display font-bold text-sm shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full h-11 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-display font-bold text-sm shadow-sm transition-colors"
                 >
-                  <span className="material-symbols-outlined text-lg" aria-hidden="true">offline_pin</span>
+                  <span className="material-symbols-outlined text-lg mr-1.5" aria-hidden="true">offline_pin</span>
                   ยืนยันบันทึกข้อมูลแบบออฟไลน์
-                </button>
+                </Button>
               </div>
             )}
           </div>
 
-          <button
+          <Button
+            size="lg"
             onClick={handleCheckParcel}
             disabled={isChecking || !trackingId || isDelivered}
-            className="app-primary-button h-12 w-full"
+            className="w-full h-12 text-base"
           >
             {isChecking ? (
               <>
-                <Spinner className="h-5 w-5" />
+                <Spinner className="h-5 w-5 mr-2" />
                 กำลังตรวจสอบ...
               </>
             ) : (
               <>
                 ดูรายละเอียดการจัดส่ง
-                <span className="material-symbols-outlined group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
+                <span className="material-symbols-outlined ml-2 group-hover:translate-x-1 transition-transform" aria-hidden="true">arrow_forward</span>
               </>
             )}
-          </button>
-        </div>
-      </div>
+          </Button>
+        </CardContent>
+      </Card>
     </div>
   );
 }

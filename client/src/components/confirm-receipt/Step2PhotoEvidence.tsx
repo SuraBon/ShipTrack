@@ -1,5 +1,8 @@
 import { Spinner } from '@/components/ui/spinner';
 import { sanitizeTextInput } from '@/lib/validation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { confirmNavButtonClass, embeddedStepBodyClass, ParcelJobSummary } from './ConfirmReceiptShared';
 import { useConfirmReceiptContext } from '@/contexts/ConfirmReceiptContext';
 
@@ -33,21 +36,21 @@ export function Step2PhotoEvidence({
   } = useConfirmReceiptContext();
   return (
     <div className="animate-in slide-in-from-right-4 duration-500">
-      <div className={embedded ? '' : 'app-panel overflow-hidden'}>
+      <Card className={`border-0 shadow-none sm:border sm:shadow-sm ${embedded ? 'bg-transparent' : 'overflow-hidden'}`}>
         {!embedded && (
-          <div className="app-panel-header p-5 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+          <div className="p-5 border-b bg-muted/50 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
               <span className="material-symbols-outlined text-xl" aria-hidden="true">photo_camera</span>
             </div>
             <div>
               <h2 className="font-display text-base font-bold text-primary">ถ่ายรูปหลักฐานการจัดส่ง</h2>
-              <p className="text-xs text-on-surface-variant/60 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 ถ่ายรูปสิ่งที่ส่งหรือหลักฐานการจัดส่ง (พัสดุ: {checkedParcel?.TrackingID})
               </p>
             </div>
           </div>
         )}
-        <div className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
+        <CardContent className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
           {checkedParcel && <ParcelJobSummary parcel={checkedParcel} compact={embedded} />}
 
           <input
@@ -97,15 +100,15 @@ export function Step2PhotoEvidence({
                   <span className="text-xs font-semibold">กำลังประมวลผล...</span>
                 </div>
               )}
-              <button
-                type="button"
+              <Button
+                variant="secondary"
                 disabled={isProcessingImage}
                 onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-3 right-3 z-10 flex min-h-11 items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-95 disabled:opacity-50 sm:bottom-4 sm:right-4"
+                className="absolute bottom-3 right-3 z-10 sm:bottom-4 sm:right-4 shadow-sm"
               >
-                <span className="material-symbols-outlined text-lg" aria-hidden="true">photo_camera</span>
+                <span className="material-symbols-outlined text-lg mr-2" aria-hidden="true">photo_camera</span>
                 ถ่ายใหม่
-              </button>
+              </Button>
               <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-white/95 drop-shadow-md">
                 <span className="material-symbols-outlined text-base" aria-hidden="true">verified</span>
                 <span className="text-xs font-bold uppercase tracking-wider">แนบรูปถ่ายสำเร็จ</span>
@@ -192,15 +195,15 @@ export function Step2PhotoEvidence({
 
             {/* If bypassed / error / denied, we need a reason */}
             {needsGpsOverrideReason && (
-              <div className="space-y-2 border-t border-outline-variant/10 pt-4 animate-in slide-in-from-top-2 duration-300">
-                <label className="block text-[11px] font-black uppercase text-error px-1">
-                  กรุณาระบุเหตุผลสั้น ๆ ที่ไม่สามารถระบุพิกัดตำแหน่งได้ (เช่น อับสัญญาณ หรือ อยู่ใต้ตึก) <span className="text-error font-black">*</span>
+              <div className="space-y-2 border-t border-border pt-4 animate-in slide-in-from-top-2 duration-300">
+                <label className="block text-[11px] font-black uppercase text-destructive px-1">
+                  กรุณาระบุเหตุผลสั้น ๆ ที่ไม่สามารถระบุพิกัดตำแหน่งได้ (เช่น อับสัญญาณ หรือ อยู่ใต้ตึก) <span className="text-destructive font-black">*</span>
                 </label>
-                <textarea
+                <Textarea
                   placeholder="พิมพ์เหตุผลที่นี่ เช่น อยู่ในพื้นที่อับสัญญาณ, ทำงานในตึกชั้นใต้ดิน..."
                   value={gpsOverrideReason}
                   onChange={(e) => setGpsOverrideReason(sanitizeTextInput(e.target.value, 300))}
-                  className="min-h-[72px] w-full resize-none rounded-2xl border-2 border-error/20 bg-white px-3.5 py-2.5 font-display text-sm outline-none transition-all focus:border-error focus:ring-4 focus:ring-error/5 text-primary placeholder:text-on-surface-variant/40"
+                  className="min-h-[72px] w-full resize-none border-destructive/20 focus-visible:ring-destructive/20 focus-visible:border-destructive text-sm"
                 />
               </div>
             )}
@@ -208,31 +211,32 @@ export function Step2PhotoEvidence({
 
           {/* Navigation controls */}
           <div className="grid grid-cols-1 gap-2 pt-1 min-[400px]:grid-cols-[0.9fr_1.4fr] sm:gap-3 sm:pt-2">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => setCurrentStep(1)}
-              className={`${confirmNavButtonClass} border border-outline-variant/70 bg-white text-on-surface-variant shadow-sm hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary`}
+              className="w-full bg-white shadow-sm"
             >
-              <span className="material-symbols-outlined text-lg sm:text-xl" aria-hidden="true">arrow_back</span>
+              <span className="material-symbols-outlined text-lg sm:text-xl mr-2" aria-hidden="true">arrow_back</span>
               ย้อนกลับ
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="lg"
               onClick={() => setCurrentStep(3)}
               disabled={!canProceedFromPhoto}
-              className={`${confirmNavButtonClass} group gap-2 bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.01] hover:bg-primary/95 disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none`}
+              className="w-full group shadow-lg shadow-primary/20 hover:scale-[1.01]"
             >
               ขั้นตอนถัดไป
               <span
-                className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl font-black"
+                className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl font-black ml-2"
                 aria-hidden="true"
               >
                 arrow_forward
               </span>
-            </button>
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

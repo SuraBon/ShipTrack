@@ -1,5 +1,7 @@
 import type { Parcel } from '@/types/parcel';
 import type { TimelineEvent } from '@/types/timeline';
+import { translateSystemNote } from './translationUtils';
+
 
 /**
  * Parses the structured note field of a parcel into an ordered list of
@@ -61,6 +63,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           imageUrl: getProofImage(evt.photoUrl),
           latitude: evt.latitude,
           longitude: evt.longitude,
+          note: evt.note ? translateSystemNote(evt.note) : undefined,
         });
       } else if (evt.eventType === 'FORWARD') {
         events.push({
@@ -75,6 +78,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           imageUrl: getProofImage(evt.photoUrl),
           latitude: evt.latitude,
           longitude: evt.longitude,
+          note: evt.note ? translateSystemNote(evt.note) : undefined,
         });
       } else if (evt.eventType === 'START_DELIVERY') {
         events.push({
@@ -88,6 +92,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           destLocation: evt.destLocation,
           latitude: evt.latitude,
           longitude: evt.longitude,
+          note: evt.note ? translateSystemNote(evt.note) : undefined,
         });
       } else if (evt.eventType === 'PICKUP') {
         events.push({
@@ -101,6 +106,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           destLocation: evt.destLocation,
           latitude: evt.latitude,
           longitude: evt.longitude,
+          note: evt.note ? translateSystemNote(evt.note) : undefined,
         });
       } else if (evt.eventType === 'RELEASE_DELIVERY') {
         events.push({
@@ -112,6 +118,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           timestamp: evt.timestamp,
           location: evt.location,
           destLocation: evt.destLocation,
+          note: evt.note ? translateSystemNote(evt.note) : undefined,
         });
       } else if (evt.eventType === 'PROXY') {
         events.push({
@@ -127,6 +134,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           longitude: evt.longitude,
           deliveryMatchStatus: evt.deliveryMatchStatus,
           deliveryMismatchReason: evt.deliveryMismatchReason,
+          note: evt.note ? translateSystemNote(evt.note) : undefined,
         });
       } else if (evt.eventType === 'DELIVERED') {
         events.push({
@@ -142,6 +150,7 @@ export function parseParcelTimeline(parcel: Parcel): TimelineEvent[] {
           longitude: evt.longitude,
           deliveryMatchStatus: evt.deliveryMatchStatus,
           deliveryMismatchReason: evt.deliveryMismatchReason,
+          note: evt.note ? translateSystemNote(evt.note) : undefined,
         });
       }
 

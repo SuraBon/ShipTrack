@@ -22,6 +22,7 @@ export interface TimelineEvent {
   longitude?: number;
   deliveryMatchStatus?: DeliveryMatchStatus;
   deliveryMismatchReason?: string;
+  note?: string;
 }
 
 export interface ParcelTimeline {

@@ -82,19 +82,19 @@ export function AdminDashboardView({
       {hasFilters ? (
         <div className="space-y-4 pb-4 animate-in fade-in duration-300">
           {selectedAdminParcelIds.size > 0 && (
-            <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm font-bold text-slate-700">
+            <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-sm border-2 border-outline-variant bg-white/95 dark:bg-card/95 px-4 py-3 shadow-[3px_3px_0px_0px_var(--outline-variant)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm font-black text-foreground">
                 เลือกแล้ว {selectedAdminParcelIds.size} รายการ (ส่งได้ {batchConfirmParcels.length})
               </span>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs">
+                <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs rounded-sm border-2 border-outline-variant font-black">
                   ยกเลิกเลือก
                 </button>
-                <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs disabled:opacity-60">
+                <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs rounded-sm border-2 border-outline-variant font-black disabled:opacity-60">
                   <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
                   ส่งพร้อมกัน
                 </button>
-                <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60 sm:col-span-1">
+                <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-sm border-2 border-outline-variant bg-red-650 text-red-700 dark:text-red-300 px-3 text-xs font-black shadow-[2px_2px_0px_0px_var(--outline-variant)] transition-colors disabled:opacity-60 sm:col-span-1">
                   {isBatchDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
                   ลบพร้อมกัน
                 </button>
@@ -152,19 +152,19 @@ export function AdminDashboardView({
       ) : (
         <div className="space-y-4 pb-4">
           {selectedAdminParcelIds.size > 0 && (
-            <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-              <span className="text-sm font-bold text-slate-700">
+            <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-sm border-2 border-outline-variant bg-white/95 dark:bg-card/95 px-4 py-3 shadow-[3px_3px_0px_0px_var(--outline-variant)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-sm font-black text-foreground">
                 เลือกแล้ว {selectedAdminParcelIds.size} รายการ (ส่งได้ {batchConfirmParcels.length})
               </span>
               <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs">
+                <button type="button" onClick={clearSelectedAdminParcels} className="app-secondary-button h-10 px-3 text-xs rounded-sm border-2 border-outline-variant font-black">
                   ยกเลิกเลือก
                 </button>
-                <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs disabled:opacity-60">
+                <button type="button" onClick={() => setIsBatchConfirmOpen(true)} disabled={batchConfirmParcels.length === 0} className="app-primary-button h-10 px-3 text-xs rounded-sm border-2 border-outline-variant font-black disabled:opacity-60">
                   <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
                   ส่งพร้อมกัน
                 </button>
-                <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-xl bg-red-600 px-3 text-xs font-bold text-white shadow-sm transition-colors hover:bg-red-700 disabled:opacity-60 sm:col-span-1">
+                <button type="button" onClick={handleBatchDelete} disabled={isBatchDeleting} className="col-span-2 inline-flex h-10 items-center justify-center gap-1.5 rounded-sm border-2 border-outline-variant bg-red-650 text-red-700 dark:text-red-300 px-3 text-xs font-black shadow-[2px_2px_0px_0px_var(--outline-variant)] transition-colors disabled:opacity-60 sm:col-span-1">
                   {isBatchDeleting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />}
                   ลบพร้อมกัน
                 </button>

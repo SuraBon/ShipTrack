@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
 import { useGeolocation } from '@/hooks/useGeolocation';
 import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
-import { buildGpsEvidenceNote, needsGpsOverrideReason as shouldRequireGpsOverrideReason } from '@/lib/gpsQuality';
+import { buildGpsEvidenceNote, needsGpsOverrideReason as shouldRequireGpsOverrideReason, isInvalidCoordinates, getFallbackCoordinates } from '@/lib/gpsQuality';
 import { reverseGeocode } from '@/lib/geocoding';
 import { buildDeliveryActionPayload, getCurrentBranchFromParcel, isParcelTrulyDelivered } from '@/lib/deliveryActionBuilder';
 import { useOfflineQueue } from '@/hooks/useOfflineQueue';
@@ -381,9 +381,29 @@ export function useConfirmReceiptForm({
 
       toast.info('กำลังยืนยันการจัดส่ง...');
       
+      let finalLat = position?.latitude;
+      let finalLng = position?.longitude;
+      let gpsWarningAdded = '';
+
+      const destBranch = isOfflineFallback
+        ? resolveSelectValue(tempReceiverBranch)
+        : checkedParcel?.['สาขาผู้รับ'];
+
+      if (isInvalidCoordinates(finalLat, finalLng)) {
+        if (destBranch) {
+          const fallback = getFallbackCoordinates(destBranch);
+          if (fallback) {
+            finalLat = fallback.latitude;
+            finalLng = fallback.longitude;
+            gpsWarningAdded = `[พิกัดผิดปกติ ระบบใช้พิกัดทดแทนของสาขาปลายทาง: ${destBranch}]`;
+          }
+        }
+      }
+
       const finalNote = [
         actionPayload.note,
         ...buildGpsEvidenceNote({ status: geoStatus, position, overrideReason: safeGpsOverrideReason }),
+        gpsWarningAdded,
         locationName ? `[พิกัดจริง: ${locationName}]` : '',
       ].filter(Boolean).join(' ');
 
@@ -391,8 +411,8 @@ export function useConfirmReceiptForm({
         finalTrackingId,
         photoUrl,
         finalNote,
-        position?.latitude,
-        position?.longitude,
+        finalLat,
+        finalLng,
         finalEventType,
         actionPayload.location,
         actionPayload.destLocation,

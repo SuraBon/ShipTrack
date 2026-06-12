@@ -8,6 +8,10 @@ import { translateSystemNote } from '@/lib/translationUtils';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { parseDateInput } from '@/lib/dateUtils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const PAGE_SIZE = 25;
 const EVENT_TYPES = ['', 'CREATED', 'START_DELIVERY', 'PICKUP', 'FORWARD', 'PROXY', 'DELIVERED', 'RELEASE_DELIVERY'];
@@ -24,48 +28,50 @@ const EVENT_LABELS: Record<string, string> = {
 
 function ActivityCard({ activity }: { activity: ParcelActivityLogRow }) {
   return (
-    <div className="app-compact-card space-y-3">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="font-mono text-sm font-semibold text-foreground">{activity.trackingId || '-'}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{activity.timestamp || '-'}</p>
+    <Card className="shadow-sm">
+      <CardContent className="p-4 space-y-3">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="font-mono text-sm font-semibold text-foreground">{activity.trackingId || '-'}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{activity.timestamp || '-'}</p>
+          </div>
+          <span className="shrink-0 rounded-lg bg-secondary px-2.5 py-1 text-xs font-semibold text-secondary-foreground">
+            {EVENT_LABELS[activity.eventType] || activity.eventType || '-'}
+          </span>
         </div>
-        <span className="shrink-0 rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700">
-          {EVENT_LABELS[activity.eventType] || activity.eventType || '-'}
-        </span>
-      </div>
-      <div className="grid gap-2 text-sm">
-        <div className="rounded-xl bg-gray-50 p-3">
-          <div className="flex items-start gap-2">
-            <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <div className="min-w-0">
-              <p className="break-words text-xs font-semibold text-foreground">{activity.location || '-'}</p>
-              {activity.destLocation && <p className="mt-1 break-words text-xs text-muted-foreground">ปลายทาง: {activity.destLocation}</p>}
+        <div className="grid gap-2 text-sm">
+          <div className="rounded-xl bg-muted/50 p-3">
+            <div className="flex items-start gap-2">
+              <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <div className="min-w-0">
+                <p className="break-words text-xs font-semibold text-foreground">{activity.location || '-'}</p>
+                {activity.destLocation && <p className="mt-1 break-words text-xs text-muted-foreground">ปลายทาง: {activity.destLocation}</p>}
+              </div>
             </div>
           </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="min-w-0 rounded-xl bg-muted/50 p-3">
+              <p className="text-[11px] font-semibold text-muted-foreground">ผู้ทำรายการ / ผู้เกี่ยวข้อง</p>
+              <p className="mt-1 break-words text-xs font-medium text-foreground">{activity.person || '-'}</p>
+            </div>
+            <div className="min-w-0 rounded-xl bg-muted/50 p-3">
+              <p className="text-[11px] font-semibold text-muted-foreground">พิกัด</p>
+              <p className="mt-1 break-all text-xs font-medium text-foreground">
+                {typeof activity.latitude === 'number' && typeof activity.longitude === 'number' ? `${activity.latitude}, ${activity.longitude}` : '-'}
+              </p>
+            </div>
+          </div>
+          {(activity.note || activity.deliveryMismatchReason) && (
+            <div className="rounded-xl bg-amber-50 p-3">
+              <p className="text-[11px] font-semibold text-amber-700">หมายเหตุ</p>
+              <p className="mt-1 break-words text-xs font-medium text-amber-950 dark:text-amber-100">
+                {translateSystemNote(activity.deliveryMismatchReason || activity.note)}
+              </p>
+            </div>
+          )}
         </div>
-        <div className="grid gap-2 sm:grid-cols-2">
-        <div className="min-w-0 rounded-xl bg-gray-50 p-3">
-            <p className="text-[11px] font-semibold text-muted-foreground">ผู้ทำรายการ / ผู้เกี่ยวข้อง</p>
-            <p className="mt-1 break-words text-xs font-medium text-foreground">{activity.person || '-'}</p>
-          </div>
-          <div className="min-w-0 rounded-xl bg-gray-50 p-3">
-            <p className="text-[11px] font-semibold text-muted-foreground">พิกัด</p>
-            <p className="mt-1 break-all text-xs font-medium text-foreground">
-              {typeof activity.latitude === 'number' && typeof activity.longitude === 'number' ? `${activity.latitude}, ${activity.longitude}` : '-'}
-            </p>
-          </div>
-        </div>
-        {(activity.note || activity.deliveryMismatchReason) && (
-          <div className="rounded-xl bg-amber-50 p-3">
-            <p className="text-[11px] font-semibold text-amber-700">หมายเหตุ</p>
-            <p className="mt-1 break-words text-xs font-medium text-amber-950 dark:text-amber-100">
-              {translateSystemNote(activity.deliveryMismatchReason || activity.note)}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -183,19 +189,20 @@ export default function ParcelActivityLog() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => setIsHelpOpen(true)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-800"
+            className="rounded-full text-muted-foreground"
             aria-label="อธิบายหน้าประวัติพัสดุ"
             title="อธิบายหน้าประวัติพัสดุ"
           >
             <HelpCircle className="h-5 w-5" aria-hidden="true" />
-          </button>
-          <button type="button" onClick={fetchActivities} disabled={loading} className="app-secondary-button h-10 px-3">
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+          </Button>
+          <Button variant="outline" onClick={fetchActivities} disabled={loading}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
             รีเฟรช
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -239,43 +246,53 @@ export default function ParcelActivityLog() {
         </DialogContent>
       </Dialog>
 
-      <div className="app-toolbar flex flex-col gap-3">
-        <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-            <input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาสถานที่ ผู้ทำรายการ หรือหมายเหตุ..." className="app-input w-full pl-10" />
+      <Card className="mb-4">
+        <CardContent className="p-4 flex flex-col gap-3">
+          <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_1fr_auto]">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+              <Input value={query} onChange={event => setQuery(event.target.value)} placeholder="ค้นหาสถานที่ ผู้ทำรายการ หรือหมายเหตุ..." className="pl-9" />
+            </div>
+            <Select value={eventType} onValueChange={setEventType}>
+              <SelectTrigger>
+                <SelectValue placeholder="ทุกเหตุการณ์พัสดุ" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">ทุกเหตุการณ์พัสดุ</SelectItem>
+                {EVENT_TYPES.filter(Boolean).map(type => (
+                  <SelectItem key={type} value={type}>{EVENT_LABELS[type] || type}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Input value={trackingId} onChange={event => setTrackingId(event.target.value.toUpperCase())} placeholder="Tracking ID" className="uppercase font-mono" />
+            {hasFilters && (
+              <Button variant="destructive" onClick={clearFilters} className="md:hidden">
+                <FilterX className="mr-2 h-4 w-4" aria-hidden="true" />
+                ล้าง
+              </Button>
+            )}
           </div>
-          <select value={eventType} onChange={event => setEventType(event.target.value)} className="app-input w-full">
-            {EVENT_TYPES.map(type => <option key={type || 'ALL'} value={type}>{type ? EVENT_LABELS[type] || type : 'ทุกเหตุการณ์พัสดุ'}</option>)}
-          </select>
-          <input value={trackingId} onChange={event => setTrackingId(event.target.value.toUpperCase())} placeholder="Tracking ID" className="app-input w-full font-mono uppercase" />
-          {hasFilters && (
-            <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600 md:hidden">
-              <FilterX className="h-4 w-4" aria-hidden="true" />
-              ล้าง
-            </button>
-          )}
-        </div>
-        <div className="grid gap-3 grid-cols-2 md:grid-cols-[1fr_1fr_auto] items-end">
-          <div>
-            <label className="block text-[11px] font-bold text-muted-foreground mb-1">จากวันที่</label>
-            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="app-input w-full h-11" />
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-[1fr_1fr_auto] items-end">
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">จากวันที่</label>
+              <Input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-muted-foreground mb-1.5">ถึงวันที่</label>
+              <Input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} />
+            </div>
+            {hasFilters && (
+              <Button variant="destructive" onClick={clearFilters} className="hidden md:inline-flex">
+                <FilterX className="mr-2 h-4 w-4" aria-hidden="true" />
+                ล้างตัวกรอง
+              </Button>
+            )}
           </div>
-          <div>
-            <label className="block text-[11px] font-bold text-muted-foreground mb-1">ถึงวันที่</label>
-            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="app-input w-full h-11" />
-          </div>
-          {hasFilters && (
-            <button type="button" onClick={clearFilters} className="app-secondary-button h-11 px-3 text-xs text-red-600 hidden md:inline-flex">
-              <FilterX className="h-4 w-4" aria-hidden="true" />
-              ล้างตัวกรอง
-            </button>
-          )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <div className="app-panel overflow-hidden">
-        <div className="flex items-center justify-between gap-3 border-b border-outline-variant/10 bg-surface-container-lowest/50 px-4 py-3">
+      <Card className="overflow-hidden">
+        <div className="flex items-center justify-between gap-3 border-b bg-muted/50 px-4 py-3">
           <div className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
             <FileClock className="h-4 w-4" aria-hidden="true" />
             พบ {totalCount} เหตุการณ์พัสดุ
@@ -284,58 +301,60 @@ export default function ParcelActivityLog() {
         </div>
 
         {loading ? (
-          <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
             {[...Array(6)].map((_, i) => (
-              <div key={i} className="app-compact-card space-y-3 animate-pulse">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-2 flex-1">
-                    <Skeleton className="h-5 w-32 rounded-md" />
-                    <Skeleton className="h-4 w-24 rounded-md" />
+              <Card key={i} className="animate-pulse shadow-sm">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-2 flex-1">
+                      <Skeleton className="h-5 w-32 rounded-md" />
+                      <Skeleton className="h-4 w-24 rounded-md" />
+                    </div>
+                    <Skeleton className="h-7 w-20 rounded-lg shrink-0" />
                   </div>
-                  <Skeleton className="h-7 w-20 rounded-lg shrink-0" />
-                </div>
-                <div className="grid gap-2 text-sm">
-                  <div className="rounded-xl bg-gray-50/50 p-3 flex items-start gap-2">
-                    <Skeleton className="h-4 w-4 rounded-full shrink-0" />
-                    <Skeleton className="h-4 w-3/4 rounded-md" />
-                  </div>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    <div className="min-w-0 rounded-xl bg-gray-50/50 p-3 space-y-1">
-                      <Skeleton className="h-3 w-20 rounded-md" />
+                  <div className="grid gap-2 text-sm">
+                    <div className="rounded-xl bg-muted/50 p-3 flex items-start gap-2">
+                      <Skeleton className="h-4 w-4 rounded-full shrink-0" />
                       <Skeleton className="h-4 w-3/4 rounded-md" />
                     </div>
-                    <div className="min-w-0 rounded-xl bg-gray-50/50 p-3 space-y-1">
-                      <Skeleton className="h-3 w-16 rounded-md" />
-                      <Skeleton className="h-4 w-20 rounded-md" />
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <div className="min-w-0 rounded-xl bg-muted/50 p-3 space-y-1">
+                        <Skeleton className="h-3 w-20 rounded-md" />
+                        <Skeleton className="h-4 w-3/4 rounded-md" />
+                      </div>
+                      <div className="min-w-0 rounded-xl bg-muted/50 p-3 space-y-1">
+                        <Skeleton className="h-3 w-16 rounded-md" />
+                        <Skeleton className="h-4 w-20 rounded-md" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         ) : activities.length === 0 ? (
-          <div className="p-4">
+          <div className="p-8">
             <EmptyState
-              icon={<FileClock className="h-7 w-7 text-slate-400" />}
+              icon={<FileClock className="h-10 w-10 text-muted-foreground" />}
               title="ไม่พบประวัติพัสดุ"
               description="ไม่พบเหตุการณ์หรือประวัติการจัดส่งพัสดุที่ตรงกับเงื่อนไขการค้นหา"
             />
           </div>
         ) : (
           <>
-            <div className="grid gap-3 p-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-3">
               {displayedActivities.map(activity => <ActivityCard key={activity.id} activity={activity} />)}
             </div>
-            <div className="flex items-center justify-between gap-2 border-t border-outline-variant/10 bg-surface-container-lowest/50 px-4 py-3">
-              <button type="button" onClick={() => setPage(value => Math.max(1, value - 1))} disabled={page === 1 || loading} className="app-secondary-button h-9 px-3 text-xs">ก่อนหน้า</button>
+            <div className="flex items-center justify-between gap-2 border-t bg-muted/50 px-4 py-3">
+              <Button variant="outline" size="sm" onClick={() => setPage(value => Math.max(1, value - 1))} disabled={page === 1 || loading}>ก่อนหน้า</Button>
               <span className="text-xs font-semibold text-muted-foreground">
                 แสดง {offset + 1}-{Math.min(offset + displayedActivities.length, totalCount)} จาก {totalCount}
               </span>
-              <button type="button" onClick={() => setPage(value => value + 1)} disabled={!clientHasMore || loading} className="app-secondary-button h-9 px-3 text-xs">ถัดไป</button>
+              <Button variant="outline" size="sm" onClick={() => setPage(value => value + 1)} disabled={!clientHasMore || loading}>ถัดไป</Button>
             </div>
           </>
         )}
-      </div>
+      </Card>
     </div>
   );
 }

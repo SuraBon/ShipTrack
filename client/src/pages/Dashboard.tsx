@@ -55,22 +55,22 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   const debouncedSearch = useDebounce(searchTerm, 300);
   const role = resolveDashboardRole(user?.role);
   const isMessengerDashboard = role === 'MESSENGER';
-  
+
   const {
     position: messengerPosition,
     status: messengerGeoStatus,
     requestLocation: requestMessengerLocation,
   } = useGeolocation();
-  
+
   const defaultStatusFilter = 'ทั้งหมด';
   const [statusFilter, setStatusFilter] = useState(() => defaultStatusFilter);
-  
+
   const [lastUpdatedAt, setLastUpdatedAt] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [adminSort, setAdminSort] = useState<AdminSortMode>('newest');
   const [isExporting, setIsExporting] = useState(false);
-  
+
   const isFetchingRef = useRef(false);
   const hasSetInitialView = useRef(false);
   const currentEmployeeId = String(user?.employeeId || '').trim().toUpperCase();
@@ -517,11 +517,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
   return (
     <div className="mx-auto max-w-[390px] space-y-4 md:max-w-none md:space-y-5 animate-in fade-in slide-in-from-bottom-4 duration-500">
       {shouldShowSystemHealth && (
-        <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${
-          systemHealth?.status === 'ok'
+        <div className={`rounded-2xl border px-4 py-3 text-sm shadow-sm ${systemHealth?.status === 'ok'
             ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
             : 'border-amber-200 bg-amber-50 text-amber-900'
-        }`}>
+          }`}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2">
               <AlertTriangle className="h-4 w-4" aria-hidden="true" />
@@ -575,11 +574,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
                   type="button"
                   onClick={() => setStatusFilter(s.filter)}
                   aria-pressed={statusFilter === s.filter}
-                  className={`rounded-xl border bg-white/90 p-2.5 text-left shadow-sm transition-all active:scale-[0.99] ${
-                    statusFilter === s.filter
+                  className={`rounded-xl border bg-white/90 p-2.5 text-left shadow-sm transition-all active:scale-[0.99] ${statusFilter === s.filter
                       ? 'border-primary/45 ring-2 ring-primary/10'
                       : 'border-outline-variant/25'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center gap-2.5">
                     <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${s.iconBg}`}>
@@ -636,11 +634,10 @@ export default function Dashboard({ isConfigured }: DashboardProps) {
             )}
           </div>
           <div className="ml-auto flex shrink-0 items-center gap-2">
-            <div className={`flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-2.5 text-[11px] font-semibold text-muted-foreground shadow-sm ${
-              isMessengerDashboard
+            <div className={`flex items-center gap-1.5 rounded-xl border border-outline-variant bg-surface px-2.5 text-[11px] font-semibold text-muted-foreground shadow-sm ${isMessengerDashboard
                 ? 'h-11 md:h-12 px-3 text-xs'
                 : 'h-8 rounded-lg px-2'
-            }`}>
+              }`}>
               <span className={`h-1.5 w-1.5 rounded-full ${loading ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'}`} />
               <span>
                 {loading ? 'กำลังอัปเดต...' : (lastUpdatedAt ? `อัปเดต ${new Date(lastUpdatedAt).toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}` : 'รอข้อมูล')}

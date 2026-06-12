@@ -47,15 +47,15 @@ export const AdminParcelManagementCard = ({
   const isInTransit = parcel['สถานะ'] === 'กำลังจัดส่ง';
   const statusLabel = isDone ? 'ส่งแล้ว' : isInTransit ? 'กำลังส่ง' : 'รอดำเนินการ';
   const statusPillClass = isDone
-    ? 'bg-emerald-100 text-emerald-700'
+    ? 'bg-emerald-100 text-emerald-950 dark:bg-emerald-900/30 dark:text-emerald-300 border border-outline-variant'
     : isInTransit
-      ? 'bg-blue-100 text-blue-600'
-      : 'bg-amber-100 text-amber-700';
+      ? 'bg-blue-100 text-blue-950 dark:bg-blue-900/30 dark:text-blue-300 border border-outline-variant'
+      : 'bg-amber-100 text-amber-950 dark:bg-amber-900/30 dark:text-amber-300 border border-outline-variant';
   const accentClass = isDone
-    ? 'bg-emerald-50 text-emerald-600'
+    ? 'bg-emerald-100 text-emerald-900 dark:text-emerald-300'
     : isInTransit
-      ? 'bg-blue-50 text-blue-500'
-      : 'bg-amber-50 text-amber-600';
+      ? 'bg-blue-100 text-blue-900 dark:text-blue-300'
+      : 'bg-amber-100 text-amber-900 dark:text-amber-300';
   const iconName = isDone ? 'check_circle' : isInTransit ? 'local_shipping' : 'inventory_2';
   const dateLabel = formatThaiDateTime(parcel['วันที่รับ'] || parcel['วันที่สร้าง']);
 
@@ -64,21 +64,22 @@ export const AdminParcelManagementCard = ({
   };
 
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-outline-variant bg-card shadow-sm transition-all duration-200 hover:shadow-md">
-      <div className="flex items-center justify-between gap-3 border-b border-outline-variant bg-surface-container px-4 py-2">
+    <article className="flex h-full flex-col overflow-hidden rounded-sm border-2 border-outline-variant bg-card shadow-[3px_3px_0px_0px_var(--outline-variant)] transition-all duration-150 hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_var(--outline-variant)] active:translate-x-[0.5px] active:translate-y-[0.5px] active:shadow-[1.5px_1.5px_0px_0px_var(--outline-variant)]">
+      <div className="flex items-center justify-between gap-3 border-b-2 border-outline-variant bg-surface-container px-4 py-2">
         <div className="flex min-w-0 items-center gap-2">
           {onSelectedChange && (
             <Checkbox
               checked={selected}
               onCheckedChange={(checked) => onSelectedChange(checked === true)}
               aria-label={`เลือก ${parcel.TrackingID}`}
+              className="rounded-sm border-2 border-outline-variant"
             />
           )}
           <code className="min-w-0 truncate font-mono text-[10px] font-black tracking-wider text-slate-400">
             {parcel.TrackingID}
           </code>
         </div>
-        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ${statusPillClass}`}>
+        <span className={`shrink-0 rounded-sm px-2 py-0.5 text-[10px] font-semibold ${statusPillClass}`}>
           {statusLabel}
         </span>
       </div>
@@ -87,12 +88,12 @@ export const AdminParcelManagementCard = ({
         <div className="space-y-4">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
-              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full ${accentClass}`}>
+              <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-sm border border-outline-variant ${accentClass}`}>
                 {renderMaterialIcon(iconName, 'text-base')}
               </span>
               <div className="min-w-0">
-                <p className="text-[10px] leading-none text-slate-400">ผู้รับ</p>
-                <h3 className="mt-1 truncate text-sm font-semibold leading-tight text-slate-800">
+                <p className="text-[10px] font-black leading-none text-slate-450">ผู้รับ</p>
+                <h3 className="mt-1 truncate text-sm font-black leading-tight text-foreground">
                   {parcel['ผู้รับ'] || '-'}
                 </h3>
               </div>
@@ -107,17 +108,17 @@ export const AdminParcelManagementCard = ({
               <div className="grid grid-cols-2 gap-2">
                 <div
                   onClick={() => itemDescription && setIsAdminItemDescriptionExpanded(!isAdminItemDescriptionExpanded)}
-                  className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-slate-50 px-2.5 py-2 transition-all ${itemDescription ? 'cursor-pointer hover:bg-slate-100' : 'opacity-40'}`}
+                  className={`flex min-w-0 items-start gap-2.5 rounded-sm border-2 border-outline-variant bg-slate-50 px-2.5 py-2 transition-all ${itemDescription ? 'cursor-pointer hover:bg-slate-100' : 'opacity-40'}`}
                 >
                   <Package className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-bold leading-none text-slate-500">สิ่งที่ส่ง</p>
+                      <p className="text-[10px] font-black leading-none text-slate-500">สิ่งที่ส่ง</p>
                       {itemDescription.length > 25 && (
-                        <span className="shrink-0 text-[8px] font-bold uppercase text-slate-500">{isAdminItemDescriptionExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
+                        <span className="shrink-0 text-[8px] font-black uppercase text-slate-500">{isAdminItemDescriptionExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
                       )}
                     </div>
-                    <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isAdminItemDescriptionExpanded ? 'break-words whitespace-pre-wrap' : 'truncate'}`}>
+                    <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-foreground ${isAdminItemDescriptionExpanded ? 'break-words whitespace-pre-wrap' : 'line-clamp-3 md:line-clamp-none'}`}>
                       {itemDescription || '-'}
                     </p>
                   </div>
@@ -125,17 +126,17 @@ export const AdminParcelManagementCard = ({
 
                 <div 
                   onClick={() => note && setIsAdminNoteExpanded(!isAdminNoteExpanded)}
-                  className={`flex min-w-0 items-start gap-2.5 rounded-lg bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
+                  className={`flex min-w-0 items-start gap-2.5 rounded-sm border-2 border-outline-variant bg-orange-50/70 px-2.5 py-2 transition-all ${note ? 'cursor-pointer hover:bg-orange-100/70' : 'opacity-40'}`}
                 >
                   {renderMaterialIcon('sticky_note_2', 'mt-0.5 text-orange-500 text-base leading-none')}
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between">
-                      <p className="text-[10px] font-bold leading-none text-orange-600">หมายเหตุ</p>
+                      <p className="text-[10px] font-black leading-none text-orange-600">หมายเหตุ</p>
                       {translatedNote.length > 25 && (
-                        <span className="text-[8px] text-orange-600 font-bold uppercase">{isAdminNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
+                        <span className="text-[8px] text-orange-600 font-black uppercase">{isAdminNoteExpanded ? 'ย่อ' : 'ดูเพิ่ม'}</span>
                       )}
                     </div>
-                    <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-800 ${isAdminNoteExpanded ? 'break-words' : 'truncate'}`}>
+                    <p className={`mt-1 min-w-0 text-xs font-semibold leading-relaxed text-slate-850 ${isAdminNoteExpanded ? 'break-words' : 'line-clamp-3 md:line-clamp-none'}`}>
                       {translatedNote || '-'}
                     </p>
                   </div>
@@ -154,14 +155,14 @@ export const AdminParcelManagementCard = ({
             />
           )}
 
-          <div className="rounded-xl bg-surface-container px-3 py-2">
+          <div className="rounded-sm border border-outline-variant bg-surface-container px-3 py-2">
             <p className="text-[9px] font-black uppercase tracking-wider text-slate-400">ล่าสุด</p>
-            <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-slate-700">{getLatestTimelineSummary(parcel)}</p>
+            <p className="mt-0.5 line-clamp-2 text-xs font-semibold leading-snug text-slate-700 dark:text-muted-foreground">{getLatestTimelineSummary(parcel)}</p>
           </div>
         </div>
 
-        <div className="mt-4 flex flex-col gap-3 border-t border-outline-variant/60 pt-3">
-          <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-300">
+        <div className="mt-4 flex flex-col gap-3 border-t-2 border-outline-variant pt-3">
+          <div className="flex min-w-0 items-center gap-1 text-[10px] text-slate-400">
             {renderMaterialIcon('schedule', 'text-[14px]')}
             <span className="truncate">{dateLabel}</span>
           </div>
@@ -178,7 +179,7 @@ export const AdminParcelManagementCard = ({
           <button
             type="button"
             onClick={onEdit}
-            className="app-secondary-button h-10 w-full text-xs"
+            className="app-secondary-button h-10 w-full text-xs rounded-sm border-2 border-outline-variant font-black"
           >
             <Edit3 className="h-4 w-4" aria-hidden="true" />
             แก้ไขข้อมูล

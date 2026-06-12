@@ -19,6 +19,9 @@ import { SYSTEM_ROLES, type AppRole, type SystemRole } from '@/lib/roles';
 import { isValidEmployeeId, normalizeEmployeeId, sanitizeTextInput, validatePassword, validateRequiredText } from '@/lib/validation';
 import { formatThaiDateTime } from '@/lib/dateUtils';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 const USER_MOBILE_BATCH_SIZE = 10;
 const USER_DESKTOP_PAGE_SIZE = 20;
@@ -299,30 +302,32 @@ export default function UserManagement() {
             <p className="app-page-subtitle">สร้าง แก้ไข ระงับบัญชี และกำหนดสิทธิ์ผู้ดูแลระบบ/พนักงานส่ง</p>
           </div>
         </div>
-        <button onClick={fetchUsers} disabled={loading} className="app-secondary-button h-10 px-3">
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+        <Button variant="secondary" onClick={fetchUsers} disabled={loading} className="h-10 px-3">
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           รีเฟรช
-        </button>
+        </Button>
       </div>
 
-      <form onSubmit={handleCreateUser} className="app-panel grid gap-3 p-4 lg:grid-cols-[1fr_1.5fr_0.9fr_1fr_auto]">
-        <div className="lg:col-span-5">
-          <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            สร้างบัญชีผู้ใช้งานใหม่
+      <Card className="shadow-sm">
+        <form onSubmit={handleCreateUser} className="grid gap-3 p-4 lg:grid-cols-[1fr_1.5fr_0.9fr_1fr_auto] items-end">
+          <div className="lg:col-span-5">
+            <div className="flex items-center gap-2 text-sm font-semibold text-foreground mb-1">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              สร้างบัญชีผู้ใช้งานใหม่
+            </div>
           </div>
-        </div>
-        <input value={newUser.employeeId} onChange={e => setNewUser(v => ({ ...v, employeeId: normalizeEmployeeId(e.target.value) }))} disabled={creatingUser} placeholder="รหัสพนักงาน" className="app-input uppercase" />
-        <input value={newUser.name} onChange={e => setNewUser(v => ({ ...v, name: e.target.value }))} disabled={creatingUser} placeholder="ชื่อ-นามสกุล" className="app-input" />
-        <select value={newUser.role} onChange={e => setNewUser(v => ({ ...v, role: e.target.value as SystemRole }))} disabled={creatingUser} className="app-input font-medium">
-          {SYSTEM_ROLES.map(role => <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>)}
-        </select>
-        <input type="password" value={newUser.password} onChange={e => setNewUser(v => ({ ...v, password: e.target.value }))} disabled={creatingUser} placeholder="รหัสผ่านเริ่มต้น" className="app-input" />
-        <button type="submit" disabled={creatingUser} className="app-primary-button">
-          {creatingUser ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
-          สร้าง
-        </button>
-      </form>
+          <Input value={newUser.employeeId} onChange={e => setNewUser(v => ({ ...v, employeeId: normalizeEmployeeId(e.target.value) }))} disabled={creatingUser} placeholder="รหัสพนักงาน" className="uppercase" />
+          <Input value={newUser.name} onChange={e => setNewUser(v => ({ ...v, name: e.target.value }))} disabled={creatingUser} placeholder="ชื่อ-นามสกุล" />
+          <select value={newUser.role} onChange={e => setNewUser(v => ({ ...v, role: e.target.value as SystemRole }))} disabled={creatingUser} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
+            {SYSTEM_ROLES.map(role => <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>)}
+          </select>
+          <Input type="password" value={newUser.password} onChange={e => setNewUser(v => ({ ...v, password: e.target.value }))} disabled={creatingUser} placeholder="รหัสผ่านเริ่มต้น" />
+          <Button type="submit" disabled={creatingUser} className="w-full lg:w-auto">
+            {creatingUser ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="mr-2 h-4 w-4" aria-hidden="true" />}
+            สร้าง
+          </Button>
+        </form>
+      </Card>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         {[
@@ -331,29 +336,31 @@ export default function UserManagement() {
           { key: 'MESSENGER' as const, label: 'พนักงานส่ง', value: counts.messenger, icon: <Truck className="h-4 w-4" aria-hidden="true" /> },
           { key: 'DISABLED' as const, label: 'ปิดใช้งาน', value: counts.disabled, icon: <UserX className="h-4 w-4" aria-hidden="true" /> },
         ].map(s => (
-          <button
+          <Card
             key={s.label}
-            type="button"
+            role="button"
+            tabIndex={0}
             onClick={() => setRoleFilter(s.key)}
-            className={`app-compact-card flex items-center gap-3 text-left transition-all active:scale-[0.99] ${
-              roleFilter === s.key ? 'border-primary ring-2 ring-ring/10' : 'hover:bg-muted/40'
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setRoleFilter(s.key); }}
+            className={`flex items-center gap-3 p-4 text-left transition-all cursor-pointer active:scale-[0.99] shadow-sm ${
+              roleFilter === s.key ? 'border-primary ring-2 ring-primary/20' : 'hover:bg-muted/40'
             }`}
           >
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">{s.icon}</div>
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted text-foreground">{s.icon}</div>
             <div>
               <p className="text-xl font-semibold leading-none text-foreground sm:text-2xl">{s.value}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{s.label}</p>
+              <p className="mt-1 text-xs font-medium text-muted-foreground">{s.label}</p>
             </div>
-          </button>
+          </Card>
         ))}
       </div>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหาด้วยรหัสพนักงาน ชื่อ หรือสิทธิ์..." className="app-input w-full pl-10" />
+        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="ค้นหาด้วยรหัสพนักงาน ชื่อ หรือสิทธิ์..." className="pl-10" />
       </div>
 
-      <div className="app-panel overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         <div className="sm:hidden">
           {loading ? (
             <div className="divide-y divide-outline-variant/10">
@@ -412,10 +419,10 @@ export default function UserManagement() {
                 })}
               </div>
               {filtered.length > mobileVisibleUsers && (
-                <div className="border-t border-outline-variant/10 p-3">
-                  <button type="button" onClick={() => setMobileVisibleUsers(v => v + USER_MOBILE_BATCH_SIZE)} className="app-secondary-button h-10 w-full text-xs">
+                <div className="border-t p-3">
+                  <Button variant="secondary" onClick={() => setMobileVisibleUsers(v => v + USER_MOBILE_BATCH_SIZE)} className="w-full text-xs">
                     แสดงเพิ่ม {Math.min(USER_MOBILE_BATCH_SIZE, filtered.length - mobileVisibleUsers)} รายการ
-                  </button>
+                  </Button>
                 </div>
               )}
             </>
@@ -424,8 +431,8 @@ export default function UserManagement() {
 
         <div className="hidden overflow-x-auto sm:block">
           <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
+            <thead className="bg-muted/50">
+              <tr className="border-b">
                 <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">รหัสพนักงาน</th>
                 <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">ชื่อ-นามสกุล</th>
                 <th className="px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-muted-foreground">สิทธิ์</th>
@@ -434,7 +441,7 @@ export default function UserManagement() {
                 <th className="px-5 py-3.5 text-right text-[11px] font-black uppercase tracking-widest text-muted-foreground">จัดการ</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/10">
+            <tbody className="divide-y">
               {loading ? (
                 <>
                   {[...Array(5)].map((_, i) => (
@@ -471,7 +478,7 @@ export default function UserManagement() {
               ) : paginatedUsers.map(u => {
                 const isSelf = u.employeeId === currentUser?.employeeId;
                 return (
-                  <tr key={u.employeeId} className={`transition-colors ${isSelf ? 'bg-primary/[0.03]' : 'hover:bg-surface-container-lowest/60'}`}>
+                  <tr key={u.employeeId} className={`transition-colors hover:bg-muted/30 ${isSelf ? 'bg-primary/[0.02]' : ''}`}>
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-2">
                         <code className="font-mono text-sm font-black text-primary">{u.employeeId}</code>
@@ -496,26 +503,26 @@ export default function UserManagement() {
         </div>
 
         {!loading && filtered.length > 0 && (
-          <div className="flex flex-col gap-3 border-t border-outline-variant/10 bg-surface-container-lowest/50 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-xs font-bold text-on-surface-variant/50">
+          <div className="flex flex-col gap-3 border-t bg-muted/20 px-5 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-xs font-bold text-muted-foreground">
               <span className="sm:hidden">แสดง {Math.min(mobileVisibleUsers, filtered.length)} จาก {filtered.length} รายการ</span>
               <span className="hidden sm:inline">แสดง {userStartIndex}-{userEndIndex} จาก {filtered.length} รายการ</span>
               {filtered.length !== users.length && <span className="text-on-surface-variant/35"> (ทั้งหมด {users.length})</span>}
             </p>
             {totalUserPages > 1 && (
-              <div className="hidden items-center gap-1 rounded-xl border border-gray-100 bg-white p-1 sm:flex">
-                <button onClick={() => setUserPage(page => Math.max(1, page - 1))} disabled={userPage === 1} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าก่อนหน้า">
+              <div className="hidden items-center gap-1 rounded-xl border bg-background p-1 sm:flex">
+                <Button variant="ghost" size="icon" onClick={() => setUserPage(page => Math.max(1, page - 1))} disabled={userPage === 1} className="h-7 w-7 rounded-lg" aria-label="ไปหน้าก่อนหน้า">
                   <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_left</span>
-                </button>
+                </Button>
                 <span className="px-2 text-xs font-black text-primary">{userPage}/{totalUserPages}</span>
-                <button onClick={() => setUserPage(page => Math.min(totalUserPages, page + 1))} disabled={userPage === totalUserPages} className="rounded-lg p-1.5 text-on-surface-variant/50 transition-all hover:bg-surface-container hover:text-primary disabled:cursor-not-allowed disabled:opacity-30" aria-label="ไปหน้าถัดไป">
+                <Button variant="ghost" size="icon" onClick={() => setUserPage(page => Math.min(totalUserPages, page + 1))} disabled={userPage === totalUserPages} className="h-7 w-7 rounded-lg" aria-label="ไปหน้าถัดไป">
                   <span className="material-symbols-outlined text-base" aria-hidden="true">chevron_right</span>
-                </button>
+                </Button>
               </div>
             )}
           </div>
         )}
-      </div>
+      </Card>
 
       <Dialog open={!!editingUser} onOpenChange={(open) => !open && setEditingUser(null)}>
         <DialogContent showCloseButton={false} className="max-h-[calc(100dvh-1rem)] w-[calc(100vw-1rem)] max-w-md overflow-hidden rounded-[1.5rem] border border-gray-100 bg-white p-0 shadow-xl">
@@ -539,18 +546,18 @@ export default function UserManagement() {
             </div>
           </DialogHeader>
           <form onSubmit={handleSaveUser} className="space-y-4 px-5 py-4">
-            <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">รหัสพนักงาน</label><input value={editingUser?.employeeId ?? ''} disabled className="app-input w-full opacity-70" /></div>
-            <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">ชื่อ-นามสกุล</label><input value={editForm.name} onChange={event => setEditForm(v => ({ ...v, name: event.target.value }))} disabled={editSaving} className="app-input w-full" /></div>
+            <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">รหัสพนักงาน</label><Input value={editingUser?.employeeId ?? ''} disabled className="w-full opacity-70" /></div>
+            <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">ชื่อ-นามสกุล</label><Input value={editForm.name} onChange={event => setEditForm(v => ({ ...v, name: event.target.value }))} disabled={editSaving} className="w-full" /></div>
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">สิทธิ์</label>
-              <select value={editForm.role} onChange={event => setEditForm(v => ({ ...v, role: event.target.value as SystemRole }))} disabled={editSaving || editingUser?.employeeId === currentUser?.employeeId} className="app-input w-full">
+              <select value={editForm.role} onChange={event => setEditForm(v => ({ ...v, role: event.target.value as SystemRole }))} disabled={editSaving || editingUser?.employeeId === currentUser?.employeeId} className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50">
                 {SYSTEM_ROLES.map(role => <option key={role} value={role}>{ROLE_CONFIG[role].label}</option>)}
               </select>
             </div>
-            <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">รหัสผ่านใหม่ (ไม่กรอก = ไม่เปลี่ยน)</label><input type="password" value={editForm.password} onChange={event => setEditForm(v => ({ ...v, password: event.target.value }))} disabled={editSaving} className="app-input w-full" /></div>
-            <div className="flex gap-2 border-t border-outline-variant/15 pt-4">
-              <button type="button" onClick={() => setEditingUser(null)} disabled={editSaving} className="app-secondary-button h-11 flex-1">ยกเลิก</button>
-              <button type="submit" disabled={editSaving} className="app-primary-button h-11 flex-1">{editSaving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}บันทึก</button>
+            <div><label className="mb-1.5 block text-xs font-semibold text-muted-foreground">รหัสผ่านใหม่ (ไม่กรอก = ไม่เปลี่ยน)</label><Input type="password" value={editForm.password} onChange={event => setEditForm(v => ({ ...v, password: event.target.value }))} disabled={editSaving} className="w-full" /></div>
+            <div className="flex gap-2 border-t pt-4">
+              <Button type="button" variant="secondary" onClick={() => setEditingUser(null)} disabled={editSaving} className="flex-1">ยกเลิก</Button>
+              <Button type="submit" disabled={editSaving} className="flex-1">{editSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : null}บันทึก</Button>
             </div>
           </form>
         </DialogContent>

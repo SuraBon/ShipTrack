@@ -3,6 +3,7 @@ import { User, login, setupPin, updateProfile } from '@/lib/parcelService';
 import { normalizeRole } from '@/lib/roles';
 import { toast } from 'sonner';
 import { clearAuthUser, readAuthLastActivityAt, readAuthUser, touchAuthActivity, writeAuthUser } from '@/lib/authStorage';
+import { useIdleSession } from '@/hooks/useIdleSession';
 
 interface AuthContextValue {
   user: User | null;
@@ -14,8 +15,6 @@ interface AuthContextValue {
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const SESSION_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 function getUserIssuedAt(user?: User | null): number | null {
   if (!user) return null;
@@ -34,18 +33,11 @@ function getUserLastActivityAt(user?: User | null): number | null {
   return readAuthLastActivityAt(user) ?? getUserIssuedAt(user);
 }
 
-function isSessionExpired(user?: User | null): boolean {
-  const lastActivityAt = getUserLastActivityAt(user);
-  if (!lastActivityAt) return true;
-  return Date.now() - lastActivityAt > SESSION_MAX_AGE_MS;
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [lastActivityAt, setLastActivityAt] = useState<number | null>(null);
   const authTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const lastActivityWriteRef = useRef(0);
 
   const clearSession = () => {
     if (authTransitionTimer.current) clearTimeout(authTransitionTimer.current);
@@ -69,11 +61,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (savedUser) {
       try {
         const normalizedUser = { ...savedUser, role: normalizeRole(savedUser.role) };
-        if (normalizedUser.role === 'GUEST' || !normalizedUser.token || isSessionExpired(normalizedUser)) {
+        if (normalizedUser.role === 'GUEST' || !normalizedUser.token) {
           clearSession();
         } else {
           setUser(normalizedUser);
-          setLastActivityAt(touchAuthActivity(normalizedUser));
+          setLastActivityAt(getUserLastActivityAt(normalizedUser));
         }
       } catch {
         clearAuthUser();
@@ -94,41 +86,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!user) return;
-    const expiresFrom = lastActivityAt ?? getUserLastActivityAt(user);
-    if (!expiresFrom) {
-      clearSession();
-      return;
-    }
-    const msUntilExpiry = expiresFrom + SESSION_MAX_AGE_MS - Date.now();
-    if (msUntilExpiry <= 0) {
-      clearSession();
-      toast.error('เซสชันการใช้งานหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
-      return;
-    }
-    const timer = window.setTimeout(() => {
+  // Delegate idle session management to custom hook
+  useIdleSession({
+    isActive: !!user,
+    lastActivityAt,
+    onActivity: () => {
+      if (user) {
+        const touchedAt = touchAuthActivity(user);
+        if (touchedAt) setLastActivityAt(touchedAt);
+      }
+    },
+    onTimeout: () => {
       clearSession();
       toast.error('เซสชันการใช้งานหมดอายุ กรุณาเข้าสู่ระบบใหม่อีกครั้ง');
-    }, msUntilExpiry);
-    return () => window.clearTimeout(timer);
-  }, [lastActivityAt, user]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (!user) return;
-    const markActivity = () => {
-      const now = Date.now();
-      if (now - lastActivityWriteRef.current < 30_000) return;
-      lastActivityWriteRef.current = now;
-      const touchedAt = touchAuthActivity(user);
-      if (touchedAt) setLastActivityAt(touchedAt);
-    };
-    const events = ['click', 'keydown', 'touchstart', 'visibilitychange', 'focus'];
-    events.forEach(eventName => window.addEventListener(eventName, markActivity, { passive: true }));
-    return () => {
-      events.forEach(eventName => window.removeEventListener(eventName, markActivity));
-    };
-  }, [user]);
+    }
+  });
 
   const loginUser = async (employeeId: string, pin?: string, options: { remember?: boolean } = {}) => {
     const res = await login(employeeId, pin);

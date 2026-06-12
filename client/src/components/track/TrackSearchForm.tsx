@@ -1,5 +1,8 @@
 import { Spinner } from '@/components/ui/spinner';
 import { sanitizeTextInput } from '@/lib/validation';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 interface TrackSearchFormProps {
   trackingId: string;
@@ -21,23 +24,21 @@ export function TrackSearchForm({
   removeFromRecent,
 }: TrackSearchFormProps) {
   return (
-    <div className="app-card overflow-hidden">
-      <div className="app-panel-header">
-        <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
-            <span className="material-symbols-outlined text-base" aria-hidden="true">travel_explore</span>
-          </div>
-          <div>
-            <h2 className="app-section-title">ค้นหารายการส่ง</h2>
-            <p className="text-xs text-muted-foreground">ตรวจสถานะ ปลายทาง และประวัติการเคลื่อนไหว</p>
-          </div>
+    <Card className="shadow-sm overflow-hidden">
+      <div className="flex items-center gap-3 border-b bg-muted/50 px-4 py-3 sm:px-5">
+        <div className="flex size-9 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
+          <span className="material-symbols-outlined text-base" aria-hidden="true">travel_explore</span>
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">ค้นหารายการส่ง</h2>
+          <p className="text-xs text-muted-foreground">ตรวจสถานะ ปลายทาง และประวัติการเคลื่อนไหว</p>
         </div>
       </div>
-      <div className="p-4 sm:p-5">
+      <CardContent className="p-4 sm:p-5">
         <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
           <div className="group relative flex-1">
             <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-xl text-muted-foreground transition-colors group-focus-within:text-primary" aria-hidden="true">search</span>
-            <input
+            <Input
               type="search"
               aria-label="ค้นหารายการส่งด้วยหมายเลขติดตาม ผู้รับ หรือปลายทาง"
               aria-describedby="track-search-help"
@@ -46,7 +47,7 @@ export function TrackSearchForm({
               onChange={e => setTrackingId(sanitizeTextInput(e.target.value, 100).toUpperCase())}
               autoFocus
               autoComplete="off"
-              className="app-input h-12 w-full pl-11 pr-12 text-base font-semibold"
+              className="h-12 w-full pl-11 pr-12 text-base font-semibold"
             />
             <button
               type="button"
@@ -58,19 +59,19 @@ export function TrackSearchForm({
               <span className="material-symbols-outlined text-xl" aria-hidden="true">content_paste</span>
             </button>
           </div>
-          <button type="submit" disabled={isLoading} className="app-primary-button h-12 sm:px-8">
+          <Button type="submit" disabled={isLoading} className="h-12 sm:px-8 text-base">
             {isLoading ? (
               <>
-                <Spinner className="h-5 w-5" />
+                <Spinner className="mr-2 h-5 w-5" />
                 กำลังค้นหา...
               </>
             ) : (
               <>
-                <span className="material-symbols-outlined text-xl" aria-hidden="true">search</span>
+                <span className="material-symbols-outlined mr-2 text-xl" aria-hidden="true">search</span>
                 ดูสถานะ
               </>
             )}
-          </button>
+          </Button>
         </form>
 
         <p id="track-search-help" className="mt-2 text-xs font-semibold text-slate-500/80 leading-normal flex items-center gap-1.5 px-0.5 animate-in fade-in duration-300">
@@ -105,7 +106,7 @@ export function TrackSearchForm({
             ))}
           </div>
         )}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

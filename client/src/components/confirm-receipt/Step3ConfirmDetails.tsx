@@ -1,9 +1,13 @@
 import NativeSelect, { resolveSelectValue } from '@/components/NativeSelect';
 import { sanitizeTextInput } from '@/lib/validation';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
 import { confirmNavButtonClass, embeddedStepBodyClass, ParcelJobSummary } from './ConfirmReceiptShared';
-
 import { useConfirmReceiptContext } from '@/contexts/ConfirmReceiptContext';
+import { isInvalidCoordinates, getFallbackCoordinates } from '@/lib/gpsQuality';
 
 interface Step3ConfirmDetailsProps {
   embedded: boolean;
@@ -52,23 +56,29 @@ export function Step3ConfirmDetails({
     locationName,
     isGeocoding,
   } = useConfirmReceiptContext();
+
+  const destBranch = isOfflineFallback 
+    ? resolveSelectValue(tempReceiverBranch) 
+    : checkedParcel?.['สาขาผู้รับ'];
+  const isGpsInvalid = isInvalidCoordinates(position?.latitude, position?.longitude);
+  const fallbackCoords = destBranch ? getFallbackCoordinates(destBranch) : null;
   return (
     <div className="animate-in slide-in-from-right-4 duration-500">
-      <div className={embedded ? '' : 'app-panel overflow-hidden'}>
+      <Card className={`border-0 shadow-none sm:border sm:shadow-sm ${embedded ? 'bg-transparent' : 'overflow-hidden'}`}>
         {!embedded && (
-          <div className="app-panel-header p-5 border-b border-gray-100 bg-gray-50 flex items-center gap-3">
+          <div className="p-5 border-b bg-muted/50 flex items-center gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700">
               <span className="material-symbols-outlined text-xl" aria-hidden="true">fact_check</span>
             </div>
             <div>
               <h2 className="font-display text-base font-bold text-primary">ตรวจสอบปลายทางก่อนบันทึกข้อมูล</h2>
-              <p className="text-xs text-on-surface-variant/60 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 กรุณาตรวจสอบต้นทาง ปลายทาง และผู้รับพัสดุก่อนยืนยัน (หมายเลขติดตาม: {checkedParcel?.TrackingID})
               </p>
             </div>
           </div>
         )}
-        <div className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
+        <CardContent className={embedded ? embeddedStepBodyClass : 'p-6 sm:p-8 space-y-6'}>
           {checkedParcel && <ParcelJobSummary parcel={checkedParcel} compact={embedded} />}
 
           <div className="grid grid-cols-1 gap-3 rounded-2xl border border-gray-200 bg-white p-3 text-sm sm:grid-cols-2">
@@ -86,12 +96,10 @@ export function Step3ConfirmDetails({
                   ผู้รับ {isOfflineFallback && <span className="text-error font-bold">*</span>}
                 </span>
                 {isOfflineFallback ? (
-                  <input
-                    type="text"
+                  <Input
                     placeholder="กรอกชื่อผู้รับ"
                     value={tempReceiverName}
                     onChange={(e) => setTempReceiverName(sanitizeTextInput(e.target.value, 200))}
-                    className="w-full rounded-xl border border-outline-variant bg-white py-1.5 px-3 font-display text-sm font-bold outline-none focus:ring-1 focus:ring-primary text-slate-955"
                   />
                 ) : (
                   <span className="text-sm font-black leading-tight text-slate-950">{checkedParcel?.['ผู้รับ'] || '-'}</span>
@@ -131,7 +139,7 @@ export function Step3ConfirmDetails({
             </div>
           </div>
 
-          {effectiveGeoStatus === 'success' && position && (
+          {effectiveGeoStatus === 'success' && position && !isGpsInvalid && (
             <div className="rounded-2xl border border-gray-200 bg-slate-50 p-3 animate-in slide-in-from-top-2 duration-300">
               <div className="flex items-start gap-2.5 w-full">
                 <span className="material-symbols-outlined mt-0.5 text-lg text-slate-700" aria-hidden="true">my_location</span>
@@ -153,16 +161,39 @@ export function Step3ConfirmDetails({
             </div>
           )}
 
+          {isGpsInvalid && (
+            <div className="rounded-sm border-2 border-outline-variant bg-amber-100 p-3 text-amber-950 shadow-[2px_2px_0px_0px_var(--outline-variant)] animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-2.5 w-full">
+                <span className="material-symbols-outlined mt-0.5 text-lg text-amber-800" aria-hidden="true">warning</span>
+                <div className="min-w-0 w-full">
+                  <p className="text-[10px] font-black text-amber-950/60 mb-0.5">ตำแหน่ง GPS ไม่พร้อมใช้งานหรือพิกัดผิดปกติ</p>
+                  <p className="text-xs font-black leading-snug text-amber-950">
+                    ระบบจะใช้พิกัดทดแทนของสาขาปลายทาง: {destBranch || '-'}
+                  </p>
+                  {fallbackCoords ? (
+                    <p className="mt-1 font-mono text-xs font-black text-amber-900 leading-tight">
+                      พิกัดทดแทน: {fallbackCoords.latitude.toFixed(6)}, {fallbackCoords.longitude.toFixed(6)}
+                    </p>
+                  ) : (
+                    <p className="mt-1 text-xs font-semibold text-amber-800 leading-tight">
+                      (ไม่พบพิกัดทดแทนสำหรับสาขานี้)
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {needsGpsOverrideReason && (
-            <div className="space-y-2 border-t border-outline-variant/10 pt-4 animate-in slide-in-from-top-2 duration-300">
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-error px-1">
-                กรุณาระบุเหตุผลที่ข้ามขั้นตอนการระบุตำแหน่ง GPS <span className="text-error font-bold">*</span>
+            <div className="space-y-2 border-t border-border pt-4 animate-in slide-in-from-top-2 duration-300">
+              <label className="block text-[10px] font-bold uppercase tracking-wider text-destructive px-1">
+                กรุณาระบุเหตุผลที่ข้ามขั้นตอนการระบุตำแหน่ง GPS <span className="text-destructive font-bold">*</span>
               </label>
-              <textarea
+              <Textarea
                 placeholder="เช่น อยู่ในพื้นที่อับสัญญาณ, อยู่ภายในอาคาร/ชั้นใต้ดิน, ปฏิบัติงานนอกสถานที่พิกัด..."
                 value={gpsOverrideReason}
                 onChange={(e) => setGpsOverrideReason(sanitizeTextInput(e.target.value, 300))}
-                className="min-h-[72px] w-full resize-none rounded-2xl border-2 border-error/20 bg-white px-3.5 py-2.5 font-display text-sm outline-none transition-all focus:border-error focus:ring-4 focus:ring-error/5 text-primary placeholder:text-on-surface-variant/40"
+                className="min-h-[72px] w-full resize-none border-destructive/20 focus-visible:ring-destructive/20 focus-visible:border-destructive text-sm"
               />
             </div>
           )}
@@ -178,20 +209,20 @@ export function Step3ConfirmDetails({
               </div>
             </div>
 
-            <button
-              type="button"
+            <Button
+              variant="outline"
               onClick={() => setShowAdvancedOptions(value => !value)}
-              className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl border border-outline-variant/50 bg-white font-display text-sm font-black text-primary transition-all hover:bg-surface-container-lowest"
+              className="w-full text-primary"
             >
-              <span className="material-symbols-outlined text-lg" aria-hidden="true">tune</span>
+              <span className="material-symbols-outlined text-lg mr-2" aria-hidden="true">tune</span>
               ตัวเลือกเพิ่มเติม
               <span
-                className={`material-symbols-outlined text-lg transition-transform ${showAdvancedOptions ? 'rotate-180' : ''}`}
+                className={`material-symbols-outlined text-lg transition-transform ml-2 ${showAdvancedOptions ? 'rotate-180' : ''}`}
                 aria-hidden="true"
               >
                 expand_more
               </span>
-            </button>
+            </Button>
 
             {showAdvancedOptions && (
               <div className="space-y-3 animate-in slide-in-from-top-2 duration-300">
@@ -238,11 +269,11 @@ export function Step3ConfirmDetails({
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg" aria-hidden="true">
                           person
                         </span>
-                        <input
+                        <Input
                           placeholder="กรอกชื่อผู้รับแทน"
                           value={proxyName}
                           onChange={(e) => setProxyName(sanitizeTextInput(e.target.value, 200))}
-                          className="w-full rounded-2xl border border-outline-variant bg-white py-2.5 pl-10 pr-4 font-display text-sm outline-none focus:ring-1 focus:ring-blue-500"
+                          className="pl-10"
                         />
                       </div>
                     </div>
@@ -299,11 +330,11 @@ export function Step3ConfirmDetails({
                         <label className="mb-1.5 block px-1 text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/60">
                           เหตุผลที่จัดส่งนอกสถานที่ / ฝากไว้ที่อื่น
                         </label>
-                        <textarea
+                        <Textarea
                           placeholder="เช่น ผู้รับแจ้งให้ฝากไว้ที่แผนกอื่น, ฝากไว้ที่ป้อมยาม, ที่อยู่ปลายทางในระบบไม่ชัดเจน..."
                           value={deliveryMismatchReason}
                           onChange={(e) => setDeliveryMismatchReason(sanitizeTextInput(e.target.value, 500))}
-                          className="min-h-[72px] w-full resize-none rounded-2xl border border-amber-200 bg-white px-4 py-2.5 font-display text-sm outline-none transition-all focus:ring-1 focus:ring-amber-500"
+                          className="min-h-[72px] w-full resize-none focus-visible:ring-amber-500"
                         />
                       </div>
                     )}
@@ -354,11 +385,11 @@ export function Step3ConfirmDetails({
                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/40 text-lg" aria-hidden="true">
                           person
                         </span>
-                        <input
+                        <Input
                           placeholder="กรอกชื่อผู้รับช่วงต่อ"
                           value={forwardSender}
                           onChange={(e) => setForwardSender(sanitizeTextInput(e.target.value, 200))}
-                          className="w-full rounded-2xl border border-outline-variant bg-white py-2.5 pl-10 pr-4 font-display text-sm outline-none focus:ring-1 focus:ring-secondary"
+                          className="pl-10"
                         />
                       </div>
                       <NativeSelect
@@ -389,26 +420,27 @@ export function Step3ConfirmDetails({
               <label className="text-[10px] font-bold text-on-surface-variant/60 uppercase tracking-widest px-1">
                 หมายเหตุเพิ่มเติม (ไม่บังคับ)
               </label>
-              <textarea
+              <Textarea
                 placeholder="เช่น กล่องบุบนิดหน่อย, วางไว้ที่ป้อมยาม, ฝากไว้ที่เคาน์เตอร์..."
                 value={note}
                 onChange={(e) => setNote(sanitizeTextInput(e.target.value, 2000))}
-                className="min-h-[68px] w-full resize-none rounded-2xl border border-outline-variant bg-white px-4 py-2.5 font-display text-sm outline-none transition-all focus:ring-1 focus:ring-primary"
+                className="min-h-[68px] w-full resize-none"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-2 min-[400px]:grid-cols-[0.9fr_1.4fr] sm:gap-3">
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="lg"
               onClick={() => setCurrentStep(2)}
-              className={`${confirmNavButtonClass} border border-outline-variant/70 bg-white text-on-surface-variant shadow-sm hover:border-primary/30 hover:bg-surface-container-lowest hover:text-primary`}
+              className="w-full bg-white shadow-sm"
             >
-              <span className="material-symbols-outlined text-lg sm:text-xl" aria-hidden="true">arrow_back</span>
+              <span className="material-symbols-outlined text-lg sm:text-xl mr-2" aria-hidden="true">arrow_back</span>
               ย้อนกลับ
-            </button>
-            <button
-              type="button"
+            </Button>
+            <Button
+              size="lg"
               onClick={executeConfirm}
               disabled={
                 isLoading ||
@@ -417,14 +449,14 @@ export function Step3ConfirmDetails({
                 (isProxy && !proxyName.trim()) ||
                 (!isForwarding && deliveryMatchStatus === 'DELIVERED_ELSEWHERE' && !deliveryMismatchReason.trim())
               }
-              className={`${confirmNavButtonClass} group gap-2 bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.01] hover:bg-primary/95 disabled:scale-100 disabled:bg-on-surface-variant/30 disabled:shadow-none`}
+              className="w-full group shadow-lg shadow-primary/20 hover:scale-[1.01]"
             >
               ยืนยันการจัดส่ง
-              <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl" aria-hidden="true">verified</span>
-            </button>
+              <span className="material-symbols-outlined text-xl transition-transform group-hover:translate-x-1 sm:text-2xl ml-2" aria-hidden="true">verified</span>
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

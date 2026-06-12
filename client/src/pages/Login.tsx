@@ -14,6 +14,11 @@ import {
   IdCard,
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 import { isValidEmployeeId, normalizeEmployeeId, validatePassword, validateRequiredText } from '@/lib/validation';
 
 type AuthDialogState = {
@@ -182,43 +187,44 @@ export default function Login() {
 
   return (
     <div className="flex min-h-dvh w-screen items-center justify-center overflow-x-hidden bg-slate-50 px-3 py-6 sm:px-4">
-      <div className="w-full max-w-[420px] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl shadow-slate-200/70">
-        <main className="px-5 py-6 sm:px-8 sm:py-8 md:px-10">
-          <div className="mb-7">
-            <div className="mb-5 flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#091426] p-1.5 shadow-sm">
-                <svg className="h-full w-full" viewBox="0 0 64 64" role="img" aria-label="ShipTrack">
-                  <path d="M 35.0 9.2 A 23 23 0 0 1 53.2 40.8" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
-                  <path d="M 50.3 46.0 A 23 23 0 0 1 13.7 46.0" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
-                  <path d="M 10.8 40.8 A 23 23 0 0 1 29.0 9.2" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
-                  <path d="M 18.5 41.5 L 32 20 L 45.5 41.5" fill="none" stroke="#06b6d4" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="butt" />
-                </svg>
-              </div>
-              <div>
-                <p className="font-display text-lg font-black leading-none text-primary dark:text-white">ShipTrack</p>
-                <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Internal Parcel Tracking</p>
-              </div>
+      <Card className="w-full max-w-[420px] shadow-xl shadow-slate-200/70 border-slate-200 rounded-2xl overflow-hidden bg-white">
+        <CardHeader className="px-5 pt-8 pb-4 sm:px-8 md:px-10">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-xl bg-[#091426] p-1.5 shadow-sm">
+              <svg className="h-full w-full" viewBox="0 0 64 64" role="img" aria-label="ShipTrack">
+                <path d="M 35.0 9.2 A 23 23 0 0 1 53.2 40.8" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
+                <path d="M 50.3 46.0 A 23 23 0 0 1 13.7 46.0" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
+                <path d="M 10.8 40.8 A 23 23 0 0 1 29.0 9.2" fill="none" stroke="#5f738c" strokeWidth="4.5" strokeLinecap="butt" />
+                <path d="M 18.5 41.5 L 32 20 L 45.5 41.5" fill="none" stroke="#06b6d4" strokeWidth="4.5" strokeLinejoin="round" strokeLinecap="butt" />
+              </svg>
             </div>
-            <p className="mb-2 text-xs font-bold uppercase text-primary">Staff access</p>
-            <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">
-              {isSetup ? 'ตั้งค่าเข้าใช้งาน' : 'เข้าสู่ระบบพนักงาน'}
-            </h1>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {isSetup ? 'ยืนยันข้อมูลผู้ใช้งานครั้งแรกและตั้งรหัสผ่านสำหรับเข้าใช้งานครั้งต่อไป' : 'เข้าสู่ระบบสำหรับผู้ดูแลระบบและพนักงานส่ง หรือสร้างรายการแบบไม่เข้าสู่ระบบ'}
-            </p>
-          </div>
-
-          <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">รหัสพนักงาน</label>
+              <p className="font-display text-lg font-black leading-none text-primary dark:text-white">ShipTrack</p>
+              <p className="mt-0.5 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Internal Parcel Tracking</p>
+            </div>
+          </div>
+          <p className="mb-2 text-xs font-bold uppercase text-primary">Staff access</p>
+          <CardTitle className="text-2xl font-semibold leading-tight sm:text-3xl text-foreground">
+            {isSetup ? 'ตั้งค่าเข้าใช้งาน' : 'เข้าสู่ระบบพนักงาน'}
+          </CardTitle>
+          <CardDescription className="mt-2 text-sm leading-6 text-muted-foreground">
+            {isSetup ? 'ยืนยันข้อมูลผู้ใช้งานครั้งแรกและตั้งรหัสผ่านสำหรับเข้าใช้งานครั้งต่อไป' : 'เข้าสู่ระบบสำหรับผู้ดูแลระบบและพนักงานส่ง หรือสร้างรายการแบบไม่เข้าสู่ระบบ'}
+          </CardDescription>
+        </CardHeader>
+
+        <CardContent className="px-5 sm:px-8 md:px-10 pb-8">
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="employeeId" className="text-foreground">รหัสพนักงาน</Label>
               <div className="relative">
-                <IdCard className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <input
+                <IdCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="employeeId"
                   type="text"
                   value={employeeId}
                   onChange={e => setEmployeeId(normalizeEmployeeId(e.target.value))}
                   disabled={isSetup || isLoginDisabled}
-                  className="app-input w-full pl-11 font-medium uppercase"
+                  className="pl-9 font-medium uppercase"
                   placeholder="กรอกรหัสพนักงาน"
                   autoComplete="username"
                 />
@@ -226,37 +232,37 @@ export default function Login() {
             </div>
 
             {isSetup && (
-              <>
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">ชื่อ-นามสกุล</label>
-                  <div className="relative">
-                    <UserRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={e => setName(e.target.value)}
-                      disabled={isLoginDisabled}
-                      className="app-input w-full pl-11"
-                      placeholder="ชื่อของท่าน"
-                      autoComplete="name"
-                    />
-                  </div>
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-foreground">ชื่อ-นามสกุล</Label>
+                <div className="relative">
+                  <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                  <Input
+                    id="name"
+                    type="text"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    disabled={isLoginDisabled}
+                    className="pl-9"
+                    placeholder="ชื่อของท่าน"
+                    autoComplete="name"
+                  />
                 </div>
-              </>
+              </div>
             )}
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
+            <div className="space-y-2">
+              <Label htmlFor="pin" className="text-foreground">
                 {isSetup ? 'ตั้งรหัสผ่าน' : 'รหัสผ่าน'}
-              </label>
+              </Label>
               <div className="relative">
-                <KeyRound className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <input
+                <KeyRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+                <Input
+                  id="pin"
                   type={showPassword ? 'text' : 'password'}
                   value={pin}
                   onChange={e => setPin(e.target.value)}
                   disabled={isLoginDisabled}
-                  className="app-input w-full pl-11 pr-11 font-medium"
+                  className="pl-9 pr-10 font-medium"
                   placeholder="กรอกรหัสผ่าน"
                   autoComplete={isSetup ? 'new-password' : 'current-password'}
                 />
@@ -264,7 +270,7 @@ export default function Login() {
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   disabled={isLoginDisabled}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none disabled:opacity-50"
                   aria-label={showPassword ? 'ซ่อนรหัสผ่าน' : 'แสดงรหัสผ่าน'}
                 >
                   {showPassword ? (
@@ -276,61 +282,67 @@ export default function Login() {
               </div>
             </div>
 
-            <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-700">
-              <input
-                type="checkbox"
-                checked={rememberSession}
-                onChange={(event) => setRememberSession(event.target.checked)}
-                disabled={isLoginDisabled}
-                className="h-4 w-4 rounded border-slate-300 text-primary focus:ring-primary"
+            <div className="flex items-center space-x-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 mt-1">
+              <Checkbox 
+                id="remember" 
+                checked={rememberSession} 
+                onCheckedChange={(checked) => setRememberSession(checked as boolean)}
+                disabled={isLoginDisabled} 
               />
-              <span>จำการเข้าสู่ระบบไว้บนอุปกรณ์นี้</span>
-            </label>
+              <Label htmlFor="remember" className="text-sm font-semibold text-slate-700 cursor-pointer">
+                จำการเข้าสู่ระบบไว้บนอุปกรณ์นี้
+              </Label>
+            </div>
 
-            <button
-              type="submit"
-              disabled={isLoginDisabled}
-              className="app-primary-button mt-2 flex w-full items-center justify-center gap-2"
-            >
-              {cooldown > 0 ? (
-                <span>ลองใหม่ใน {cooldown} วินาที</span>
-              ) : isLoginDisabled ? (
-                <>
-                  <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
-                  <span>{isSetup ? 'กำลังบันทึกข้อมูล' : 'กำลังเข้าสู่ระบบ'}</span>
-                </>
-              ) : (
-                <>
-                  <span>{isSetup ? 'บันทึกข้อมูลและเข้าสู่ระบบ' : 'เข้าสู่ระบบ'}</span>
-                  <ArrowRight className="h-5 w-5" aria-hidden="true" />
-                </>
-              )}
-            </button>
-
-            {!isSetup && (
-              <button
-                type="button"
-                onClick={() => { window.history.pushState({}, '', '/create'); window.dispatchEvent(new PopStateEvent('popstate')); }}
-                className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-bold text-primary transition-colors hover:bg-slate-50 active:scale-[0.99]"
+            <div className="mt-3 space-y-3">
+              <Button
+                type="submit"
+                disabled={isLoginDisabled}
+                className="w-full"
+                size="lg"
               >
-                <PackagePlus className="h-5 w-5" aria-hidden="true" />
-                <span>สร้างรายการแบบไม่เข้าสู่ระบบ</span>
-              </button>
-            )}
+                {cooldown > 0 ? (
+                  <span>ลองใหม่ใน {cooldown} วินาที</span>
+                ) : isLoginDisabled ? (
+                  <>
+                    <Loader2 className="mr-2 h-5 w-5 animate-spin" aria-hidden="true" />
+                    <span>{isSetup ? 'กำลังบันทึกข้อมูล' : 'กำลังเข้าสู่ระบบ'}</span>
+                  </>
+                ) : (
+                  <>
+                    <span>{isSetup ? 'บันทึกข้อมูลและเข้าสู่ระบบ' : 'เข้าสู่ระบบ'}</span>
+                    <ArrowRight className="ml-2 h-5 w-5" aria-hidden="true" />
+                  </>
+                )}
+              </Button>
+
+              {!isSetup && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => { window.history.pushState({}, '', '/create'); window.dispatchEvent(new PopStateEvent('popstate')); }}
+                  className="w-full"
+                  size="lg"
+                >
+                  <PackagePlus className="mr-2 h-5 w-5" aria-hidden="true" />
+                  <span>สร้างรายการแบบไม่เข้าสู่ระบบ</span>
+                </Button>
+              )}
+            </div>
           </form>
-        </main>
-      </div>
+        </CardContent>
+      </Card>
 
       <Dialog
         open={authDialog.open}
         onOpenChange={(open) => {
           if (authDialog.status !== 'loading') setAuthDialog((current) => ({ ...current, open }));
         }}
+      >
+        <DialogContent
+          className="w-[calc(100vw-2rem)] max-w-md rounded-3xl border-none bg-white p-6 text-center shadow-2xl"
+          showCloseButton={authDialog.status !== 'loading'}
         >
-          <DialogContent
-            className="w-[calc(100vw-2rem)] max-w-md rounded-3xl border-none bg-white p-6 text-center shadow-2xl"
-            showCloseButton={authDialog.status !== 'loading'}
-          >
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
             {authDialog.status === 'loading' ? (
               <Loader2 className="h-10 w-10 animate-spin text-primary" aria-hidden="true" />
@@ -339,13 +351,13 @@ export default function Login() {
             ) : (
               <XCircle className="h-9 w-9 text-destructive" aria-hidden="true" />
             )}
-            </div>
-            <DialogHeader className="items-center text-center">
-              <DialogTitle className="text-xl font-semibold text-primary">{authDialog.title}</DialogTitle>
-              <DialogDescription className="max-w-full whitespace-normal break-words text-sm leading-relaxed text-muted-foreground">
-                {authDialog.message}
-              </DialogDescription>
-            </DialogHeader>
+          </div>
+          <DialogHeader className="items-center text-center">
+            <DialogTitle className="text-xl font-semibold text-primary">{authDialog.title}</DialogTitle>
+            <DialogDescription className="max-w-full whitespace-normal break-words text-sm leading-relaxed text-muted-foreground">
+              {authDialog.message}
+            </DialogDescription>
+          </DialogHeader>
           {authDialog.status !== 'loading' && (
             <button
               type="button"

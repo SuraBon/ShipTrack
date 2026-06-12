@@ -124,14 +124,14 @@ export const StatsCard = ({
     type="button"
     onClick={onClick}
     aria-pressed={active}
-    className={`flex min-h-[92px] w-full items-center rounded-2xl border bg-white dark:bg-card px-5 py-4 text-left shadow-sm transition-all duration-300 active:scale-[0.99] ${
+    className={`flex min-h-[92px] w-full items-center rounded-sm border-2 bg-white dark:bg-card px-5 py-4 text-left transition-all duration-150 ${
       active
-        ? 'border-slate-900/35 dark:border-primary/40 ring-2 ring-slate-900/10 dark:ring-primary/20'
-        : 'border-gray-100 dark:border-outline-variant hover:border-slate-300 dark:hover:border-primary/30 hover:shadow-md'
+        ? 'border-outline-variant bg-secondary/10 dark:bg-secondary/20 shadow-[2px_2px_0px_0px_var(--outline-variant)]'
+        : 'border-outline-variant shadow-[3px_3px_0px_0px_var(--outline-variant)] hover:translate-y-[-1px] hover:shadow-[4px_4px_0px_0px_var(--outline-variant)] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)]'
     }`}
   >
     <div className="flex min-w-0 items-center gap-4">
-      <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-2xl ${iconBg}`}>
+      <div className={`grid h-12 w-12 shrink-0 place-items-center rounded-sm border-1.5 border-outline-variant ${iconBg}`}>
         <DashboardIcon icon={icon} className={`h-6 w-6 ${iconText}`} />
       </div>
       <div className="min-w-0 flex-1">
@@ -140,7 +140,7 @@ export const StatsCard = ({
         ) : (
           <p className="text-3xl font-black leading-none text-primary font-display">{count}</p>
         )}
-        <p className="mt-1 truncate text-sm font-medium leading-tight text-primary">{label}</p>
+        <p className="mt-1 truncate text-sm font-black leading-tight text-primary">{label}</p>
       </div>
     </div>
   </button>
@@ -149,22 +149,22 @@ export const StatsCard = ({
 export const TableSkeleton = () => (
   <div className="w-full space-y-3 p-3">
     {[...Array(6)].map((_, i) => (
-      <div key={i} className="rounded-2xl border border-outline-variant/15 bg-white dark:bg-card p-4">
+      <div key={i} className="rounded-sm border-2 border-outline-variant bg-white dark:bg-card p-4 shadow-[2px_2px_0px_0px_var(--outline-variant)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1 space-y-2">
-            <Skeleton className="h-5 w-32 rounded-lg" />
-            <Skeleton className="h-4 w-3/4 rounded-lg" />
+            <Skeleton className="h-5 w-32 rounded-sm" />
+            <Skeleton className="h-4 w-3/4 rounded-sm" />
           </div>
-          <Skeleton className="h-7 w-24 rounded-full" />
+          <Skeleton className="h-7 w-24 rounded-sm" />
         </div>
-        <Skeleton className="mt-4 h-24 w-full rounded-xl" />
+        <Skeleton className="mt-4 h-24 w-full rounded-sm" />
       </div>
     ))}
   </div>
 );
 
 export const LazyPanelFallback = ({ label = 'กำลังโหลด...' }: { label?: string }) => (
-  <div className="grid min-h-[220px] place-items-center rounded-2xl bg-white/80 dark:bg-card/80 p-6 text-center">
+  <div className="grid min-h-[220px] place-items-center rounded-sm border-2 border-outline-variant bg-white dark:bg-card p-6 text-center shadow-[3px_3px_0px_0px_var(--outline-variant)]">
     <div className="flex flex-col items-center gap-3 text-primary">
       <Loader2 className="h-7 w-7 animate-spin" aria-hidden="true" />
       <p className="text-sm font-black">{label}</p>
@@ -173,7 +173,7 @@ export const LazyPanelFallback = ({ label = 'กำลังโหลด...' }: 
 );
 
 export const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Parcel; compact?: boolean }) => (
-  <div className={`rounded-2xl bg-slate-50 dark:bg-surface-container ${compact ? 'p-2.5' : 'p-3'}`}>
+  <div className={`rounded-sm border border-outline-variant bg-slate-50 dark:bg-surface-container ${compact ? 'p-2.5' : 'p-3'}`}>
     <div className="space-y-2.5">
       <div className="flex min-w-0 items-start gap-2.5 px-0.5">
         <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-blue-500 shadow-[0_0_0_4px_rgba(59,130,246,0.14)]" />
@@ -184,7 +184,7 @@ export const MessengerRouteSummary = ({ parcel, compact = false }: { parcel: Par
           </p>
         </div>
       </div>
-      <div className="flex min-w-0 items-start gap-2.5 rounded-xl bg-red-50/70 dark:bg-red-900/15 dark:border dark:border-red-700/25 px-3 py-2.5">
+      <div className="flex min-w-0 items-start gap-2.5 rounded-sm bg-red-50/70 dark:bg-red-900/15 border border-red-700/25 px-3 py-2.5">
         <span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-red-500 shadow-[0_0_0_4px_rgba(248,113,113,0.14)]" />
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-black leading-none text-red-500 dark:text-red-400">ต้องไปส่ง</p>
@@ -295,12 +295,12 @@ type DashboardActionVariant = 'primary' | 'secondary' | 'blue' | 'warning' | 'da
 type SectionTone = 'default' | 'amber' | 'emerald' | 'blue';
 
 const actionVariantClass: Record<DashboardActionVariant, string> = {
-  primary: 'bg-primary text-white shadow-sm hover:bg-primary/95',
-  secondary: 'border border-outline-variant/35 bg-white dark:bg-surface-container text-primary dark:text-foreground hover:border-primary/35 hover:bg-primary/5 dark:hover:bg-surface-container-low',
-  blue: 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-md hover:from-blue-600 hover:to-blue-700',
-  warning: 'border border-amber-200 dark:border-amber-700/40 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/35',
-  danger: 'border border-red-200 dark:border-red-700/40 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/35',
-  ghost: 'bg-surface-container-lowest text-primary ring-1 ring-outline-variant/10 hover:bg-surface-container',
+  primary: 'bg-primary text-primary-foreground border-2 border-outline-variant shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)]',
+  secondary: 'border-2 border-outline-variant bg-white dark:bg-surface-container text-foreground hover:bg-surface-container-low shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)]',
+  blue: 'bg-secondary text-secondary-foreground border-2 border-outline-variant shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)]',
+  warning: 'border-2 border-outline-variant bg-amber-100 dark:bg-amber-950/40 text-amber-950 dark:text-amber-300 shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)]',
+  danger: 'border-2 border-outline-variant bg-red-100 dark:bg-red-950/40 text-red-950 dark:text-red-300 shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)]',
+  ghost: 'bg-transparent text-primary hover:bg-secondary/15',
 };
 
 export const DashboardActionButton = ({
@@ -326,7 +326,7 @@ export const DashboardActionButton = ({
     type="button"
     onClick={onClick}
     disabled={disabled || loading}
-    className={`inline-flex flex-1 items-center justify-center gap-2 rounded-xl font-black transition-all active:scale-[0.98] disabled:cursor-wait disabled:opacity-70 sm:flex-none ${
+    className={`inline-flex flex-1 items-center justify-center gap-2 rounded-sm font-black transition-all disabled:cursor-wait disabled:opacity-70 sm:flex-none ${
       compact ? 'h-8 px-3 text-xs' : 'h-10 px-4 text-sm'
     } ${actionVariantClass[variant]} ${className}`}
   >
@@ -354,38 +354,38 @@ export const MessengerViewBanner = ({
 }) => {
   const toneMap: Record<SectionTone, { shell: string; icon: string; badge: string }> = {
     default: {
-      shell: 'border-outline-variant/20 bg-surface-container dark:bg-card',
-      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
-      badge: 'border-outline-variant/30 bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
+      shell: 'border-2 border-outline-variant bg-surface-container dark:bg-card shadow-[3px_3px_0px_0px_var(--outline-variant)]',
+      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant border-r-2 border-outline-variant',
+      badge: 'border-2 border-outline-variant bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
     },
     amber: {
-      shell: 'border-outline-variant/20 bg-surface-container dark:bg-card',
-      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
-      badge: 'border-outline-variant/30 bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
+      shell: 'border-2 border-outline-variant bg-surface-container dark:bg-card shadow-[3px_3px_0px_0px_var(--outline-variant)]',
+      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant border-r-2 border-outline-variant',
+      badge: 'border-2 border-outline-variant bg-amber-100 dark:bg-amber-950/40 text-amber-900 dark:text-amber-300',
     },
     emerald: {
-      shell: 'border-outline-variant/20 bg-surface-container dark:bg-card',
-      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
-      badge: 'border-outline-variant/30 bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
+      shell: 'border-2 border-outline-variant bg-surface-container dark:bg-card shadow-[3px_3px_0px_0px_var(--outline-variant)]',
+      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant border-r-2 border-outline-variant',
+      badge: 'border-2 border-outline-variant bg-emerald-100 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300',
     },
     blue: {
-      shell: 'border-outline-variant/20 bg-surface-container dark:bg-card',
-      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
-      badge: 'border-outline-variant/30 bg-surface-container-low dark:bg-surface-container text-on-surface-variant',
+      shell: 'border-2 border-outline-variant bg-surface-container dark:bg-card shadow-[3px_3px_0px_0px_var(--outline-variant)]',
+      icon: 'bg-surface-container-low dark:bg-surface-container text-on-surface-variant border-r-2 border-outline-variant',
+      badge: 'border-2 border-outline-variant bg-blue-100 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300',
     },
   };
   const classes = toneMap[tone];
   return (
-    <div className={`mb-4 flex items-start gap-4 rounded-2xl border p-4 ${classes.shell}`}>
-      <div className={`grid h-10 w-10 shrink-0 place-items-center rounded-xl ${classes.icon}`}>
+    <div className={`mb-4 flex items-stretch overflow-hidden rounded-sm ${classes.shell}`}>
+      <div className={`grid h-auto w-12 shrink-0 place-items-center ${classes.icon}`}>
         <DashboardIcon icon={icon} className="h-5 w-5" />
       </div>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 p-4">
         <div className="mb-1 flex items-center justify-between gap-2">
-          <h3 className="truncate text-sm font-bold text-on-surface dark:text-foreground">{title}</h3>
-          <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-bold ${classes.badge}`}>{count} งาน</span>
+          <h3 className="truncate text-sm font-black text-on-surface dark:text-foreground">{title}</h3>
+          <span className={`shrink-0 rounded-sm px-2 py-0.5 text-[10px] font-black ${classes.badge}`}>{count} งาน</span>
         </div>
-        <p className="text-[11px] leading-relaxed text-on-surface-variant dark:text-muted-foreground">{subtitle}</p>
+        <p className="text-[11px] font-semibold leading-relaxed text-on-surface-variant dark:text-muted-foreground">{subtitle}</p>
       </div>
     </div>
   );
@@ -404,13 +404,13 @@ export const AssignmentBadge = ({
   isReleasing?: boolean;
   onRelease?: () => void;
 }) => (
-  <div className={`flex flex-col gap-2 rounded-xl border px-3 py-2.5 text-xs font-bold sm:flex-row sm:items-center sm:justify-between ${
+  <div className={`flex flex-col gap-2 rounded-sm border-2 px-3 py-2.5 text-xs font-black sm:flex-row sm:items-center sm:justify-between shadow-[2px_2px_0px_0px_var(--outline-variant)] ${
     isMine
-      ? 'border-emerald-200 dark:border-emerald-700/40 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-300'
-      : 'border-blue-200 dark:border-blue-700/40 bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-300'
+      ? 'border-outline-variant bg-emerald-100 dark:bg-emerald-900/30 text-emerald-950 dark:text-emerald-300'
+      : 'border-outline-variant bg-blue-100 dark:bg-blue-900/30 text-blue-950 dark:text-blue-300'
   }`}>
     <span className="inline-flex min-w-0 items-center gap-2">
-      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/85">
+      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-sm border border-outline-variant bg-white/80 dark:bg-card">
         <DashboardIcon icon="person_pin_circle" className="h-4 w-4" />
       </span>
       <span className="min-w-0 truncate">
@@ -424,7 +424,7 @@ export const AssignmentBadge = ({
         loading={isReleasing}
         variant={isMine ? 'warning' : 'secondary'}
         compact
-        className="bg-white/85"
+        className="bg-white/85 dark:bg-card"
       >
         {isReleasing ? 'กำลังคืนงาน' : 'คืนงาน'}
       </DashboardActionButton>
@@ -456,7 +456,7 @@ export const CardActions = ({
       <button
         type="button"
         onClick={onConfirm}
-        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 text-sm font-semibold text-white shadow-sm transition-all hover:bg-slate-800 active:scale-[0.98]"
+        className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-sm border-2 border-outline-variant bg-slate-900 text-white font-black shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)]"
       >
         <PackageCheck className="h-4 w-4 shrink-0" aria-hidden="true" />
         ยืนยันส่ง
@@ -466,7 +466,7 @@ export const CardActions = ({
       <button
         type="button"
         onClick={onOpen}
-        className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border border-slate-100 dark:border-outline-variant bg-white dark:bg-card px-3 font-semibold text-slate-700 dark:text-foreground shadow-sm transition-all hover:bg-slate-50 dark:hover:bg-surface-container active:scale-[0.98] ${
+        className={`inline-flex min-w-0 items-center justify-center gap-2 rounded-sm border-2 border-outline-variant bg-white dark:bg-card px-3 font-black text-foreground shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)] ${
           compactDetail ? 'h-10 text-xs' : 'h-11 text-sm'
         }`}
       >
@@ -477,7 +477,7 @@ export const CardActions = ({
         <button
           type="button"
           onClick={onDelete}
-          className={`inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 dark:border-red-700/40 bg-red-50 dark:bg-red-900/20 px-3 font-semibold text-red-600 dark:text-red-300 shadow-sm transition-all hover:bg-red-100 dark:hover:bg-red-900/35 active:scale-[0.98] ${
+          className={`inline-flex items-center justify-center gap-2 rounded-sm border-2 border-outline-variant bg-red-100 dark:bg-red-950/40 px-3 font-black text-red-700 dark:text-red-300 shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)] active:translate-x-[1px] active:translate-y-[1px] active:shadow-[1px_1px_0px_0px_var(--outline-variant)] ${
             compactDetail ? 'h-10 text-xs' : 'h-11 text-sm'
           }`}
           aria-label="ลบรายการ"
@@ -510,13 +510,13 @@ export const DeliveryInfoRow = ({
   };
 
   return (
-    <div className="flex min-w-0 items-start gap-3 rounded-2xl border border-slate-100 dark:border-outline-variant bg-white dark:bg-card p-3 shadow-sm">
-      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-xl ${toneClasses[tone]}`}>
+    <div className="flex min-w-0 items-start gap-3 rounded-sm border-2 border-outline-variant bg-white dark:bg-card p-3 shadow-[2px_2px_0px_0px_var(--outline-variant)]">
+      <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-sm border border-outline-variant ${toneClasses[tone]}`}>
         <span className="material-symbols-outlined text-xl" aria-hidden="true">{icon}</span>
       </span>
       <div className="min-w-0 flex-1">
-        <p className="text-[10px] font-bold leading-none text-slate-400">{label}</p>
-        <p className="mt-1 whitespace-pre-wrap break-words text-sm font-black leading-snug text-slate-900 dark:text-foreground">
+        <p className="text-[10px] font-black leading-none text-muted-foreground">{label}</p>
+        <p className="mt-1 whitespace-pre-wrap break-words text-sm font-black leading-snug text-foreground">
           {value?.trim() || '-'}
         </p>
       </div>

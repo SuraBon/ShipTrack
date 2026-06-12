@@ -120,3 +120,6 @@ vite.config.ts.timestamp-*
 
 # Codex agent log files
 codex-*.log
+
+# Agent configurations and artifacts
+.agents/

@@ -16,6 +16,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 
 const INITIAL_VISIBLE_COUNT = 24;
 const BATCH_SIZE = 12;
@@ -131,40 +134,41 @@ export default function BranchManagement() {
             <p className="app-page-subtitle">เพิ่มหรือลบรายการตัวเลือกที่ใช้ในเมนูเลือกของระบบ</p>
           </div>
         </div>
-        <button onClick={refreshBranches} disabled={loading} className="app-secondary-button h-10 px-3">
-          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
+        <Button variant="secondary" onClick={refreshBranches} disabled={loading} className="h-10 px-3">
+          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} aria-hidden="true" />
           รีเฟรช
-        </button>
+        </Button>
       </div>
 
-      <form onSubmit={handleCreate} className="app-panel grid gap-3 p-4 md:grid-cols-[1fr_auto]">
-        <div>
-          <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">ชื่อแผนก/สาขาใหม่</label>
-          <input
-            value={newBranch}
-            onChange={event => setNewBranch(event.target.value)}
-            disabled={saving}
-            placeholder="เช่น Accounting - COM7 หรือ เดอะมอลล์บางกะปิ"
-            className="app-input w-full"
-          />
-        </div>
-        <button type="submit" disabled={saving} className="app-primary-button self-end">
-          {saving ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
-          เพิ่ม
-        </button>
-      </form>
+      <Card className="shadow-sm">
+        <form onSubmit={handleCreate} className="grid gap-3 p-4 md:grid-cols-[1fr_auto] items-end">
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">ชื่อแผนก/สาขาใหม่</label>
+            <Input
+              value={newBranch}
+              onChange={event => setNewBranch(event.target.value)}
+              disabled={saving}
+              placeholder="เช่น Accounting - COM7 หรือ เดอะมอลล์บางกะปิ"
+            />
+          </div>
+          <Button type="submit" disabled={saving}>
+            {saving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="mr-2 h-4 w-4" aria-hidden="true" />}
+            เพิ่ม
+          </Button>
+        </form>
+      </Card>
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-        <input
+        <Input
           value={search}
           onChange={event => setSearch(event.target.value)}
           placeholder="ค้นหาแผนก/สาขา..."
-          className="app-input w-full pl-10"
+          className="pl-10"
         />
       </div>
 
-      <div className="app-panel overflow-hidden">
+      <Card className="shadow-sm overflow-hidden">
         <div className="border-b border-outline-variant/10 bg-surface-container-lowest/50 px-4 py-3">
           <p className="text-xs font-semibold text-muted-foreground">
             แสดง {filtered.length} จาก {branches.length} รายการ
@@ -226,17 +230,17 @@ export default function BranchManagement() {
         )}
 
         {filtered.length > visibleCount && (
-          <div className="border-t border-outline-variant/10 p-3.5 flex justify-center">
-            <button
-              type="button"
+          <div className="border-t p-3.5 flex justify-center">
+            <Button
+              variant="secondary"
               onClick={() => setVisibleCount(current => current + BATCH_SIZE)}
-              className="app-secondary-button h-10 px-6 text-xs"
+              className="px-6 text-xs"
             >
               แสดงเพิ่ม {Math.min(BATCH_SIZE, filtered.length - visibleCount)} รายการ
-            </button>
+            </Button>
           </div>
         )}
-      </div>
+      </Card>
 
 
 
@@ -276,32 +280,30 @@ export default function BranchManagement() {
           <form onSubmit={handleEdit} className="grid gap-4 py-4">
             <div>
               <label className="mb-1.5 block text-xs font-semibold text-muted-foreground">ชื่อแผนก/สาขา</label>
-              <input
+              <Input
                 value={editBranchName}
                 onChange={event => setEditBranchName(event.target.value)}
                 disabled={editing}
                 placeholder="เช่น Accounting - COM7"
-                className="app-input w-full"
                 required
               />
             </div>
             <div className="flex justify-end gap-2">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setBranchToEdit(null)}
                 disabled={editing}
-                className="app-secondary-button rounded-xl px-4"
               >
                 ยกเลิก
-              </button>
-              <button
+              </Button>
+              <Button
                 type="submit"
                 disabled={editing}
-                className="app-primary-button rounded-xl px-4"
               >
                 {editing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" /> : <Edit3 className="mr-2 h-4 w-4" aria-hidden="true" />}
                 บันทึก
-              </button>
+              </Button>
             </div>
           </form>
         </DialogContent>

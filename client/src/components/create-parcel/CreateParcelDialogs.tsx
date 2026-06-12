@@ -1,5 +1,6 @@
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
+import { Button } from '@/components/ui/button';
 import { resolveSelectValue } from '@/components/NativeSelect';
 import type { CreateParcelDraft } from '@/lib/createParcelDraft';
 import type { GeoPosition } from '@/hooks/useGeolocation';
@@ -145,27 +146,30 @@ export function CreateParcelDialogs({
           {/* Footer */}
           <div className="border-t border-outline-variant bg-surface p-4 sm:p-5">
             <div className="grid grid-cols-2 gap-3">
-              <button
+              <Button
+                variant="outline"
+                size="lg"
                 onClick={() => setIsConfirmOpen(false)}
-                className="app-secondary-button h-12 w-full rounded-xl text-base font-bold"
+                className="w-full text-base font-bold"
               >
-                <span className="material-symbols-outlined text-lg" aria-hidden="true">arrow_back</span>
+                <span className="material-symbols-outlined mr-2 text-lg" aria-hidden="true">arrow_back</span>
                 แก้ไข
-              </button>
-              <button
+              </Button>
+              <Button
+                size="lg"
                 onClick={handleConfirmSubmit}
                 disabled={isLoading}
-                className="app-primary-button h-12 w-full rounded-xl text-base font-bold"
+                className="w-full text-base font-bold"
               >
                 {isLoading ? (
                   <Spinner className="h-5 w-5" />
                 ) : (
                   <>
                     ยืนยันสร้างรายการ
-                    <span className="material-symbols-outlined text-lg" aria-hidden="true">verified</span>
+                    <span className="material-symbols-outlined ml-2 text-lg" aria-hidden="true">verified</span>
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -205,20 +209,23 @@ export function CreateParcelDialogs({
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            <button
+            <Button
+              variant="outline"
+              size="lg"
               onClick={handleCopyTrackingId}
-              className="flex h-12 min-w-0 items-center justify-center gap-2 rounded-xl border border-outline-variant bg-surface text-sm font-bold text-foreground transition-colors hover:bg-surface-container"
+              className="w-full"
             >
-              <span className="material-symbols-outlined text-xl" aria-hidden="true">content_copy</span>
+              <span className="material-symbols-outlined mr-2 text-xl" aria-hidden="true">content_copy</span>
               คัดลอกหมายเลข
-            </button>
-            <button
+            </Button>
+            <Button
+              size="lg"
               onClick={() => setIsResultOpen(false)}
-              className="flex h-12 min-w-0 items-center justify-center gap-2 rounded-xl bg-slate-950 text-sm font-bold text-white shadow-lg shadow-slate-200 transition-colors hover:bg-slate-900"
+              className="w-full"
             >
-              <span className="material-symbols-outlined text-xl" aria-hidden="true">done</span>
+              <span className="material-symbols-outlined mr-2 text-xl" aria-hidden="true">done</span>
               เสร็จสิ้น
-            </button>
+            </Button>
           </div>
         </div>
         </div>

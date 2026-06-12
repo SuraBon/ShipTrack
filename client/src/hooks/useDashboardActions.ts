@@ -7,6 +7,7 @@ import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 
 import { GeoPosition, GeoStatus } from '@/hooks/useGeolocation';
+import { isInvalidCoordinates, getFallbackCoordinates } from '@/lib/gpsQuality';
 
 export type MessengerView = 'waiting' | 'mine' | 'done';
 export type DashboardBatchResult = {
@@ -121,7 +122,21 @@ export function useDashboardActions({
     const trackingIds = Array.from(new Set(parcelsToStart.map(parcel => parcel.TrackingID))).filter(Boolean);
     if (trackingIds.length === 0) return { success: false, successCount: 0, failedCount: 0, failedIds: [] };
     const toastId = toast.loading(`กำลังรับงาน ${trackingIds.length} รายการ...`);
-    const res = await batchStartDelivery(trackingIds, latitude, longitude);
+    
+    let finalLat = latitude;
+    let finalLng = longitude;
+    if (isInvalidCoordinates(finalLat, finalLng) && parcelsToStart.length > 0) {
+      const destBranch = parcelsToStart[0]['สาขาผู้รับ'];
+      if (destBranch) {
+        const fallback = getFallbackCoordinates(destBranch);
+        if (fallback) {
+          finalLat = fallback.latitude;
+          finalLng = fallback.longitude;
+        }
+      }
+    }
+
+    const res = await batchStartDelivery(trackingIds, finalLat, finalLng);
     if (res.queued) {
       toast.info(`บันทึกรับงาน ${trackingIds.length} รายการในคิวออฟไลน์แล้ว`, { id: toastId });
       return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
@@ -156,7 +171,21 @@ export function useDashboardActions({
     const trackingIds = Array.from(new Set(parcelsToConfirm.map(parcel => parcel.TrackingID))).filter(Boolean);
     if (trackingIds.length === 0) return { success: false, successCount: 0, failedCount: 0, failedIds: [] };
     const toastId = toast.loading(`กำลังยืนยันส่ง ${trackingIds.length} รายการ...`);
-    const res = await batchConfirmReceipt(trackingIds, photoUrl, note, latitude, longitude);
+
+    let finalLat = latitude;
+    let finalLng = longitude;
+    if (isInvalidCoordinates(finalLat, finalLng) && parcelsToConfirm.length > 0) {
+      const destBranch = parcelsToConfirm[0]['สาขาผู้รับ'];
+      if (destBranch) {
+        const fallback = getFallbackCoordinates(destBranch);
+        if (fallback) {
+          finalLat = fallback.latitude;
+          finalLng = fallback.longitude;
+        }
+      }
+    }
+
+    const res = await batchConfirmReceipt(trackingIds, photoUrl, note, finalLat, finalLng);
     if (res.queued) {
       toast.info(`บันทึกยืนยันส่ง ${trackingIds.length} รายการในคิวออฟไลน์แล้ว`, { id: toastId });
       return { success: true, queued: true, successCount: trackingIds.length, failedCount: 0, failedIds: [] };
@@ -192,10 +221,24 @@ export function useDashboardActions({
     if (!messengerPosition && messengerGeoStatus !== 'loading') requestMessengerLocation();
     setStartingDeliveryId(parcel.TrackingID);
     const toastId = toast.loading('กำลังรับงาน...');
+    
+    let finalLat = messengerPosition?.latitude;
+    let finalLng = messengerPosition?.longitude;
+    if (isInvalidCoordinates(finalLat, finalLng)) {
+      const destBranch = parcel['สาขาผู้รับ'];
+      if (destBranch) {
+        const fallback = getFallbackCoordinates(destBranch);
+        if (fallback) {
+          finalLat = fallback.latitude;
+          finalLng = fallback.longitude;
+        }
+      }
+    }
+
     const res = await startDelivery(
       parcel.TrackingID,
-      messengerPosition?.latitude,
-      messengerPosition?.longitude,
+      finalLat,
+      finalLng,
     );
     setStartingDeliveryId(null);
 
@@ -216,8 +259,8 @@ export function useDashboardActions({
       destLocation: parcel['สาขาผู้รับ'] || '',
       person: res.assignedToName || user?.name || user?.employeeId || '',
       note: buildAssignmentNote(res.assignedToId || currentEmployeeId),
-      latitude: messengerPosition?.latitude,
-      longitude: messengerPosition?.longitude,
+      latitude: finalLat,
+      longitude: finalLng,
     };
     const pickupEvent = res.autoPickedUp ? {
       id: `LOCAL-PICKUP-${Date.now()}`,
@@ -228,8 +271,8 @@ export function useDashboardActions({
       destLocation: parcel['สาขาผู้รับ'] || '',
       person: res.assignedToName || user?.name || user?.employeeId || '',
       note: 'autoPickup=originGpsMatched',
-      latitude: messengerPosition?.latitude,
-      longitude: messengerPosition?.longitude,
+      latitude: finalLat,
+      longitude: finalLng,
     } : null;
 
     const hasLocalAssignment = Boolean(getActiveDeliveryAssignment(parcel));

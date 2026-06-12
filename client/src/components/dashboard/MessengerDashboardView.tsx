@@ -79,14 +79,14 @@ export function MessengerDashboardView({
   return (
     <div className="space-y-4 p-0 pb-20">
       {messengerBatchMode && selectedMessengerParcelIds.size > 0 && (
-        <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-2xl border border-blue-100 bg-white/95 px-4 py-3 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-sm font-bold text-slate-700">
+        <div className="sticky top-2 z-30 flex flex-col gap-3 rounded-sm border-2 border-outline-variant bg-white/95 dark:bg-card/95 px-4 py-3 shadow-[3px_3px_0px_0px_var(--outline-variant)] backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-sm font-black text-foreground">
             {messengerBatchMode === 'start'
               ? `เลือกแล้ว ${selectedMessengerParcelIds.size} รายการ • รับได้ ${messengerBatchActionCount}`
               : `เลือกแล้ว ${selectedMessengerParcelIds.size} รายการ • ส่งได้ ${messengerBatchActionCount}`}
           </span>
           <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-            <button type="button" onClick={clearSelectedMessengerParcels} className="app-secondary-button h-10 px-3 text-xs">
+            <button type="button" onClick={clearSelectedMessengerParcels} className="app-secondary-button h-10 px-3 text-xs rounded-sm border-2 border-outline-variant font-black">
               ยกเลิกเลือก
             </button>
             {messengerBatchMode === 'start' ? (
@@ -94,7 +94,7 @@ export function MessengerDashboardView({
                 type="button"
                 onClick={handleBatchStartDelivery}
                 disabled={messengerBatchActionCount === 0 || isBatchStarting}
-                className="app-primary-button h-10 px-3 text-xs disabled:opacity-60"
+                className="app-primary-button h-10 px-3 text-xs rounded-sm border-2 border-outline-variant font-black disabled:opacity-60"
               >
                 {isBatchStarting ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />}
                 {isBatchStarting ? 'กำลังรับงาน...' : 'รับพร้อมกัน'}
@@ -104,7 +104,7 @@ export function MessengerDashboardView({
                 type="button"
                 onClick={() => setIsBatchConfirmOpen(true)}
                 disabled={messengerBatchActionCount === 0}
-                className="app-primary-button h-10 px-3 text-xs disabled:opacity-60"
+                className="app-primary-button h-10 px-3 text-xs rounded-sm border-2 border-outline-variant font-black disabled:opacity-60"
               >
                 <PackageCheck className="h-3.5 w-3.5" aria-hidden="true" />
                 ส่งพร้อมกัน

@@ -13,6 +13,8 @@ import { isValidTrackingId, sanitizeTextInput } from '@/lib/validation';
 import { UI_COPY } from '@/lib/uiCopy';
 import { translateSystemNote } from '@/lib/translationUtils';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { useRealtimeParcel } from '@/hooks/useRealtimeParcel';
 import {
   getCreatedParcelProofPhoto,
@@ -387,31 +389,32 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
               </div>
 
               <div className="modal-scroll flex-1 overflow-y-auto bg-card p-5 sm:p-6">
-                <div className="app-card p-4">
-                  <div className="mb-4 flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3">
-                      <div className="grid size-10 place-items-center rounded-xl bg-blue-50 dark:bg-blue-900/25 text-blue-600 dark:text-blue-300">
-                        <span className="material-symbols-outlined text-2xl" aria-hidden="true">route</span>
+                <Card className="shadow-sm mb-4">
+                  <CardContent className="p-4 sm:p-5">
+                    <div className="mb-4 flex items-start justify-between gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="grid size-10 place-items-center rounded-xl bg-blue-50 dark:bg-blue-900/25 text-blue-600 dark:text-blue-300">
+                          <span className="material-symbols-outlined text-2xl" aria-hidden="true">route</span>
+                        </div>
+                        <div>
+                          <p className="font-display text-base font-black text-foreground">ประวัติสถานะการจัดส่ง</p>
+                          <p className="text-xs font-semibold text-muted-foreground">สถานะล่าสุดอยู่ด้านบน พร้อมเวลาและจุดที่บันทึก</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-display text-base font-black text-foreground">ประวัติสถานะการจัดส่ง</p>
-                        <p className="text-xs font-semibold text-muted-foreground">สถานะล่าสุดอยู่ด้านบน พร้อมเวลาและจุดที่บันทึก</p>
-                      </div>
+                      {hasLocationData && (
+                        <Button
+                          variant="secondary"
+                          onClick={() => setIsMapOpen(true)}
+                          className="shrink-0 text-sm font-bold rounded-2xl px-3 py-2"
+                        >
+                          <span className="material-symbols-outlined mr-2 text-xl" aria-hidden="true">map</span>
+                          แผนที่
+                        </Button>
+                      )}
                     </div>
-                    {hasLocationData && (
-                      <button
-                        type="button"
-                        onClick={() => setIsMapOpen(true)}
-                        className="app-secondary-button inline-flex shrink-0 rounded-2xl px-3 py-2 text-sm font-bold"
-                      >
-                        <span className="material-symbols-outlined text-2xl" aria-hidden="true">map</span>
-                        แผนที่
-                      </button>
-                    )}
-                  </div>
-
-                  <Timeline events={timelineEvents} compact />
-                </div>
+                    <Timeline events={timelineEvents} compact />
+                  </CardContent>
+                </Card>
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
                   <div className="rounded-3xl border border-outline-variant bg-surface-container p-3">
@@ -484,16 +487,18 @@ export default function Track({ embedded = false }: { embedded?: boolean }) {
 
       {/* Empty state */}
       {!parcel && !searchResults.length && notFoundQuery && !isLoading && (
-        <div className="app-card border-dashed p-8 text-center animate-in fade-in zoom-in-95 duration-400 sm:p-10">
-          <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg bg-muted">
-            <span className="material-symbols-outlined text-3xl text-muted-foreground" aria-hidden="true">search_off</span>
-          </div>
-          <h3 className="text-lg font-semibold text-foreground">ไม่พบรายการส่ง</h3>
-          <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">ไม่พบรายการที่ค้นหา กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
-          <button onClick={() => { setTrackingId(''); setNotFoundQuery(null); }} className="mt-4 text-sm font-semibold text-primary hover:underline">
-            ล้างและค้นหาใหม่
-          </button>
-        </div>
+        <Card className="border-dashed shadow-sm text-center animate-in fade-in zoom-in-95 duration-400">
+          <CardContent className="p-8 sm:p-10 flex flex-col items-center">
+            <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-lg bg-muted">
+              <span className="material-symbols-outlined text-3xl text-muted-foreground" aria-hidden="true">search_off</span>
+            </div>
+            <h3 className="text-lg font-semibold text-foreground">ไม่พบรายการส่ง</h3>
+            <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">ไม่พบรายการที่ค้นหา กรุณาตรวจสอบหมายเลขติดตามอีกครั้ง</p>
+            <Button variant="link" onClick={() => { setTrackingId(''); setNotFoundQuery(null); }} className="mt-4 text-sm font-semibold text-primary">
+              ล้างและค้นหาใหม่
+            </Button>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

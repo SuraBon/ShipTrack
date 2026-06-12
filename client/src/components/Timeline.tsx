@@ -242,6 +242,11 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                           {event.description}
                         </p>
                       )}
+                      {event.note && (
+                        <p className="mt-2 text-[11px] font-black leading-snug text-orange-800 dark:text-orange-450 bg-orange-500/10 px-2.5 py-1.5 rounded-sm border border-outline-variant/35">
+                          หมายเหตุ: {event.note}
+                        </p>
+                      )}
                     </div>
                     {event.imageUrl && (
                       <ImagePopup
@@ -356,6 +361,15 @@ export default function Timeline({ events, className = '', compact = false }: Ti
                     {event.description && (
                       <p className={`${compact ? 'text-xs leading-snug' : 'text-sm leading-relaxed'} font-medium ${event.status === 'pending' ? 'text-on-surface-variant/40' : 'text-on-surface-variant/70'}`}>
                         {event.description}
+                      </p>
+                    )}
+                    {event.note && (
+                      <p className={`mt-2 text-xs font-black leading-relaxed px-2.5 py-1.5 rounded-sm border ${
+                        event.status === 'pending'
+                          ? 'text-on-surface-variant/35 border-outline-variant/20 bg-surface-container/50'
+                          : 'text-orange-850 dark:text-orange-350 border-outline-variant/35 bg-orange-100/35 dark:bg-amber-950/20 shadow-[1px_1px_0px_0px_var(--outline-variant)]'
+                      }`}>
+                        หมายเหตุ: {event.note}
                       </p>
                     )}
                   </div>

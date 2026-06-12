@@ -132,7 +132,7 @@ export function DashboardDialogs({
       >
         <DialogContent
           showCloseButton={false}
-          className="flex max-h-[min(92dvh,100vh)] w-[calc(100vw-0.75rem)] max-w-2xl flex-col overflow-hidden rounded-2xl border border-gray-100 bg-white p-0 shadow-2xl sm:w-[calc(100vw-1rem)] sm:rounded-[1.75rem]"
+          className="flex max-h-[min(92dvh,100vh)] w-[calc(100vw-0.75rem)] max-w-2xl flex-col overflow-hidden rounded-sm border-2 border-outline-variant bg-white dark:bg-card p-0 shadow-[4px_4px_0px_0px_var(--outline-variant)] sm:w-[calc(100vw-1rem)]"
         >
           <DialogTitle className="sr-only">ยืนยันการส่ง</DialogTitle>
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -158,22 +158,22 @@ export function DashboardDialogs({
 
       {/* ── Delete Confirm Dialog ── */}
       <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-        <AlertDialogContent className="rounded-2xl">
+        <AlertDialogContent className="rounded-sm border-2 border-outline-variant bg-white dark:bg-card shadow-[4px_4px_0px_0px_var(--outline-variant)]">
           <AlertDialogHeader>
-            <AlertDialogTitle className="font-display text-primary">ยืนยันการลบรายการ</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="font-display font-black text-foreground">ยืนยันการลบรายการ</AlertDialogTitle>
+            <AlertDialogDescription className="font-semibold">
               คุณแน่ใจหรือไม่ว่าต้องการลบรายการ{' '}
-              <code className="font-mono font-bold text-primary bg-primary/8 px-1.5 py-0.5 rounded">
+              <code className="font-mono font-black text-red-600 bg-red-100 px-1.5 py-0.5 rounded-sm border border-outline-variant">
                 {selectedParcel?.TrackingID}
               </code>
               {' '}การดำเนินการนี้ไม่สามารถย้อนกลับได้
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-xl">ยกเลิก</AlertDialogCancel>
+          <AlertDialogFooter className="gap-2 sm:gap-0">
+            <AlertDialogCancel className="rounded-sm border-2 border-outline-variant font-black">ยกเลิก</AlertDialogCancel>
             <AlertDialogAction
               onClick={executeDelete}
-              className="rounded-xl bg-error text-white hover:bg-error/90"
+              className="rounded-sm border-2 border-outline-variant bg-red-100 text-red-700 dark:text-red-300 font-black shadow-[2px_2px_0px_0px_var(--outline-variant)] hover:translate-x-[-1px] hover:translate-y-[-1px] hover:shadow-[3px_3px_0px_0px_var(--outline-variant)]"
             >
               ลบรายการ
             </AlertDialogAction>

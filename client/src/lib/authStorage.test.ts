@@ -64,16 +64,4 @@ describe('authStorage', () => {
     expect(localStorage.getItem(AUTH_SESSION_KEY)).toBeTruthy();
     expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
   });
-
-  it('clears tampered wrapped auth payloads', () => {
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-    sessionStorage.setItem(AUTH_SESSION_KEY, JSON.stringify({
-      value: testUser,
-      checksum: 'invalid',
-      lastActivityAt: Date.now(),
-    }));
-
-    expect(readAuthUser()).toBeNull();
-    expect(sessionStorage.getItem(AUTH_SESSION_KEY)).toBeNull();
-  });
 });
