@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildGpsEvidenceNote, getGpsQuality, needsGpsOverrideReason, isInvalidCoordinates, getFallbackCoordinates } from './gpsQuality';
+import { buildGpsEvidenceNote, getGpsQuality, needsGpsOverrideReason, isInvalidCoordinates } from './gpsQuality';
 
 describe('gpsQuality', () => {
   it('classifies GPS state for delivery UX', () => {
@@ -30,12 +30,6 @@ describe('gpsQuality', () => {
     expect(isInvalidCoordinates(13.75, 100.5)).toBe(false);
     expect(isInvalidCoordinates(4.9, 100)).toBe(true); // outside Thailand lat
     expect(isInvalidCoordinates(13.75, 96)).toBe(true);  // outside Thailand lng
-  });
-
-  it('gets fallback coordinates for branches', () => {
-    expect(getFallbackCoordinates('บางนา')).toEqual({ latitude: 13.6678, longitude: 100.6224 });
-    expect(getFallbackCoordinates('เดอะมอลล์บางกะปิ')).toEqual({ latitude: 13.7663, longitude: 100.6433 });
-    expect(getFallbackCoordinates('nonexistent')).toBeNull();
   });
 });
 

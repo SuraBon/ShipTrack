@@ -7,7 +7,7 @@ import type { Parcel } from '@/types/parcel';
 import { toast } from 'sonner';
 
 import { GeoPosition, GeoStatus } from '@/hooks/useGeolocation';
-import { isInvalidCoordinates, getFallbackCoordinates } from '@/lib/gpsQuality';
+import { isInvalidCoordinates } from '@/lib/gpsQuality';
 
 export type MessengerView = 'waiting' | 'mine' | 'done';
 export type DashboardBatchResult = {
@@ -125,15 +125,9 @@ export function useDashboardActions({
     
     let finalLat = latitude;
     let finalLng = longitude;
-    if (isInvalidCoordinates(finalLat, finalLng) && parcelsToStart.length > 0) {
-      const destBranch = parcelsToStart[0]['สาขาผู้รับ'];
-      if (destBranch) {
-        const fallback = getFallbackCoordinates(destBranch);
-        if (fallback) {
-          finalLat = fallback.latitude;
-          finalLng = fallback.longitude;
-        }
-      }
+    if (isInvalidCoordinates(finalLat, finalLng)) {
+      finalLat = undefined;
+      finalLng = undefined;
     }
 
     const res = await batchStartDelivery(trackingIds, finalLat, finalLng);
@@ -174,15 +168,9 @@ export function useDashboardActions({
 
     let finalLat = latitude;
     let finalLng = longitude;
-    if (isInvalidCoordinates(finalLat, finalLng) && parcelsToConfirm.length > 0) {
-      const destBranch = parcelsToConfirm[0]['สาขาผู้รับ'];
-      if (destBranch) {
-        const fallback = getFallbackCoordinates(destBranch);
-        if (fallback) {
-          finalLat = fallback.latitude;
-          finalLng = fallback.longitude;
-        }
-      }
+    if (isInvalidCoordinates(finalLat, finalLng)) {
+      finalLat = undefined;
+      finalLng = undefined;
     }
 
     const res = await batchConfirmReceipt(trackingIds, photoUrl, note, finalLat, finalLng);
@@ -225,14 +213,8 @@ export function useDashboardActions({
     let finalLat = messengerPosition?.latitude;
     let finalLng = messengerPosition?.longitude;
     if (isInvalidCoordinates(finalLat, finalLng)) {
-      const destBranch = parcel['สาขาผู้รับ'];
-      if (destBranch) {
-        const fallback = getFallbackCoordinates(destBranch);
-        if (fallback) {
-          finalLat = fallback.latitude;
-          finalLng = fallback.longitude;
-        }
-      }
+      finalLat = undefined;
+      finalLng = undefined;
     }
 
     const res = await startDelivery(

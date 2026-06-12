@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import type { DeliveryMatchStatus, Parcel } from '@/types/parcel';
 import { confirmNavButtonClass, embeddedStepBodyClass, ParcelJobSummary } from './ConfirmReceiptShared';
 import { useConfirmReceiptContext } from '@/contexts/ConfirmReceiptContext';
-import { isInvalidCoordinates, getFallbackCoordinates } from '@/lib/gpsQuality';
+import { isInvalidCoordinates } from '@/lib/gpsQuality';
 
 interface Step3ConfirmDetailsProps {
   embedded: boolean;
@@ -61,7 +61,6 @@ export function Step3ConfirmDetails({
     ? resolveSelectValue(tempReceiverBranch) 
     : checkedParcel?.['สาขาผู้รับ'];
   const isGpsInvalid = isInvalidCoordinates(position?.latitude, position?.longitude);
-  const fallbackCoords = destBranch ? getFallbackCoordinates(destBranch) : null;
   return (
     <div className="animate-in slide-in-from-right-4 duration-500">
       <Card className={`border-0 shadow-none sm:border sm:shadow-sm ${embedded ? 'bg-transparent' : 'overflow-hidden'}`}>
@@ -168,17 +167,8 @@ export function Step3ConfirmDetails({
                 <div className="min-w-0 w-full">
                   <p className="text-[10px] font-black text-amber-950/60 mb-0.5">ตำแหน่ง GPS ไม่พร้อมใช้งานหรือพิกัดผิดปกติ</p>
                   <p className="text-xs font-black leading-snug text-amber-950">
-                    ระบบจะใช้พิกัดทดแทนของสาขาปลายทาง: {destBranch || '-'}
+                    ระบบจะบันทึกข้อมูลการจัดส่งโดยไม่มีพิกัดตำแหน่งภูมิศาสตร์ และระบุปลายทางตามจริง: {destBranch || '-'}
                   </p>
-                  {fallbackCoords ? (
-                    <p className="mt-1 font-mono text-xs font-black text-amber-900 leading-tight">
-                      พิกัดทดแทน: {fallbackCoords.latitude.toFixed(6)}, {fallbackCoords.longitude.toFixed(6)}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs font-semibold text-amber-800 leading-tight">
-                      (ไม่พบพิกัดทดแทนสำหรับสาขานี้)
-                    </p>
-                  )}
                 </div>
               </div>
             </div>
